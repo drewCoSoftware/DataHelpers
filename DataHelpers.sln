@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataHelpers", "DataHelpers\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataHelpersTools", "DataHelpersTools\DataHelpersTools.csproj", "{048A2372-EA49-4F4E-B9CD-6F37CE376354}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataHelpersTesters", "DataHelpersTesters\DataHelpersTesters.csproj", "{2C388BBA-F12F-4449-A470-B8DEB64D818B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{048A2372-EA49-4F4E-B9CD-6F37CE376354}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{048A2372-EA49-4F4E-B9CD-6F37CE376354}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{048A2372-EA49-4F4E-B9CD-6F37CE376354}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2C388BBA-F12F-4449-A470-B8DEB64D818B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2C388BBA-F12F-4449-A470-B8DEB64D818B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2C388BBA-F12F-4449-A470-B8DEB64D818B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2C388BBA-F12F-4449-A470-B8DEB64D818B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

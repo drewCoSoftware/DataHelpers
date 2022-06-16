@@ -2,7 +2,7 @@
 using System.Data;
 using static Dapper.SqlMapper;
 
-namespace officepark.io.Data;
+namespace DataHelpers.Data;
 
   // ============================================================================================================================
   public class DateTimeOffsetHandler : TypeHandler<DateTimeOffset>

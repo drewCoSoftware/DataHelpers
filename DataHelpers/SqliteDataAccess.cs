@@ -3,7 +3,7 @@ using Dapper;
 using drewCo.Tools;
 using Microsoft.Data.Sqlite;
 
-namespace officepark.io.Data;
+namespace DataHelpers.Data;
 
 // ==========================================================================
 public interface IDataAccess

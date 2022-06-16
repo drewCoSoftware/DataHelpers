@@ -1,6 +1,6 @@
 ﻿using drewCo.Tools;
 
-namespace officepark.io.Data;
+namespace DataHelpers.Data;
 
 // ============================================================================================================================
 public class SqliteFlavor : ISqlFlavor

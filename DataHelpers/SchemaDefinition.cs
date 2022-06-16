@@ -4,7 +4,7 @@ using System.Collections;
 using System.Collections.ObjectModel;
 using System.Text.Json.Serialization;
 
-namespace officepark.io.Data;
+namespace DataHelpers.Data;
 
 // ============================================================================================================================
 public class SchemaDefinition

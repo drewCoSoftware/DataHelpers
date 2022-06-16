@@ -1,6 +1,6 @@
 ﻿using drewCo.Curations;
 
-namespace officepark.io.Data;
+namespace DataHelpers.Data;
 
 // ============================================================================================================================
 public interface IHasPrimary

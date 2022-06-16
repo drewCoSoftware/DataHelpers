@@ -8,7 +8,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Web;
 
-namespace officepark.io.Data;
+namespace DataHelpers.Data;
 
 // ============================================================================================================================
 public class DynamicTypeManager
