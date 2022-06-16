@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30114.105
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataHelpers", "DataHelpers\DataHelpers.csproj", "{3CD188F1-5035-42CD-B75F-2545F8E1C060}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataHelpersTools", "DataHelpersTools\DataHelpersTools.csproj", "{048A2372-EA49-4F4E-B9CD-6F37CE376354}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3CD188F1-5035-42CD-B75F-2545F8E1C060}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3CD188F1-5035-42CD-B75F-2545F8E1C060}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3CD188F1-5035-42CD-B75F-2545F8E1C060}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3CD188F1-5035-42CD-B75F-2545F8E1C060}.Release|Any CPU.Build.0 = Release|Any CPU
+		{048A2372-EA49-4F4E-B9CD-6F37CE376354}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{048A2372-EA49-4F4E-B9CD-6F37CE376354}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{048A2372-EA49-4F4E-B9CD-6F37CE376354}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{048A2372-EA49-4F4E-B9CD-6F37CE376354}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
