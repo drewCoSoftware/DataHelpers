@@ -14,6 +14,39 @@ namespace DataHelpersTesters
   // ==========================================================================   
   public class SqliteSchemaTesters
   {
+
+    // --------------------------------------------------------------------------------------------------------------------------
+    /// <summary>
+    /// Shows that it isn't possible to create a schema with a non-primary (IHasPrimary) type that has a child
+    /// relationship.
+    /// </summary>
+    [Fact]
+    public void CantHaveChildRelationshipOnNonPrimaryKeyType()
+    {
+      // Complete this test!
+      // BONK!
+      Assert.Throws<InvalidOperationException>(() =>
+      {
+        var schema = new SchemaDefinition(new SqliteFlavor(), typeof(SchemaWithNonPrimaryParentType));
+      });
+    }
+
+
+
+    // --------------------------------------------------------------------------------------------------------------------------
+    /// <summary>
+    /// Shows that a schema with a circular dependency (parent -> child -> child(parent)) is not valid and will crash.
+    /// </summary>
+    [Fact]
+    public void CantCreateSchemaWithCircularDependency()
+    {
+      // BONK!
+      Assert.Throws<InvalidOperationException>(() =>
+      {
+        var schema = new SchemaDefinition(new SqliteFlavor(), typeof(SchemaWithCircularDependency));
+      });
+    }
+
     // --------------------------------------------------------------------------------------------------------------------------
     /// <summary>
     /// Shows that we can get a SQL statement that creates a table that references another.
@@ -35,8 +68,8 @@ namespace DataHelpersTesters
       // Make sure that this table def has a column that points to the parent table.
       var table = schema.GetTableDef("Kids");
       Assert.NotNull(table);
-      Assert.Single(table!.DependentTables);
-      Assert.Equal(table.DependentTables[0].Def.Name, nameof(ExampleSchema.Parents));
+      Assert.Single(table!.ParentTables);
+      Assert.Equal(table.ParentTables[0].Def.Name, nameof(ExampleSchema.Parents));
 
       // NOTE: We don't really have a way to check + validate output SQL at this time.
       // It would be rad to have some kind of system that was able to save the current query in a
@@ -117,26 +150,58 @@ namespace DataHelpersTesters
 
 
   // ==========================================================================
-  class ExampleChild
+  public class ExampleChild
   {
     public string? Label { get; set; }
+  }
 
-    // // ILLEGAL!
-    // // This should throw an exception!
-    // [ChildRelationship]
-    // public ExampleParent Parent { get; set; }
+  // ==========================================================================
+  public class SchemaWithNonPrimaryParentType
+  {
+    public NonPrimaryParent Parent { get; set; }
+    public ExampleChild Child { get; set; }
+  }
+
+  // ==========================================================================
+  /// <summary>
+  /// A data type without a primary key.  This can't be used in child relationships.
+  /// </summary>
+  public class NonPrimaryParent
+  {
+    [ChildRelationship]
+    public ExampleChild SomeKid { get; set; }
   }
 
 
-  // // ==========================================================================
-  // class ChildWithInvalidRelationship
-  // {
+  // ==========================================================================
+  public class SchemaWithCircularDependency
+  {
+    public List<Parent2> Parents { get; set; } = new List<Parent2>();
+    public List<TypeWithInvalidChildRelationship> BadKids { get; set; } = new List<TypeWithInvalidChildRelationship>();
+  }
 
-  //   // This is not a valid relationship so we will throw some kind of exception when
-  //   // we try to build a schema with it?
-  //   [ChildRelationship]
-  //   public ExampleParent Parent { get; set; }
-  // }
+  // ==========================================================================
+  public class Parent2 : IHasPrimary
+  {
+    public int ID { get; set; }
+
+    [ChildRelationship]
+    public TypeWithInvalidChildRelationship Child { get; set; }
+  }
+
+  // ==========================================================================
+  public class TypeWithInvalidChildRelationship : IHasPrimary
+  {
+    public int ID { get; set; }
+    public int Number { get; set; }
+
+    // NOTE: This child relationship is invalid.
+    // We already have this type 'InvalidChild' listed as a child of parent.
+    // By attempting to also list 'InvalidParent' as a child, we would create
+    // a circular dependency.
+    [ChildRelationship]
+    public Parent2 InvalidParent { get; set; }
+  }
 
 
 

@@ -12,8 +12,6 @@ public class SchemaDefinition
   private object ResolveLock = new object();
   private Dictionary<string, TableDef> _TableDefs = new Dictionary<string, TableDef>(StringComparer.OrdinalIgnoreCase);
   private Dictionary<Type, TableDef> TypesToTableDef = new Dictionary<Type, TableDef>();
-  //  private Dictionary<string, Type> 
-
   public ReadOnlyCollection<TableDef> TableDefs { get { return new ReadOnlyCollection<TableDef>(_TableDefs.Values.ToList()); } }
 
 
@@ -22,12 +20,12 @@ public class SchemaDefinition
   /// Get the table def for the matching type.
   /// </summary>
   public TableDef? GetTableDef(Type type)
-  { 
-      if (!this.TypesToTableDef.TryGetValue(type, out TableDef? res))
-      {
-          return null;
-      }
-      return res;
+  {
+    if (!this.TypesToTableDef.TryGetValue(type, out TableDef? res))
+    {
+      return null;
+    }
+    return res;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -95,6 +93,42 @@ public class SchemaDefinition
       // Now we can populate all of the members.
       def.PopulateMembers();
     }
+
+    ValidateSchema();
+
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private void ValidateSchema()
+  {
+    foreach (var t in _TableDefs.Values)
+    {
+        // Circular reference test.
+      foreach (var dep in t.ParentTables)
+      {
+        if (dep.HasTableDependency(t))
+        {
+            string msg = $"A circular reference from table: {t.Name} to: {dep.Def.Name} was detected!";
+            throw new InvalidOperationException(msg);
+        }
+      }
+
+      // Primary test.
+      foreach(var pTable in t.ParentTables)
+      {
+          // The parent table MUST have a primary key!
+          bool hasPrimary = ReflectionTools.HasInterface<IHasPrimary>(pTable.Def.DataType);
+          if (!hasPrimary)
+          {
+            string msg = $"The data type: {pTable.Def.DataType} is a parent of {t.DataType}, but does not implement interface: {nameof(IHasPrimary)}";
+            throw new InvalidOperationException(msg);
+          }
+      }
+      // if (t.DependentTables.Count > 0 && !ReflectionTools.HasInterface<IHasPrimary>(t.DataType))
+      // {
+      // }
+    }
+
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -105,19 +139,19 @@ public class SchemaDefinition
     _TableDefs.Add(name, def);
   }
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  public SchemaDefinition AddTable<T>()
-  {
-    string name = typeof(T).Name;
-    return AddTable<T>(name);
-  }
+  // // --------------------------------------------------------------------------------------------------------------------------
+  // public SchemaDefinition AddTable<T>()
+  // {
+  //   string name = typeof(T).Name;
+  //   return AddTable<T>(name);
+  // }
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  public SchemaDefinition AddTable<T>(string tableName)
-  {
-    ResolveTableDef(tableName, typeof(T));
-    return this;
-  }
+  // // --------------------------------------------------------------------------------------------------------------------------
+  // public SchemaDefinition AddTable<T>(string tableName)
+  // {
+  //   ResolveTableDef(tableName, typeof(T));
+  //   return this;
+  // }
 
   // --------------------------------------------------------------------------------------------------------------------------
   internal bool HasTableDef(string tableName, Type propertyType)
@@ -210,7 +244,7 @@ public class SchemaDefinition
 
     // LOL, this probably won't work!
     // It would be nice if it was just a matter of counting.  This will suffice for now.
-    res.Sort((l, r) => l.DependentTables.Count.CompareTo(r.DependentTables.Count));
+    res.Sort((l, r) => l.ParentTables.Count.CompareTo(r.ParentTables.Count));
 
     return res;
   }
@@ -224,8 +258,8 @@ public class TableDef
   public string Name { get; private set; }
   public SchemaDefinition Schema { get; private set; }
 
-  public ReadOnlyCollection<DependentTable> DependentTables { get { return new ReadOnlyCollection<DependentTable>(_DependentTables); } }
-  private List<DependentTable> _DependentTables = new List<DependentTable>();
+  public ReadOnlyCollection<DependentTable> ParentTables { get { return new ReadOnlyCollection<DependentTable>(_ParentTables); } }
+  private List<DependentTable> _ParentTables = new List<DependentTable>();
 
   private List<ColumnDef> _Columns = new List<ColumnDef>();
   public ReadOnlyCollection<ColumnDef> Columns { get { return new ReadOnlyCollection<ColumnDef>(_Columns); } }
@@ -284,7 +318,7 @@ public class TableDef
         var relatedDef = Schema.GetTableDef(useType);
         if (relatedDef == null)
         {
-            throw new InvalidOperationException($"Could not resolve a table def for type {useType}!  Please check the schema!");
+          throw new InvalidOperationException($"Could not resolve a table def for type {useType}!  Please check the schema!");
         }
 
         // This is where we decide if we want a reference to a single item, or a list of them.
@@ -315,9 +349,10 @@ public class TableDef
         ////}
         ///
 
-        relatedDef._DependentTables.Add(new DependentTable()
+        relatedDef._ParentTables.Add(new DependentTable()
         {
           Def = fkTableDef,
+          Type = ERelationshipType.Parent
         });
 
 
@@ -457,6 +492,14 @@ public class TableDef
 // ============================================================================================================================
 public record ColumnDef(string Name, string DataType, bool IsPrimary, bool IsUnique, bool IsNullable, string? RelatedTableName, string? RelatedTableColumn);
 
+// ==========================================================================
+public enum ERelationshipType
+{
+    Invalid = 0,
+    Parent,
+    Child
+}
+
 // ============================================================================================================================
 /// <summary>
 /// Describes a table that another is dependent upon.
@@ -465,4 +508,26 @@ public record ColumnDef(string Name, string DataType, bool IsPrimary, bool IsUni
 public class DependentTable
 {
   public TableDef Def { get; set; }
+  public ERelationshipType Type { get; set; }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// This tells us if we have a dependency on the given table, anywhere in the chain....
+  /// </summary>
+  internal bool HasTableDependency(TableDef t)
+  {
+    foreach (var dep in this.Def.ParentTables)
+    {
+      if (dep.Def.DataType == t.DataType)
+      {
+        return true;
+      }
+      if (dep.HasTableDependency(t))
+      {
+        return true;
+      }
+    }
+
+    return false;
+  }
 }
