@@ -5,6 +5,9 @@ using static Dapper.SqlMapper;
 namespace DataHelpers.Data;
 
   // ============================================================================================================================
+  /// <summary>
+  /// This is a special handler so that we can use DateTimeOffset types with SQLite.
+  /// </summary>
   public class DateTimeOffsetHandler : TypeHandler<DateTimeOffset>
   {
     // --------------------------------------------------------------------------------------------------------------------------

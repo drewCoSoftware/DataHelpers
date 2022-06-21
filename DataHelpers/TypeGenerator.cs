@@ -10,11 +10,18 @@ public interface IHasPrimary
 
 // ============================================================================================================================
 /// <summary>
-/// Used to indicate that the member in question has a relationship to some other data type.
-/// This is like a foreign key in a database.
+/// This indicates that there are child tables that point back to this parent via FK relationship.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property)]
-public class Relationship : Attribute
+public class ChildRelationship : Attribute
+{
+}
+
+/// <summary>
+/// Indicates that the member points to a parent table via FK relationship.
+/// </summary>
+[AttributeUsage(AttributeTargets.Property)]
+public class ParentRelationship : Attribute
 {
 }
 
@@ -34,6 +41,7 @@ public class TypeGenerator
 
   private DynamicTypeManager TypeMan = new DynamicTypeManager("TimeMan_DynamicTypes");
 
+  // --------------------------------------------------------------------------------------------------------------------------
   public Type ResolveMappingTableType(Type parentType, Type childType)
   {
     lock (CacheLock)
@@ -56,7 +64,7 @@ public class TypeGenerator
           Type = parentType.Name,
           Attributes = new List<TypeDef.AttributeDef>()
             {
-              new TypeDef.AttributeDef(typeof(Relationship))
+              new TypeDef.AttributeDef(typeof(ChildRelationship))
             }
         });
         tDef.Properties.Add(new TypeDef.PropertyDef()
@@ -65,7 +73,7 @@ public class TypeGenerator
           Type = childType.Name,
           Attributes = new List<TypeDef.AttributeDef>()
             {
-              new TypeDef.AttributeDef(typeof(Relationship))
+              new TypeDef.AttributeDef(typeof(ChildRelationship))
             }
         });
 

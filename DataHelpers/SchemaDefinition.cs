@@ -11,8 +11,24 @@ public class SchemaDefinition
 {
   private object ResolveLock = new object();
   private Dictionary<string, TableDef> _TableDefs = new Dictionary<string, TableDef>(StringComparer.OrdinalIgnoreCase);
+  private Dictionary<Type, TableDef> TypesToTableDef = new Dictionary<Type, TableDef>();
+  //  private Dictionary<string, Type> 
+
   public ReadOnlyCollection<TableDef> TableDefs { get { return new ReadOnlyCollection<TableDef>(_TableDefs.Values.ToList()); } }
 
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Get the table def for the matching type.
+  /// </summary>
+  public TableDef? GetTableDef(Type type)
+  { 
+      if (!this.TypesToTableDef.TryGetValue(type, out TableDef? res))
+      {
+          return null;
+      }
+      return res;
+  }
 
   // --------------------------------------------------------------------------------------------------------------------------
   public TableDef? GetTableDef(string tableName)
@@ -55,9 +71,38 @@ public class SchemaDefinition
         useType = useType.GetGenericArguments()[0];
       }
 
+      // NOTE: I think it is a good idea to take a first pass to create all of the named tables
+      // BEFORE populating their data.  The thing is that it is possible for their to be tables
+      // of the same struture, but just with different names, like in a multi-tenant app.
+      // of course, if we cared about multi-tenancy, then this type of schema definition
+      // probably would not work in the first place......
+      // Such a system would have to be aware of name groupings?
+      // --> OK, so multi-tenancy is way overkill, let's just make it so that the various members
+      // and relationships are all resolved by type.  Then the first pass of this resolver is made
+      // simply to determine the type->name mappings....
+      // Anything that doesn't appear at this parent level can't be used.  I am OK with that
+      // because I don't really see the need to have sub-type resolvers at this point in time.
+      // If we ever needed such a feature, then it would just have to work by detecting the first
+      // name->type mapping, and then force all subsequent name->type mappings to be the same?
+
       // NOTE: Other attributes could be analyzed to change table names, etc.
-      ResolveTableDef(prop.Name, useType);
+      // ResolveTableDef(prop.Name, useType);
+      InitTableDef(prop.Name, useType);
     }
+
+    foreach (var def in _TableDefs.Values)
+    {
+      // Now we can populate all of the members.
+      def.PopulateMembers();
+    }
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private void InitTableDef(string name, Type useType)
+  {
+    var def = new TableDef(useType, name, this);
+    this.TypesToTableDef.Add(useType, def);
+    _TableDefs.Add(name, def);
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -89,6 +134,7 @@ public class SchemaDefinition
 
 
   // --------------------------------------------------------------------------------------------------------------------------
+  [Obsolete("Do not use this at this time!")]
   internal TableDef ResolveTableDef(string tableName, Type propertyType)
   {
     lock (ResolveLock)
@@ -136,7 +182,8 @@ public class SchemaDefinition
     // For each of the defs, we have to build our queries.
     foreach (var d in defs)
     {
-      sb.AppendLine(ComputeCreateTableQuery(d));
+      string createTable = d.GetCreateQuery();
+      sb.AppendLine(createTable);
     }
 
     return sb.ToString();
@@ -147,67 +194,11 @@ public class SchemaDefinition
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  private string ComputeCreateTableQuery(TableDef tableDef)
-  {
-    var sb = new StringBuilder(0x400);
-    sb.AppendLine($"CREATE TABLE IF NOT EXISTS {tableDef.Name} (");
-
-    var colDefs = new List<string>();
-    var fkDefs = new List<string>();
-
-    foreach (var col in tableDef.Columns)
-    {
-      string useName = FormatName(col.Name);
-
-      string def = $"{useName} {col.DataType}";
-      if (col.IsPrimary)
-      {
-        def += " PRIMARY KEY";
-      }
-
-      if (!col.IsNullable)
-      {
-          def += " NOT NULL";
-      }
-      else
-      {
-        def += " NULL";
-      }
-
-      if (col.IsUnique)
-      {
-        def += " UNIQUE";
-      }
-
-      colDefs.Add(def);
-
-      if (col.RelatedTableName != null)
-      {
-        string fk = $"FOREIGN KEY({useName}) REFERENCES {col.RelatedTableName}({col.RelatedTableColumn})";
-        fkDefs.Add(fk);
-      }
-
-    }
-    sb.AppendLine(string.Join(", " + Environment.NewLine, colDefs) + (fkDefs.Count > 0 ? "," : ""));
-
-    foreach (var fk in fkDefs)
-    {
-      sb.AppendLine(fk);
-    }
-
-
-    sb.AppendLine(");");
-
-    string res = sb.ToString();
-    return res;
-  }
-
-  // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// NOTE: This should happen when we are building out our defs.
   /// NOTE: It should also be part of the current sql flavor too!
   /// </summary>
-  public string FormatName(string name)
+  public static string FormatName(string name)
   {
     return name.ToLower();
   }
@@ -274,8 +265,13 @@ public class TableDef
       bool isUnique = ReflectionTools.HasAttribute<UniqueAttribute>(p);
       bool isNullable = ReflectionTools.HasAttribute<IsNullableAttribute>(p);
 
-      var dependent = ReflectionTools.GetAttribute<Relationship>(p);
-      if (dependent != null)
+      // var parentAttr = ReflectionTools.GetAttribute<ParentRelationship>(p);
+      // if (parentAttr != null)
+      // {
+      // }
+
+      var childAttr = ReflectionTools.GetAttribute<ChildRelationship>(p);
+      if (childAttr != null)
       {
         Type useType = p.PropertyType;
         bool isList = ReflectionTools.HasInterface<IList>(useType);
@@ -285,8 +281,11 @@ public class TableDef
         }
 
         // Get the related table...
-        var relatedDef = Schema.ResolveTableDef(p.Name, useType);
-
+        var relatedDef = Schema.GetTableDef(useType);
+        if (relatedDef == null)
+        {
+            throw new InvalidOperationException($"Could not resolve a table def for type {useType}!  Please check the schema!");
+        }
 
         // This is where we decide if we want a reference to a single item, or a list of them.
         string colName = $"{this.Name}_ID";
@@ -356,6 +355,63 @@ public class TableDef
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
+  public string GetCreateQuery()
+  {
+    var sb = new StringBuilder(0x400);
+    sb.AppendLine($"CREATE TABLE IF NOT EXISTS {Name} (");
+
+    var colDefs = new List<string>();
+    var fkDefs = new List<string>();
+
+    foreach (var col in Columns)
+    {
+      string useName = SchemaDefinition.FormatName(col.Name);
+
+      string def = $"{useName} {col.DataType}";
+      if (col.IsPrimary)
+      {
+        def += " PRIMARY KEY";
+      }
+
+      if (!col.IsNullable)
+      {
+        def += " NOT NULL";
+      }
+      else
+      {
+        def += " NULL";
+      }
+
+      if (col.IsUnique)
+      {
+        def += " UNIQUE";
+      }
+
+      colDefs.Add(def);
+
+      if (col.RelatedTableName != null)
+      {
+        string fk = $"FOREIGN KEY({useName}) REFERENCES {col.RelatedTableName}({col.RelatedTableColumn})";
+        fkDefs.Add(fk);
+      }
+
+    }
+    sb.AppendLine(string.Join(", " + Environment.NewLine, colDefs) + (fkDefs.Count > 0 ? "," : ""));
+
+    foreach (var fk in fkDefs)
+    {
+      sb.AppendLine(fk);
+    }
+
+
+    sb.AppendLine(");");
+
+    string res = sb.ToString();
+    return res;
+
+
+  }
+  // --------------------------------------------------------------------------------------------------------------------------
   public string GetInsertQuery()
   {
     var colNames = new List<string>();
@@ -364,7 +420,7 @@ public class TableDef
 
     foreach (var c in this.Columns)
     {
-      string colName = Schema.FormatName(c.Name);
+      string colName = SchemaDefinition.FormatName(c.Name);
       if (c.IsPrimary)
       {
         pkName = colName;
