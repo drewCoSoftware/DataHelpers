@@ -23,3 +23,64 @@
 
 // Migrations should be versioned, 1, 2, 3, etc.
 // Always backup your DB before migrating it!
+using System.Text;
+using DataHelpers.Data;
+
+namespace DataHelpers.Migrations;
+
+// ==========================================================================
+// Dummy class to represent the current schema.
+public class DataSchema
+{
+  public int Version { get; set; } = 1;
+  public SchemaDefinition SchemaDef { get; set; }   
+}
+
+// ==========================================================================
+/// <summary>
+/// The script that is generated to run the migration.
+/// </summary>
+/// <remarks>
+/// At this time we are just wrapping a sql string...
+/// Not really sure how to do a series of statements in something like SQLite or Portgres, etc.
+/// From what I can tell, it is just the semicolon for sqlite.
+/// </remarks>
+public class MigrationScript
+{
+  public string SQL { get; set; } = string.Empty;
+}
+
+// ==========================================================================
+public record class Migration(DataSchema? From, DataSchema To, MigrationScript Script);
+
+// ==========================================================================
+public class MigrationHelper
+{
+  // --------------------------------------------------------------------------------------------------------------------------
+  public Migration CreateMigration(DataSchema? from, DataSchema to)
+  {
+    var script = new MigrationScript();
+    if (from == null)
+    {
+        // We only need to add 'CREATE' type syntax for the tables.
+        var sb= new StringBuilder();
+        foreach(var def in to.SchemaDef.TableDefs)
+        {
+            sb.Append($"-- TABLE: {def.Name}");
+            sb.Append(Environment.NewLine);
+            sb.Append(def.GetCreateQuery());
+            sb.Append(Environment.NewLine);
+        }
+
+        script.SQL = sb.ToString();
+    }
+    else
+    {
+      throw new NotSupportedException("ALTER type migrations are not supported at this time!");
+    }
+    var res = new Migration(from, to, script);
+    return res;
+  }
+
+
+}
