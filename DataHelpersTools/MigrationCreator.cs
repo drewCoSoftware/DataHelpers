@@ -4,13 +4,90 @@ using DataHelpers.Data;
 using DataHelpers.Migrations;
 using drewCo.Tools;
 
+// ==========================================================================
+interface IFlavorHandler
+{
+  IDataAccess CreateDataAccess(Type schemaType, string connectionString);
+  ISqlFlavor GetFlavor();
+}
+
+// ==========================================================================
+class SQLiteFlavorHandler : IFlavorHandler
+{
+  // --------------------------------------------------------------------------------------------------------------------------   
+  public IDataAccess CreateDataAccess(Type schemaType, string connectionString)
+  {
+    string filePath = GetPathFromConnectionString(connectionString);
+    string dbDir = Path.GetDirectoryName(filePath)!;
+    FileTools.CreateDirectory(dbDir);
+    string fileName = Path.GetFileNameWithoutExtension(filePath);
+
+    var dalType = typeof(SqliteDataAccess<>).MakeGenericType(schemaType);
+    IDataAccess? dal = (IDataAccess?)Activator.CreateInstance(dalType, new object[] { dbDir, fileName });
+    if (dal == null)
+    {
+      throw new InvalidOperationException($"Could not create an {nameof(IDataAccess)} interface for schema type: {schemaType}");
+    }
+
+    return dal;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private string GetPathFromConnectionString(string connectionString)
+  {
+    string[] parts = connectionString.Split(";");
+    foreach (var p in parts)
+    {
+      if (p.Trim().ToLower().StartsWith("data source"))
+      {
+        string[] dsParts = p.Split("=");
+        if (dsParts.Length != 2)
+        {
+          throw new InvalidOperationException($"Could not parse file path from data source part: [{p}]");
+        }
+        string res = dsParts[1].Trim();
+        res = Path.GetFullPath(res);
+        return res;
+      }
+    }
+
+    throw new InvalidOperationException("There is no 'Data Source' part in the connection string!");
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public ISqlFlavor GetFlavor()
+  {
+    return new SqliteFlavor();
+  }
+}
+
+// ==========================================================================
 internal class MigrationCreator
 {
   private CreateMigrationOptions Options;
 
+  private Dictionary<string, IFlavorHandler> FlavorHandlers = new Dictionary<string, IFlavorHandler>();
+
+  // --------------------------------------------------------------------------------------------------------------------------
   public MigrationCreator(CreateMigrationOptions ops)
   {
     this.Options = ops;
+
+    FlavorHandlers.Add("SQLite", new SQLiteFlavorHandler());
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private void ValidateFlavor(string flavor)
+  {
+    if (!FlavorHandlers.Keys.Any(x => x == flavor))
+    {
+      string msg = $"The flavor: {flavor} is not supported!" + Environment.NewLine;
+      msg += "Valid flavors are:" + Environment.NewLine + string.Join(Environment.NewLine, FlavorHandlers.Keys);
+      //      Console.WriteLine(msg);
+
+      // Maybe this exception doesn't have the greatest message....
+      throw new ArgumentOutOfRangeException(msg);
+    }
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -19,6 +96,7 @@ internal class MigrationCreator
   /// </summary>
   public int Create()
   {
+    ValidateFlavor(Options.Flavor);
 
     // Let's resolve the assembly.
     Assembly asm = ResolveAssembly(Options.AssemblyPath);
@@ -31,11 +109,8 @@ internal class MigrationCreator
     }
 
     // NOTE: Assume SQLite;
-    var flavor = new SqliteFlavor();
-    string filePath = GetPathFromConnectionString(Options.ConnectionString);
-    string dbDir = Path.GetDirectoryName(filePath)!;
-    FileTools.CreateDirectory(dbDir);
-    string fileName = Path.GetFileNameWithoutExtension(filePath);
+    IFlavorHandler flavorHandler = FlavorHandlers[Options.Flavor];
+    ISqlFlavor flavor = flavorHandler.GetFlavor();
 
 
 
@@ -44,7 +119,8 @@ internal class MigrationCreator
     DataSchema toSchema = new DataSchema()
     {
       Version = fromSchema?.Version + 1 ?? 1,
-      SchemaDef = new SchemaDefinition(flavor, schemaType)
+      SchemaDef = new SchemaDefinition(flavor, schemaType),
+      Flavor = Options.Flavor
     };
 
     Console.WriteLine("Creating Migration script...");
@@ -52,12 +128,7 @@ internal class MigrationCreator
     Migration m = mh.CreateMigration(fromSchema, toSchema);
 
     Console.WriteLine("Applying migration script...");
-    var dalType = typeof(SqliteDataAccess<>).MakeGenericType(schemaType);
-    IDataAccess? dal = (IDataAccess?)Activator.CreateInstance(dalType, new object[] { dbDir, fileName });
-    if (dal == null)
-    {
-      throw new InvalidOperationException($"Could not create an {nameof(IDataAccess)} interface for schema type: {schemaType}");
-    }
+    var dal = flavorHandler.CreateDataAccess(schemaType, Options.ConnectionString);
     mh.ApplyMigration(m, dal);
 
     Console.WriteLine("Migration complete!");
@@ -98,25 +169,4 @@ internal class MigrationCreator
     }
   }
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  private string GetPathFromConnectionString(string connectionString)
-  {
-    string[] parts = connectionString.Split(";");
-    foreach (var p in parts)
-    {
-      if (p.Trim().ToLower().StartsWith("data source"))
-      {
-        string[] dsParts = p.Split("=");
-        if (dsParts.Length != 2)
-        {
-          throw new InvalidOperationException($"Could not parse file path from data source part: [{p}]");
-        }
-        string res = dsParts[1].Trim();
-        res = Path.GetFullPath(res);
-        return res;
-      }
-    }
-
-    throw new InvalidOperationException("There is no 'Data Source' part in the connection string!");
-  }
 }

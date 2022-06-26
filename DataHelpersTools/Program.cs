@@ -8,18 +8,21 @@ int res = Parser.Default.ParseArguments<CreateMigrationOptions>(args)
                         , errs => 1);
 return res;
 
-// var ops=  new CreateMigrationOptions()
-// {
-//   ConnectionString = "Data Source=\"./DB/test.sqlite\";Mode=ReadWriteCreate",
-//   AssemblyPath = "./DataHelpersTesters",
-//   SchemaType = "TestSchema"
-// };
-// int res = CreateMigration(ops);
-// return res;
-
+// --------------------------------------------------------------------------------------------------------------------------
 int CreateMigration(CreateMigrationOptions ops)
 {
-  var creator = new MigrationCreator(ops);
-  int res = creator.Create();
-  return res;
+  try
+  {
+    var creator = new MigrationCreator(ops);
+    int res = creator.Create();
+    return res;
+  }
+  catch (Exception ex)
+  {
+    // TODO: Write exception to disk:
+    Console.WriteLine(Environment.NewLine);
+    Console.WriteLine("Unhandled Exception!");
+    Console.WriteLine(ex.Message);
+    return 1;
+  }
 }

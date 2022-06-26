@@ -16,14 +16,9 @@ using CommandLine;
 
 
 // ==========================================================================
-[Verb("migration", HelpText = "Create a new migration")]
+[Verb("migrate", HelpText = "Create a new migration")]
 class CreateMigrationOptions
 {
-//  const string CREATE = "CREATE";
-
-  // [Option("create", Group = CREATE)]
-  // public bool Create { get; set; }
-
   /// <summary>
   /// Connection string to the database that contains the schema.
   /// </summary>
@@ -46,6 +41,8 @@ class CreateMigrationOptions
   [Option("data-type", Required = true)]
   public string SchemaType { get; set; }
 
+  [Option("flavor", Required = true, HelpText = "The SQL flavor that the migration should be created for.  The old schema flavor must match this value!")]
+  public string Flavor { get; set; }
 }
 
 

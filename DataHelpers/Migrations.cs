@@ -34,6 +34,7 @@ public class DataSchema
 {
   public int Version { get; set; } = 1;
   public SchemaDefinition SchemaDef { get; set; }   
+  public string Flavor { get; set; }
 }
 
 // ==========================================================================
