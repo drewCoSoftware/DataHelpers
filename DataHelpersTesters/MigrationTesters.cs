@@ -29,10 +29,22 @@ public class MigrationTesters
       SchemaDef = def,
     });
 
-    // Console.WriteLine("The migration script is:");
-    // Console.WriteLine(migration.Script.SQL);
-
     CheckSQL(nameof(CanCreateMigrationForNewSchema), migration.Script.SQL);
+
+    const string DB_NAME = nameof(CanCreateMigrationForNewSchema);
+    string dataDir = Path.Combine(FileTools.GetAppDir(), "TestData", nameof(CanCreateMigrationForNewSchema));
+    FileTools.CreateDirectory(dataDir);
+    
+    string path = Path.Combine(dataDir, DB_NAME + ".sqlite");
+    FileTools.DeleteExistingFile(path);
+    Assert.False(File.Exists(path));
+
+    var dal = new SqliteDataAccess<ExampleSchema>(dataDir, DB_NAME);
+    mh.ApplyMigration(migration, dal);
+
+    // Does the new DB file exist?
+    // TODO: We need a real way to validate that it has the correct schema.
+    Assert.True(File.Exists(path));
   }
 
 

@@ -82,5 +82,20 @@ public class MigrationHelper
     return res;
   }
 
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Apply the given migration against a target database.
+  /// </summary>
+  public void ApplyMigration(Migration migration, IDataAccess dataAccess)
+  {
+      if (migration?.Script?.SQL == null)
+      { 
+        throw new ArgumentNullException("The migration and or migration script is null!");
+      }
+
+      dataAccess.RunExecute(migration.Script.SQL, null);
+
+
+  }
 
 }

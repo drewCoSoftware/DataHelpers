@@ -8,9 +8,9 @@ namespace DataHelpers.Data;
 // ==========================================================================
 public interface IDataAccess
 {
-  IEnumerable<T> RunQuery<T>(string query, object qParams);
-  int RunExecute(string query, object qParams);
-  T? RunSingleQuery<T>(string query, object parameters);
+  IEnumerable<T> RunQuery<T>(string query, object? qParams);
+  int RunExecute(string query, object? qParams);
+  T? RunSingleQuery<T>(string query, object? parameters);
 }
 
 // ========================================================================== 
@@ -145,7 +145,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public IEnumerable<T> RunQuery<T>(string query, object qParams)
+  public IEnumerable<T> RunQuery<T>(string query, object? qParams)
   {
     // NOTE: This connection object could be abstracted more so that we could handle
     // connection pooling, etc. as neeed.
@@ -159,7 +159,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  protected IEnumerable<T> RunQuery<T>(SqliteConnection conn, string query, object parameters)
+  protected IEnumerable<T> RunQuery<T>(SqliteConnection conn, string query, object? parameters)
   {
     var res = conn.Query<T>(query, parameters);
     return res;
@@ -172,7 +172,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess
   /// <remarks>
   /// If the query returns more than one result, and exception will be thrown.
   /// </remarks>
-  public T? RunSingleQuery<T>(string query, object parameters)
+  public T? RunSingleQuery<T>(string query, object? parameters)
   {
     IEnumerable<T> qr = RunQuery<T>(query, parameters);
     T? res = qr.SingleOrDefault();
@@ -180,7 +180,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public int RunExecute(string query, object qParams)
+  public int RunExecute(string query, object? qParams)
   {
     using (var conn = new SqliteConnection(ConnectionString))
     {
@@ -191,7 +191,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  protected int RunExecute(SqliteConnection conn, string query, object qParams)
+  protected int RunExecute(SqliteConnection conn, string query, object? qParams)
   {
     int res = conn.Execute(query, qParams);
     return res;
