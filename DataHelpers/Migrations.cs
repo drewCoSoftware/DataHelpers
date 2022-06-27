@@ -24,7 +24,10 @@
 // Migrations should be versioned, 1, 2, 3, etc.
 // Always backup your DB before migrating it!
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using DataHelpers.Data;
+using drewCo.Tools;
 
 namespace DataHelpers.Migrations;
 
@@ -32,9 +35,15 @@ namespace DataHelpers.Migrations;
 // Dummy class to represent the current schema.
 public class DataSchema
 {
-  public int Version { get; set; } = 1;
-  public SchemaDefinition SchemaDef { get; set; }   
   public string Flavor { get; set; }
+  public int Version { get; set; } = 1;
+
+  // NOTE: We need an actual description of the types + their relationship.
+  // SchemaDefinition *might* work, but we will have to find a proper way to serialize its data
+  // if that is true.  
+  // ?? Is there some way to create a custom serializer for certian types using jsonSErializer ??
+  [JsonIgnore]
+  public SchemaDefinition SchemaDef { get; set; }   
 }
 
 // ==========================================================================
@@ -52,13 +61,19 @@ public class MigrationScript
 }
 
 // ==========================================================================
-public record class Migration(DataSchema? From, DataSchema To, MigrationScript Script);
+public record class Migration(DataSchema? From, DataSchema To, MigrationScript Script, string SchemaFilePath);
 
 // ==========================================================================
 public class MigrationHelper
 {
   // --------------------------------------------------------------------------------------------------------------------------
-  public Migration CreateMigration(DataSchema? from, DataSchema to)
+  /// <summary>
+  /// 
+  /// </summary>
+  /// <param name="from"></param>
+  /// <param name="to"></param>
+  /// <param name="outputDir">Directory that the new migration state file will be saved to.</param>
+  public Migration CreateMigration(DataSchema? from, DataSchema to, string outputDir)
   {
     var script = new MigrationScript();
     if (from == null)
@@ -79,7 +94,19 @@ public class MigrationHelper
     {
       throw new NotSupportedException("ALTER type migrations are not supported at this time!");
     }
-    var res = new Migration(from, to, script);
+
+    FileTools.CreateDirectory(outputDir);
+    string schemaDataPath= Path.Combine(outputDir, $"Migration_{to.Flavor}_{to.Version}.json");
+
+
+    string schemaData = JsonSerializer.Serialize(to, new JsonSerializerOptions()
+    {
+      WriteIndented = true
+    });
+    File.WriteAllText(schemaDataPath, schemaData);
+
+
+    var res = new Migration(from, to, script, schemaDataPath);
     return res;
   }
 

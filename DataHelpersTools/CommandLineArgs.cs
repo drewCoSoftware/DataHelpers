@@ -43,6 +43,9 @@ class CreateMigrationOptions
 
   [Option("flavor", Required = true, HelpText = "The SQL flavor that the migration should be created for.  The old schema flavor must match this value!")]
   public string Flavor { get; set; }
+
+  [Option("output-dir", Required = false, HelpText = "Location where migration data will be written.")]
+  public string? OutputDirectory { get; set; } = null;
 }
 
 

@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DataHelpers\DataHelpers.csproj" />
+    <ProjectReference Include="..\DataHelpersTools\DataHelpersTools.csproj" />
   </ItemGroup>
 
 </Project>

@@ -123,9 +123,11 @@ internal class MigrationCreator
       Flavor = Options.Flavor
     };
 
+    string useOutputDir = Options.OutputDirectory ?? FileTools.GetAppDir();
+
     Console.WriteLine("Creating Migration script...");
     var mh = new MigrationHelper();
-    Migration m = mh.CreateMigration(fromSchema, toSchema);
+    Migration m = mh.CreateMigration(fromSchema, toSchema, useOutputDir);
 
     Console.WriteLine("Applying migration script...");
     var dal = flavorHandler.CreateDataAccess(schemaType, Options.ConnectionString);
