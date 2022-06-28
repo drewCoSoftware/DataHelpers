@@ -1,20 +1,6 @@
 
 using CommandLine;
 
-// // ==========================================================================
-// [Verb("migration", HelpText = "Generate and or apply migrations.")]
-// class MigrationOptions
-// {
-//   const string MIGRATION_GROUP = "MIGRATIONS";
-
-//   [Option("connection-string", Required = true, HelpText = "The connection string to use.")]
-//   public string ConnectionString { get; set; } = string.Empty;
-
-//   [Option("create", HelpText = "Create a new migration.", Group = MIGRATION_GROUP)]
-//   public bool Create { get; set; }
-// }
-
-
 // ==========================================================================
 [Verb("migrate", HelpText = "Create a new migration")]
 class CreateMigrationOptions

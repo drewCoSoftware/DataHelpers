@@ -134,6 +134,7 @@ internal class MigrationCreator
     mh.ApplyMigration(m, dal);
 
     Console.WriteLine("Migration complete!");
+    Console.WriteLine($"The migration data was written to: {m.SchemaFilePath}");
     return 0;
   }
   // --------------------------------------------------------------------------------------------------------------------------
@@ -146,7 +147,7 @@ internal class MigrationCreator
     var types = asm.GetTypes();
     foreach (var t in types)
     {
-      if (t.Name == schemaType) { return t; }
+      if (t.FullName == schemaType) { return t; }
     }
     return null;
   }
@@ -166,6 +167,7 @@ internal class MigrationCreator
     }
     else
     {
+      if (!Path.IsPathRooted(assemblyPath)) { assemblyPath = Path.GetFullPath(assemblyPath); }
       var res = Assembly.LoadFile(assemblyPath);
       return res;
     }
