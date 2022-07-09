@@ -43,7 +43,7 @@ public class SqliteSchemaTesters : TestBase
 
     {
         string selectByIdQuery = schema.GetSelectQuery<ExampleParent>(x=>x.ID == 1);
-        string expected = "SELECT * FROM Parents WHERE ID = 1";
+        string expected = "SELECT * FROM Parents WHERE ID = @ID";
         Assert.Equal(expected, selectByIdQuery);
     }
 

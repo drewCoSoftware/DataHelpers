@@ -93,7 +93,16 @@ public class SchemaDefinition
         var exp = useExpression as System.Linq.Expressions.BinaryExpression;
 
         string left = GetExpressionSyntax(exp.Left);
-        string right = GetExpressionSyntax(exp.Right);
+        string right = string.Empty;
+        if (exp.Left is MemberExpression)
+        {
+          string useMemberName = (exp.Left as MemberExpression).Member.Name;
+          right = "@" + useMemberName;
+        }
+        else
+        {
+          right = GetExpressionSyntax(exp.Right);
+        }
 
         string res = left + " = " + right;
         return res;
