@@ -18,7 +18,7 @@ class ExampleSchema
 }
 
 // ==========================================================================   
-class ExampleParent : IHasPrimary
+public class ExampleParent : IHasPrimary
 {
   public int ID { get; set; }
   public string Name { get; set; }
@@ -36,4 +36,9 @@ public class ExampleChild : IHasPrimary
 {
   public int ID { get; set; }
   public string? Label { get; set; }
+
+  // NOTE: This MUST be enforced if the parent has a child relationship.
+  // NOT sure how we will go about doing that.....
+  // [ParentRelationship]
+  // public ExampleParent Parent { get; set; }
 }

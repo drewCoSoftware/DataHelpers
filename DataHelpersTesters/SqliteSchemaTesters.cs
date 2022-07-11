@@ -17,6 +17,63 @@ namespace DataHelpersTesters;
 public class SqliteSchemaTesters : TestBase
 {
 
+  // --------------------------------------------------------------------------------------------------------------------------
+  // This test case was provided as an example fo how to do insert types queries with child/parent
+  // data.  This will serve as the basis for future query generation and schema structuring code.
+  [Fact]
+  public void CanInsertChildRecordsWithParentID()
+  {
+    // TODO: This whole setup process can be shoved into its own, single function.
+    string dataDir = Path.Combine("./TestData", "Databases");
+    FileTools.CreateDirectory(dataDir);
+
+    string dbName = nameof(CanInsertChildRecordsWithParentID);
+    string dbFilePath = Path.GetFullPath(Path.Combine(dataDir, dbName + ".sqlite"));
+    FileTools.DeleteExistingFile(dbFilePath);
+
+    var schema = new SchemaDefinition(new SqliteFlavor(), typeof(ExampleSchema));
+    var dal = new SqliteDataAccess<ExampleSchema>(dataDir, dbName);
+    dal.SetupDatabase();
+
+    var parent = new ExampleParent()
+    {
+      CreateDate = DateTimeOffset.Now,
+      Name = "Parent1"
+    };
+
+    string insertQuery = schema.GetTableDef("Parents").GetInsertQuery();
+
+    // NOTE: We are using 'RunSingleQuery' here so that we can get the returned ID!
+    int newID = dal.RunSingleQuery<int>(insertQuery, parent);
+    Assert.Equal(1, newID);
+
+    // Confirm that we can get the data back out...
+    string select = schema.GetSelectQuery<ExampleParent>(x => x.ID == newID);
+    var parentCheck = dal.RunQuery<ExampleParent>(select, new { ID = newID });
+    Assert.NotNull(parentCheck);
+
+    return;
+
+    // Now we will insert the child record:
+    var child = new ExampleChild()
+    {
+      Label = "Child1"
+    };
+
+    string insertChild = schema.GetTableDef("Kids").GetInsertQuery();
+    int childID = dal.RunSingleQuery<int>(insertChild, child);
+
+    string selectChild = schema.GetSelectQuery<ExampleChild>(x => x.ID == childID);
+    var childCheck = dal.RunQuery<ExampleChild>(selectChild, new { ID = childID });
+    Assert.NotNull(childCheck);
+
+
+    // Finally, show that we can get the parent object with the populated children.
+
+    int x = 10;
+
+  }
+
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
@@ -42,9 +99,9 @@ public class SqliteSchemaTesters : TestBase
     // });
 
     {
-        string selectByIdQuery = schema.GetSelectQuery<ExampleParent>(x=>x.ID == 1);
-        string expected = "SELECT * FROM Parents WHERE ID = @ID";
-        Assert.Equal(expected, selectByIdQuery);
+      string selectByIdQuery = schema.GetSelectQuery<ExampleParent>(x => x.ID == 1);
+      string expected = "SELECT * FROM Parents WHERE ID = @ID";
+      Assert.Equal(expected, selectByIdQuery);
     }
 
     // TEMP: Disable....
