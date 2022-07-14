@@ -39,6 +39,6 @@ public class ExampleChild : IHasPrimary
 
   // NOTE: This MUST be enforced if the parent has a child relationship.
   // NOT sure how we will go about doing that.....
-  // [ParentRelationship]
-  // public ExampleParent Parent { get; set; }
+  [ParentRelationship]
+  public ExampleParent Parent { get; set; }
 }

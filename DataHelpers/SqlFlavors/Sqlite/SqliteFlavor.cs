@@ -1,4 +1,5 @@
-﻿using drewCo.Tools;
+﻿using drewCo.Curations;
+using drewCo.Tools;
 
 namespace DataHelpers.Data;
 
@@ -13,6 +14,12 @@ public class SqliteFlavor : ISqlFlavor
 // ============================================================================================================================
 public class SqliteDataTypeResolver : IDataTypeResolver
 {
+  // private PairDictionary<Type, string> TypeMappings = new PairDictionary<Type, string>()
+  // {
+  //     { typeof(Int32), ""
+  // }
+
+  // --------------------------------------------------------------------------------------------------------------------------
   public string GetDataTypeName(Type t)
   {
     string res = "";

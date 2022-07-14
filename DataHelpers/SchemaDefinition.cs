@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Text.Json.Serialization;
 using System.Reflection;
 using System.Linq.Expressions;
+using System.Reflection.Emit;
 
 namespace DataHelpers.Data;
 
@@ -16,6 +17,19 @@ public class SchemaDefinition
   private Dictionary<Type, TableDef> TypesToTableDef = new Dictionary<Type, TableDef>();
   public ReadOnlyCollection<TableDef> TableDefs { get { return new ReadOnlyCollection<TableDef>(_TableDefs.Values.ToList()); } }
 
+  // --------------------------------------------------------------------------------------------------------------------------
+  public TableDef? GetTableDef<T>(bool allowNull = false)
+  {
+    if (!TypesToTableDef.TryGetValue(typeof(T), out TableDef? res))
+    {
+      if (!allowNull)
+      {
+        throw new InvalidOperationException($"There is no table def for type: {typeof(T)} in this schema!");
+      }
+      return null;
+    }
+    return res;
+  }
 
   // --------------------------------------------------------------------------------------------------------------------------
   public TableDef? GetTableDef(string name, bool allowNull = false)
@@ -69,6 +83,98 @@ public class SchemaDefinition
     }
 
     string res = sb.ToString();
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public object GetParamatersObject<T>(T child)
+  {
+    var tableDef = GetTableDef<T>(false)!;
+    object res = GetProxyObjectInstance(tableDef);
+    PopulateProxyObject(res, child);
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Populate the given proxy object with the data from the given type.
+  /// </summary>
+  private void PopulateProxyObject<T>(object proxyData, T srcData)
+  {
+    // if (data == null)
+    // {
+    //     throw new ArgumentNullException(nameof(data));
+    // }
+    Type proxyType = proxyData.GetType();
+    Type srcType = typeof(T);
+
+    // NOTE: This kind of functionality could be an emitted function on our proxy type!
+    TableDef def = GetTableDef<T>(false)!;
+    foreach (var c in def.Columns)
+    {
+      // if (c.IsPrimary) { continue; }
+      string memberName = c.Name;
+      string dataPropName = c.Name;
+      if (c.Relationship != null)
+      {
+        // This is where we have to figure out how to get our data into the proxy object...
+        // Basically we would compute the nested property path.
+        int x = 10;
+      }
+
+      PropertyInfo proxyProp = proxyType.GetProperty(memberName);
+      PropertyInfo dataProp = ReflectionTools.GetNestedPropertyInfo(srcType, dataPropName);
+
+      object srcVal = dataProp.GetValue(srcData);
+      proxyProp.SetValue(proxyData, srcVal);
+
+    }
+
+
+    throw new NotImplementedException();
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private Dictionary<TableDef, Type> TableDefToInstanceTypes = new Dictionary<TableDef, Type>();
+  private object GetProxyObjectInstance(TableDef tableDef)
+  {
+    if (tableDef == null)
+    {
+      throw new ArgumentNullException(nameof(tableDef));
+    }
+
+    Type? instanceType = null;
+    if (!TableDefToInstanceTypes.TryGetValue(tableDef, out instanceType))
+    {
+      // We need to create that new type....
+      // TODO: This is code to resolve an assembly/module buildre...
+      AssemblyName aName = new AssemblyName("SchemaDefiniton_Types");
+      AssemblyBuilder ab = AssemblyBuilder.DefineDynamicAssembly(aName, AssemblyBuilderAccess.Run);
+      ModuleBuilder mb = ab.DefineDynamicModule(aName.Name);
+
+      TypeBuilder tb = mb.DefineType(tableDef.Name + "_Proxy", TypeAttributes.Public);
+
+      foreach (var c in tableDef.Columns)
+      {
+        // if (c.IsPrimary) { continue; }
+        PropertyBuilder pb = tb.DefineProperty(c.Name, PropertyAttributes.None,
+                                               CallingConventions.Standard, c.RuntimeType, null);
+      }
+
+      instanceType = tb.CreateType();
+      if (instanceType == null)
+      {
+        throw new InvalidOperationException($"Could not create a proxy type for Table Definition: {tableDef.Name}!");
+      }
+
+      TableDefToInstanceTypes.Add(tableDef, instanceType);
+    }
+
+    object? res = Activator.CreateInstance(instanceType);
+    if (res == null)
+    {
+      throw new InvalidOperationException("Could not get an instance of proxy type!");
+    }
     return res;
   }
 
@@ -494,83 +600,103 @@ public class TableDef
       var childAttr = ReflectionTools.GetAttribute<ChildRelationship>(p);
       if (childAttr != null)
       {
-        Type useType = p.PropertyType;
-        bool isList = ReflectionTools.HasInterface<IList>(useType);
-        if (isList)
-        {
-          useType = useType.GetGenericArguments()[0];
-        }
-
-        // Get the related table...
-        var childDef = Schema.GetTableDef(useType);
-        if (childDef == null)
-        {
-          throw new InvalidOperationException($"Could not resolve a table def for type {useType}!  Please check the schema!");
-        }
-        this._ChildTables.Add(new DependentTable()
-        {
-          Type = ERelationshipType.Child,
-          Def = childDef,
-          PropertyName = p.Name
-        });
-
-        // This is where we decide if we want a reference to a single item, or a list of them.
-        string colName = $"{this.Name}_ID";
-        string fkTableName = this.Name;
-        var fkTableDef = this;
-
-        var fkType = ReflectionTools.IsNullable(p.PropertyType) ? typeof(int?) : typeof(int);
-
-        // NOTE: This is some incomplete work for many-many relationships, which we don't
-        // actually support at this time.  Keep this block around for a while....
-        //if (isList)
-        //{
-        //  // Resolve the mapping table....
-        //  // what to do about the actual data type....  If we don't have a type defined,
-        //  // should we just generate one?
-        //  //object mappingTable = new { ParentID = (int)0, ChildID = (int)0 };
-        //  //Type mappingTableType = mappingTable.GetType();
-
-        //  fkTableName = $"{Name}_to_{relatedDef.Name}";
-        //  Type mappingTableType = ResolveMappingTableType(DataType, useType);
-
-        //  fkTableDef = Schema.ResolveTableDef(fkTableName, mappingTableType);
-        //}
-        ////else
-        ////{
-        ////  int x = 10;
-        ////}
-        ///
-
-        childDef._ParentTables.Add(new DependentTable()
-        {
-          Def = fkTableDef,
-          Type = ERelationshipType.Parent
-        });
-
-
-        childDef._Columns.Add(new ColumnDef(colName,
-                                   Schema.Flavor.TypeResolver.GetDataTypeName(fkType),
-                                   false,
-                                   isUnique,
-                                   isNullable,
-                                   fkTableName,
-                                   nameof(IHasPrimary.ID)));
-
+        AddChildRelationship(p, isUnique, isNullable);
       }
       else
       {
-        // This is a normal column.
-        // NOTE: Non-related lists can't be represented.... should we make it so that lists are always included?
-        _Columns.Add(new ColumnDef(p.Name,
-                                   Schema.Flavor.TypeResolver.GetDataTypeName(p.PropertyType),
-                                   p.Name == nameof(IHasPrimary.ID),
-                                   isUnique,
-                                   isNullable,
-                                   null,
-                                   null));
+        // Check for a parent realtionship.
+        var parentAttr = ReflectionTools.GetAttribute<ParentRelationship>(p);
+        if (parentAttr != null)
+        {
+          // This is where we want to add the parent relationship.....
+          var parentDef = Schema.GetTableDef(p.PropertyType);
+          var relationship = new TableRelationship(p.Name, parentDef.Name, nameof(IHasPrimary.ID), ERelationshipType.Parent);
+
+          var colDef = new ColumnDef(parentDef.Name + "_" + nameof(IHasPrimary.ID),
+                                     typeof(int),
+                                     Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int)),
+                                     false,
+                                     isUnique,
+                                     isNullable,
+                                     relationship);
+
+          _Columns.Add(colDef);
+
+          _ParentTables.Add(new DependentTable()
+          {
+            Def = parentDef,
+            Type = ERelationshipType.Parent
+          });
+
+
+        }
+        else
+        {
+          // This is a normal column.
+          // NOTE: Non-related lists can't be represented.... should we make it so that lists are always included?
+          _Columns.Add(new ColumnDef(p.Name,
+                                     p.PropertyType,
+                                     Schema.Flavor.TypeResolver.GetDataTypeName(p.PropertyType),
+                                     p.Name == nameof(IHasPrimary.ID),
+                                     isUnique,
+                                     isNullable,
+                                     null));
+        }
       }
     }
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private void AddChildRelationship(PropertyInfo? p, bool isUnique, bool isNullable)
+  {
+    Type useType = p.PropertyType;
+    bool isList = ReflectionTools.HasInterface<IList>(useType);
+    if (isList)
+    {
+      useType = useType.GetGenericArguments()[0];
+    }
+
+    // Get the related table...
+    var childDef = Schema.GetTableDef(useType);
+    if (childDef == null)
+    {
+      throw new InvalidOperationException($"Could not resolve a table def for type {useType}!  Please check the schema!");
+    }
+    this._ChildTables.Add(new DependentTable()
+    {
+      Type = ERelationshipType.Child,
+      Def = childDef,
+      PropertyName = p.Name
+    });
+
+    // This is where we decide if we want a reference to a single item, or a list of them.
+    // string parentPKName = nameof(IHasPrimary.ID);
+
+    // string colName = $"{this.Name}_ID"; //.{parentPKName}";
+    // string fkTableName = this.Name;
+    // var fkTableDef = this;
+
+    // var fkType = ReflectionTools.IsNullable(p.PropertyType) ? typeof(int?) : typeof(int);
+
+    // childDef._ParentTables.Add(new DependentTable()
+    // {
+    //   Def = fkTableDef,
+    //   Type = ERelationshipType.Parent
+    // });
+
+
+    // childDef._Columns.Add(new ColumnDef(colName,
+    //                            fkType,
+    //                            Schema.Flavor.TypeResolver.GetDataTypeName(fkType),
+    //                            false,
+    //                            isUnique,
+    //                            isNullable,
+    //                            new TableRelationship(
+    //                             p.Name,
+    //                             fkTableName,
+    //                             nameof(IHasPrimary.ID),
+    //                             ERelationshipType.Child)
+    // ));
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -617,9 +743,10 @@ public class TableDef
 
       colDefs.Add(def);
 
-      if (col.RelatedTableName != null)
+      if (col.Relationship != null)
       {
-        string fk = $"FOREIGN KEY({useName}) REFERENCES {col.RelatedTableName}({col.RelatedTableColumn})";
+
+        string fk = $"FOREIGN KEY({useName}) REFERENCES {col.Relationship.RelatedTableName}({col.Relationship.RelatedTableColumn})";
         fkDefs.Add(fk);
       }
 
@@ -655,6 +782,11 @@ public class TableDef
         continue;
       }
 
+      // if (c.RelatedTableName != null)
+      // {
+      //     int x = 10;
+      // }
+
       // NOTE: This makes no consideration for foreign keys, cols with defaults, etc.
       // We just throw them all in.
       colNames.Add(colName);
@@ -683,7 +815,23 @@ public class TableDef
 }
 
 // ============================================================================================================================
-public record ColumnDef(string Name, string DataType, bool IsPrimary, bool IsUnique, bool IsNullable, string? RelatedTableName, string? RelatedTableColumn);
+public record ColumnDef(string Name,
+  Type RuntimeType,
+  string DataType,
+  bool IsPrimary,
+  bool IsUnique,
+  bool IsNullable,
+  TableRelationship? Relationship
+);
+
+// ==========================================================================
+public record TableRelationship
+(
+    string PropertyName,              // The name of the property on the type which this is defined.
+    string RelatedTableName,
+    string RelatedTableColumn,
+    ERelationshipType RelationType
+);
 
 // ==========================================================================
 public enum ERelationshipType

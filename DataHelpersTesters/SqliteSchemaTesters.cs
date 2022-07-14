@@ -20,7 +20,7 @@ public class SqliteSchemaTesters : TestBase
   // --------------------------------------------------------------------------------------------------------------------------
   // This test case was provided as an example fo how to do insert types queries with child/parent
   // data.  This will serve as the basis for future query generation and schema structuring code.
-  [Fact]
+  [Fact(Skip="Incomplete")]
   public void CanInsertChildRecordsWithParentID()
   {
     // TODO: This whole setup process can be shoved into its own, single function.
@@ -31,7 +31,7 @@ public class SqliteSchemaTesters : TestBase
     string dbFilePath = Path.GetFullPath(Path.Combine(dataDir, dbName + ".sqlite"));
     FileTools.DeleteExistingFile(dbFilePath);
 
-    var schema = new SchemaDefinition(new SqliteFlavor(), typeof(ExampleSchema));
+    SchemaDefinition schema = CreateSqliteSchema<ExampleSchema>();
     var dal = new SqliteDataAccess<ExampleSchema>(dataDir, dbName);
     dal.SetupDatabase();
 
@@ -46,34 +46,54 @@ public class SqliteSchemaTesters : TestBase
     // NOTE: We are using 'RunSingleQuery' here so that we can get the returned ID!
     int newID = dal.RunSingleQuery<int>(insertQuery, parent);
     Assert.Equal(1, newID);
+    
+    // HACK: This should maybe be assinged during insert?
+    parent.ID = newID;
 
     // Confirm that we can get the data back out...
     string select = schema.GetSelectQuery<ExampleParent>(x => x.ID == newID);
     var parentCheck = dal.RunQuery<ExampleParent>(select, new { ID = newID });
     Assert.NotNull(parentCheck);
 
-    return;
-
     // Now we will insert the child record:
     var child = new ExampleChild()
     {
-      Label = "Child1"
+      Label = "Child1",
+      Parent = parent
     };
 
-    string insertChild = schema.GetTableDef("Kids").GetInsertQuery();
-    int childID = dal.RunSingleQuery<int>(insertChild, child);
+    string insertChild = schema.GetTableDef<ExampleChild>().GetInsertQuery(); //  "INSERT INTO Kids(Label, Parents_ID) VALUES(@Label, @Parents_ID)"; // schema.GetTableDef("Kids").GetInsertQuery();
+    
+    // Let's see if we can create an anonymous type that can be used for inserts.....
+    object paramsObject = schema.GetParamatersObject<ExampleChild>(child);
+
+    int childID = dal.RunSingleQuery<int>(insertChild, new { Label = child.Label, Parents_ID = child.Parent.ID });
 
     string selectChild = schema.GetSelectQuery<ExampleChild>(x => x.ID == childID);
-    var childCheck = dal.RunQuery<ExampleChild>(selectChild, new { ID = childID });
+    var childCheck = dal.RunSingleQuery<ExampleChild>(selectChild, new { ID = childID });
     Assert.NotNull(childCheck);
-
-
-    // Finally, show that we can get the parent object with the populated children.
-
-    int x = 10;
+    Assert.Equal("Child1", childCheck!.Label);
 
   }
 
+  // --------------------------------------------------------------------------------------------------------------------------
+  private static SchemaDefinition CreateSqliteSchema<T>()
+  {
+    return new SchemaDefinition(new SqliteFlavor(), typeof(T));
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  // A simple test case to show that our insert queries for types with parents are generated correctly.
+  [Fact]
+  public void CanCreateInsertQueryForTypeWithParentRelationship()
+  {
+    SchemaDefinition schema = CreateSqliteSchema<ExampleSchema>();
+
+    var tableDef = schema.GetTableDef<ExampleChild>();
+    string insert = tableDef.GetInsertQuery();
+    CheckSQL(nameof(CanCreateInsertQueryForTypeWithParentRelationship), insert);
+
+  }
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
@@ -148,7 +168,7 @@ public class SqliteSchemaTesters : TestBase
   /// <summary>
   /// Shows that a schema with a circular dependency (parent -> child -> child(parent)) is not valid and will crash.
   /// </summary>
-  [Fact]
+  [Fact(Skip="This test is no longer valid after changing how we do parent / child relationships.")]
   public void CantCreateSchemaWithCircularDependency()
   {
     // BONK!

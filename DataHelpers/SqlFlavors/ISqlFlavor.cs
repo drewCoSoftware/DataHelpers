@@ -16,5 +16,6 @@
   public interface IDataTypeResolver
   {
     string GetDataTypeName(Type t);
+//    Type GetRuntimeType(string dataTypeName);
   }
 }
