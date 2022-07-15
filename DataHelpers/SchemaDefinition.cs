@@ -114,24 +114,23 @@ public class SchemaDefinition
     {
       // if (c.IsPrimary) { continue; }
       string memberName = c.Name;
-      string dataPropName = c.Name;
+      string propPath = c.Name;
       if (c.Relationship != null)
       {
         // This is where we have to figure out how to get our data into the proxy object...
         // Basically we would compute the nested property path.
-        int x = 10;
+        propPath = c.Relationship.PropertyName;
       }
 
       PropertyInfo proxyProp = proxyType.GetProperty(memberName);
-      PropertyInfo dataProp = ReflectionTools.GetNestedPropertyInfo(srcType, dataPropName);
 
-      object srcVal = dataProp.GetValue(srcData);
+      object srcVal = ReflectionTools.GetNestedPropertyValue(srcData, propPath);
       proxyProp.SetValue(proxyData, srcVal);
 
     }
 
 
-    throw new NotImplementedException();
+   // throw new NotImplementedException();
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -157,8 +156,43 @@ public class SchemaDefinition
       foreach (var c in tableDef.Columns)
       {
         // if (c.IsPrimary) { continue; }
-        PropertyBuilder pb = tb.DefineProperty(c.Name, PropertyAttributes.None,
-                                               CallingConventions.Standard, c.RuntimeType, null);
+        PropertyBuilder pb = tb.DefineProperty(c.Name,
+                                               PropertyAttributes.HasDefault,
+                                               CallingConventions.Standard,
+                                               c.RuntimeType, null);
+
+        FieldBuilder backer = tb.DefineField($"_{c.Name}", c.RuntimeType, FieldAttributes.Private);
+
+        // The property set and property get methods require a special
+        // set of attributes.
+        MethodAttributes getSetAttr = MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig;
+
+        // ********* GETTER **********************
+        // Define the "get" accessor method.
+        MethodBuilder getterBuilder = tb.DefineMethod($"get_{c.Name}", getSetAttr,
+                                               c.RuntimeType, Type.EmptyTypes);
+        ILGenerator getILGen = getterBuilder.GetILGenerator();
+        getILGen.Emit(OpCodes.Ldarg_0);
+        getILGen.Emit(OpCodes.Ldfld, backer);
+        getILGen.Emit(OpCodes.Ret);
+
+
+        // ************* SETTER *********************
+        // Define the "set" accessor method.
+        MethodBuilder setBuilder = tb.DefineMethod($"set_{c.Name}", getSetAttr,
+                                                   null, new Type[] { c.RuntimeType });
+
+        ILGenerator setILGen = setBuilder.GetILGenerator();
+
+        setILGen.Emit(OpCodes.Ldarg_0);
+        setILGen.Emit(OpCodes.Ldarg_1);
+        setILGen.Emit(OpCodes.Stfld, backer);
+        setILGen.Emit(OpCodes.Ret);
+
+        // Last, we must map the two methods created above to our PropertyBuilder to
+        // their corresponding behaviors, "get" and "set" respectively.
+        pb.SetGetMethod(getterBuilder);
+        pb.SetSetMethod(setBuilder);
       }
 
       instanceType = tb.CreateType();
@@ -592,11 +626,6 @@ public class TableDef
       bool isUnique = ReflectionTools.HasAttribute<UniqueAttribute>(p);
       bool isNullable = ReflectionTools.HasAttribute<IsNullableAttribute>(p);
 
-      // var parentAttr = ReflectionTools.GetAttribute<ParentRelationship>(p);
-      // if (parentAttr != null)
-      // {
-      // }
-
       var childAttr = ReflectionTools.GetAttribute<ChildRelationship>(p);
       if (childAttr != null)
       {
@@ -609,25 +638,7 @@ public class TableDef
         if (parentAttr != null)
         {
           // This is where we want to add the parent relationship.....
-          var parentDef = Schema.GetTableDef(p.PropertyType);
-          var relationship = new TableRelationship(p.Name, parentDef.Name, nameof(IHasPrimary.ID), ERelationshipType.Parent);
-
-          var colDef = new ColumnDef(parentDef.Name + "_" + nameof(IHasPrimary.ID),
-                                     typeof(int),
-                                     Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int)),
-                                     false,
-                                     isUnique,
-                                     isNullable,
-                                     relationship);
-
-          _Columns.Add(colDef);
-
-          _ParentTables.Add(new DependentTable()
-          {
-            Def = parentDef,
-            Type = ERelationshipType.Parent
-          });
-
+          AddParentRelationship(p, isUnique, isNullable);
 
         }
         else
@@ -644,6 +655,33 @@ public class TableDef
         }
       }
     }
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private void AddParentRelationship(PropertyInfo? p, bool isUnique, bool isNullable)
+  {
+    var parentDef = Schema.GetTableDef(p.PropertyType);
+    string propPath = $"{p.Name}.{nameof(IHasPrimary.ID)}";
+    var relationship = new TableRelationship(propPath,
+                                             parentDef.Name,
+                                             nameof(IHasPrimary.ID),
+                                             ERelationshipType.Parent);
+
+    var colDef = new ColumnDef(parentDef.Name + "_" + nameof(IHasPrimary.ID),
+                               typeof(int),
+                               Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int)),
+                               false,
+                               isUnique,
+                               isNullable,
+                               relationship);
+
+    _Columns.Add(colDef);
+
+    _ParentTables.Add(new DependentTable()
+    {
+      Def = parentDef,
+      Type = ERelationshipType.Parent
+    });
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -666,7 +704,7 @@ public class TableDef
     {
       Type = ERelationshipType.Child,
       Def = childDef,
-      PropertyName = p.Name
+      PropertyPath = p.Name
     });
 
     // This is where we decide if we want a reference to a single item, or a list of them.
@@ -856,7 +894,7 @@ public class DependentTable
   /// </summary>
   /// <value></value>
   /// <remarks>This only applies to child tables.</remarks>
-  public string PropertyName { get; set; } = string.Empty;
+  public string PropertyPath { get; set; } = string.Empty;
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>

@@ -20,7 +20,7 @@ public class SqliteSchemaTesters : TestBase
   // --------------------------------------------------------------------------------------------------------------------------
   // This test case was provided as an example fo how to do insert types queries with child/parent
   // data.  This will serve as the basis for future query generation and schema structuring code.
-  [Fact(Skip="Incomplete")]
+  [Fact]
   public void CanInsertChildRecordsWithParentID()
   {
     // TODO: This whole setup process can be shoved into its own, single function.
@@ -66,8 +66,7 @@ public class SqliteSchemaTesters : TestBase
     
     // Let's see if we can create an anonymous type that can be used for inserts.....
     object paramsObject = schema.GetParamatersObject<ExampleChild>(child);
-
-    int childID = dal.RunSingleQuery<int>(insertChild, new { Label = child.Label, Parents_ID = child.Parent.ID });
+    int childID = dal.RunSingleQuery<int>(insertChild, paramsObject); // new { Label = child.Label, Parents_ID = child.Parent.ID });
 
     string selectChild = schema.GetSelectQuery<ExampleChild>(x => x.ID == childID);
     var childCheck = dal.RunSingleQuery<ExampleChild>(selectChild, new { ID = childID });
