@@ -804,14 +804,16 @@ public class TableDef
 
 
   }
+
+  record NamesAndValues(List<string> ColNames, List<string> ColValues, string? PrimaryKeyName);
+
   // --------------------------------------------------------------------------------------------------------------------------
-  public string GetInsertQuery()
+  private NamesAndValues GetNamesAndValues(IList<ColumnDef> columns)
   {
     var colNames = new List<string>();
     var colVals = new List<string>();
     string? pkName = null;
-
-    foreach (var c in this.Columns)
+    foreach (var c in columns)
     {
       string colName = SchemaDefinition.FormatName(c.Name);
       if (c.IsPrimary)
@@ -820,35 +822,53 @@ public class TableDef
         continue;
       }
 
-      // if (c.RelatedTableName != null)
-      // {
-      //     int x = 10;
-      // }
-
       // NOTE: This makes no consideration for foreign keys, cols with defaults, etc.
       // We just throw them all in.
       colNames.Add(colName);
       colVals.Add("@" + c.Name);  // NOTE: We are using the same casing as the original datatype for the value parameters!
     }
 
+    return new NamesAndValues(colNames, colVals, pkName);
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public string GetInsertQuery()
+  {
+    var namesAndVals = GetNamesAndValues(this.Columns);
+
     StringBuilder sb = new StringBuilder(0x400);
     sb.Append($"INSERT INTO {this.Name} (");
-    sb.Append(string.Join(",", colNames));
+    sb.Append(string.Join(",", namesAndVals.ColNames));
 
     sb.Append(") VALUES (");
-    sb.Append(string.Join(",", colVals));
+    sb.Append(string.Join(",", namesAndVals.ColValues));
 
     sb.Append(")");
 
     // OPTIONS:
     const bool RETURN_ID = true;
-    if (RETURN_ID && pkName != null)
+    if (RETURN_ID && namesAndVals.PrimaryKeyName != null)
     {
-      sb.Append($" RETURNING {pkName}");
+      sb.Append($" RETURNING {namesAndVals.PrimaryKeyName}");
     }
 
     string res = sb.ToString();
     return res;
+  }
+
+// --------------------------------------------------------------------------------------------------------------------------
+  public string GetUpdateQuery()
+  {
+      var namesAndVals = GetNamesAndValues(this.Columns);
+
+      var sb = new StringBuilder(0x400);
+      var zipped = namesAndVals.ColNames.Zip(namesAndVals.ColValues, (a,b) => $"{a} = {b}");
+      string assignments = string.Join(",", zipped);
+
+      sb.Append($"UPDATE {this.Name} SET {assignments} WHERE {namesAndVals.PrimaryKeyName} = @{nameof(IHasPrimary.ID)}");
+
+      string res = sb.ToString();
+      return res;
   }
 }
 

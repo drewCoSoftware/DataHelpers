@@ -18,6 +18,29 @@ public class SqliteSchemaTesters : TestBase
 {
 
   // --------------------------------------------------------------------------------------------------------------------------
+  [Fact]
+  public void CanCreateUpdateQuery()
+  {
+    SchemaDefinition schema = CreateSqliteSchema<ExampleSchema>();
+
+    var tableDef = schema.GetTableDef<ExampleParent>()!;
+    string update = tableDef.GetUpdateQuery();
+    CheckSQL(nameof(CanCreateUpdateQuery), update);
+
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// This test case was provided to show that enum types are valid, and can be used like one would expect.
+  /// </summary>
+  [Fact(Skip="Not implemented!")]
+  public void CanUseEnumInSchema()
+  {
+  }
+
+
+
+  // --------------------------------------------------------------------------------------------------------------------------
   // This test case was provided as an example fo how to do insert types queries with child/parent
   // data.  This will serve as the basis for future query generation and schema structuring code.
   [Fact]
@@ -46,7 +69,7 @@ public class SqliteSchemaTesters : TestBase
     // NOTE: We are using 'RunSingleQuery' here so that we can get the returned ID!
     int newID = dal.RunSingleQuery<int>(insertQuery, parent);
     Assert.Equal(1, newID);
-    
+
     // HACK: This should maybe be assinged during insert?
     parent.ID = newID;
 
@@ -63,7 +86,7 @@ public class SqliteSchemaTesters : TestBase
     };
 
     string insertChild = schema.GetTableDef<ExampleChild>().GetInsertQuery(); //  "INSERT INTO Kids(Label, Parents_ID) VALUES(@Label, @Parents_ID)"; // schema.GetTableDef("Kids").GetInsertQuery();
-    
+
     // Let's see if we can create an anonymous type that can be used for inserts.....
     object paramsObject = schema.GetParamatersObject<ExampleChild>(child);
     int childID = dal.RunSingleQuery<int>(insertChild, paramsObject); // new { Label = child.Label, Parents_ID = child.Parent.ID });
@@ -167,7 +190,7 @@ public class SqliteSchemaTesters : TestBase
   /// <summary>
   /// Shows that a schema with a circular dependency (parent -> child -> child(parent)) is not valid and will crash.
   /// </summary>
-  [Fact(Skip="This test is no longer valid after changing how we do parent / child relationships.")]
+  [Fact(Skip = "This test is no longer valid after changing how we do parent / child relationships.")]
   public void CantCreateSchemaWithCircularDependency()
   {
     // BONK!

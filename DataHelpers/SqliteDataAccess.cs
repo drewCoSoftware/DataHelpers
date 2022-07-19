@@ -8,6 +8,7 @@ namespace DataHelpers.Data;
 // ==========================================================================
 public interface IDataAccess
 {
+  SchemaDefinition SchemaDef { get; }
   IEnumerable<T> RunQuery<T>(string query, object? qParams);
   int RunExecute(string query, object? qParams);
   T? RunSingleQuery<T>(string query, object? parameters);
@@ -24,6 +25,9 @@ public class SqliteDataAccess<TSchema> : IDataAccess
   public string DBFilePath { get; private set; }
   public string ConnectionString { get; private set; }
 
+  private SchemaDefinition _Schema;
+  public SchemaDefinition SchemaDef { get { return _Schema; } }
+
   // --------------------------------------------------------------------------------------------------------------------------
   public SqliteDataAccess(string dataDir, string dbFileName)
   {
@@ -33,6 +37,9 @@ public class SqliteDataAccess<TSchema> : IDataAccess
 
     SqlMapper.RemoveTypeMap(typeof(DateTimeOffset));
     SqlMapper.AddTypeHandler<DateTimeOffset>(new DateTimeOffsetHandler());
+
+    _Schema = new SchemaDefinition(new SqliteFlavor(), typeof(TSchema));
+
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -52,9 +59,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess
   // --------------------------------------------------------------------------------------------------------------------------
   private void CreateSchema()
   {
-    var schema = new SchemaDefinition(new SqliteFlavor(), typeof(TSchema));
-
-    string query = schema.GetCreateSQL();
+    string query = SchemaDef.GetCreateSQL();
 
     var conn = new SqliteConnection(ConnectionString);
     conn.Open();

@@ -1,0 +1,4 @@
+{
+  "IsApproved": true,
+  "SQL": "UPDATE Parents SET name = @Name,createdate = @CreateDate WHERE id = @ID"
+}
