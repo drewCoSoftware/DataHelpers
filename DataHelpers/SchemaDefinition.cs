@@ -130,7 +130,7 @@ public class SchemaDefinition
     }
 
 
-   // throw new NotImplementedException();
+    // throw new NotImplementedException();
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -808,7 +808,7 @@ public class TableDef
   record NamesAndValues(List<string> ColNames, List<string> ColValues, string? PrimaryKeyName);
 
   // --------------------------------------------------------------------------------------------------------------------------
-  private NamesAndValues GetNamesAndValues(IList<ColumnDef> columns)
+  private NamesAndValues GetNamesAndValues(IEnumerable<ColumnDef> columns)
   {
     var colNames = new List<string>();
     var colVals = new List<string>();
@@ -856,19 +856,22 @@ public class TableDef
     return res;
   }
 
-// --------------------------------------------------------------------------------------------------------------------------
+  // --------------------------------------------------------------------------------------------------------------------------
   public string GetUpdateQuery()
   {
-      var namesAndVals = GetNamesAndValues(this.Columns);
+    var useCols = (from x in this.Columns
+                   where x.Relationship == null
+                   select x);
+    var namesAndVals = GetNamesAndValues(useCols);
 
-      var sb = new StringBuilder(0x400);
-      var zipped = namesAndVals.ColNames.Zip(namesAndVals.ColValues, (a,b) => $"{a} = {b}");
-      string assignments = string.Join(",", zipped);
+    var sb = new StringBuilder(0x400);
+    var zipped = namesAndVals.ColNames.Zip(namesAndVals.ColValues, (a, b) => $"{a} = {b}");
+    string assignments = string.Join(",", zipped);
 
-      sb.Append($"UPDATE {this.Name} SET {assignments} WHERE {namesAndVals.PrimaryKeyName} = @{nameof(IHasPrimary.ID)}");
+    sb.Append($"UPDATE {this.Name} SET {assignments} WHERE {namesAndVals.PrimaryKeyName} = @{nameof(IHasPrimary.ID)}");
 
-      string res = sb.ToString();
-      return res;
+    string res = sb.ToString();
+    return res;
   }
 }
 

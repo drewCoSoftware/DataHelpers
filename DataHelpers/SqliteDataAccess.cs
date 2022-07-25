@@ -11,6 +11,11 @@ public interface IDataAccess
   SchemaDefinition SchemaDef { get; }
   IEnumerable<T> RunQuery<T>(string query, object? qParams);
   int RunExecute(string query, object? qParams);
+
+  /// <summary>
+  /// Runs a query which is expected to return a single result.
+  /// If more than one result exists, this will throw an exception.
+  /// </summary>
   T? RunSingleQuery<T>(string query, object? parameters);
 }
 
@@ -27,6 +32,26 @@ public class SqliteDataAccess<TSchema> : IDataAccess
 
   private SchemaDefinition _Schema;
   public SchemaDefinition SchemaDef { get { return _Schema; } }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Insert the new instance into the database.
+  /// The instance's ID property will be updated with the new ID in the database.
+  /// </summary>
+  public void InsertNew<T>(T instance)
+    where T : IHasPrimary
+  {
+    if (instance.ID != 0)
+    {
+      throw new InvalidOperationException("This instance already has an ID!");
+    }
+
+    TableDef tableDef = SchemaDef.GetTableDef<T>(false)!;
+    string query = tableDef.GetInsertQuery();
+    int newID = RunSingleQuery<int>(query, instance);
+
+    instance.ID = newID;
+  }
 
   // --------------------------------------------------------------------------------------------------------------------------
   public SqliteDataAccess(string dataDir, string dbFileName)

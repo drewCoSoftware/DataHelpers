@@ -19,6 +19,51 @@ public class SqliteSchemaTesters : TestBase
 
   // --------------------------------------------------------------------------------------------------------------------------
   [Fact]
+  public void RunSingleQueryFailsWhenResultSetHasMoreThanOneResult()
+  {
+    string dbName = nameof(RunSingleQueryFailsWhenResultSetHasMoreThanOneResult);
+    SqliteDataAccess<ExampleSchema> dal = CreateSqliteDatabase<ExampleSchema>(dbName, out SchemaDefinition schema);
+
+    const string NAME_1 = "Parent1";
+    const string NAME_2 = "Parent2";
+    // Add two items:
+    {
+      ExampleParent p = new ExampleParent()
+      {
+        CreateDate = DateTime.Now,
+        Name = NAME_1
+      };
+      dal.InsertNew(p);
+      Assert.Equal(1, p.ID);
+    }
+    {
+      ExampleParent p = new ExampleParent()
+      {
+        CreateDate = DateTime.Now,
+        Name = NAME_2
+      };
+      dal.InsertNew(p);
+      Assert.Equal(2, p.ID);
+    }
+
+    const string TEST_QUERY = "SELECT * FROM Parents";
+    Assert.Throws<InvalidOperationException>(() =>
+    {
+      dal.RunSingleQuery<ExampleParent>(TEST_QUERY, null);
+    });
+
+    // Let's do a different one....
+    ExampleParent? p1 = dal.RunSingleQuery<ExampleParent>(TEST_QUERY + " WHERE ID = 1", null);
+    Assert.NotNull(p1);
+    Assert.Equal(NAME_1, p1!.Name);
+
+    ExampleParent? p2 = dal.RunSingleQuery<ExampleParent>(TEST_QUERY + " WHERE ID = 2", null);
+    Assert.NotNull(p2);
+    Assert.Equal(NAME_2, p2!.Name);
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  [Fact]
   public void CanCreateUpdateQuery()
   {
     SchemaDefinition schema = CreateSqliteSchema<ExampleSchema>();
@@ -33,7 +78,7 @@ public class SqliteSchemaTesters : TestBase
   /// <summary>
   /// This test case was provided to show that enum types are valid, and can be used like one would expect.
   /// </summary>
-  [Fact(Skip="Not implemented!")]
+  [Fact(Skip = "Not implemented!")]
   public void CanUseEnumInSchema()
   {
   }
@@ -46,17 +91,7 @@ public class SqliteSchemaTesters : TestBase
   [Fact]
   public void CanInsertChildRecordsWithParentID()
   {
-    // TODO: This whole setup process can be shoved into its own, single function.
-    string dataDir = Path.Combine("./TestData", "Databases");
-    FileTools.CreateDirectory(dataDir);
-
-    string dbName = nameof(CanInsertChildRecordsWithParentID);
-    string dbFilePath = Path.GetFullPath(Path.Combine(dataDir, dbName + ".sqlite"));
-    FileTools.DeleteExistingFile(dbFilePath);
-
-    SchemaDefinition schema = CreateSqliteSchema<ExampleSchema>();
-    var dal = new SqliteDataAccess<ExampleSchema>(dataDir, dbName);
-    dal.SetupDatabase();
+    var dal = CreateSqliteDatabase<ExampleSchema>(nameof(CanInsertChildRecordsWithParentID), out SchemaDefinition schema);
 
     var parent = new ExampleParent()
     {
@@ -64,7 +99,8 @@ public class SqliteSchemaTesters : TestBase
       Name = "Parent1"
     };
 
-    string insertQuery = schema.GetTableDef("Parents").GetInsertQuery();
+    string insertQuery = schema.GetTableDef("Parents")?.GetInsertQuery() ?? string.Empty;
+    Assert.NotEmpty(insertQuery);
 
     // NOTE: We are using 'RunSingleQuery' here so that we can get the returned ID!
     int newID = dal.RunSingleQuery<int>(insertQuery, parent);
@@ -85,7 +121,7 @@ public class SqliteSchemaTesters : TestBase
       Parent = parent
     };
 
-    string insertChild = schema.GetTableDef<ExampleChild>().GetInsertQuery(); //  "INSERT INTO Kids(Label, Parents_ID) VALUES(@Label, @Parents_ID)"; // schema.GetTableDef("Kids").GetInsertQuery();
+    string insertChild = schema.GetTableDef<ExampleChild>()?.GetInsertQuery() ?? string.Empty;
 
     // Let's see if we can create an anonymous type that can be used for inserts.....
     object paramsObject = schema.GetParamatersObject<ExampleChild>(child);
@@ -96,6 +132,22 @@ public class SqliteSchemaTesters : TestBase
     Assert.NotNull(childCheck);
     Assert.Equal("Child1", childCheck!.Label);
 
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  protected SqliteDataAccess<T> CreateSqliteDatabase<T>(string dbName, out SchemaDefinition schema)
+  {
+    string dataDir = Path.Combine("./TestData", "Databases");
+    FileTools.CreateDirectory(dataDir);
+
+    string dbFilePath = Path.GetFullPath(Path.Combine(dataDir, dbName + ".sqlite"));
+    FileTools.DeleteExistingFile(dbFilePath);
+
+    schema = CreateSqliteSchema<T>();
+    var dal = new SqliteDataAccess<T>(dataDir, dbName);
+    dal.SetupDatabase();
+
+    return dal;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
