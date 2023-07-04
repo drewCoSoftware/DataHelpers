@@ -625,6 +625,7 @@ public class TableDef
 
       bool isUnique = ReflectionTools.HasAttribute<UniqueAttribute>(p);
       bool isNullable = ReflectionTools.HasAttribute<IsNullableAttribute>(p);
+      bool isPrimary = p.Name == nameof(IHasPrimary.ID);
 
       var childAttr = ReflectionTools.GetAttribute<ChildRelationship>(p);
       if (childAttr != null)
@@ -647,8 +648,8 @@ public class TableDef
           // NOTE: Non-related lists can't be represented.... should we make it so that lists are always included?
           _Columns.Add(new ColumnDef(p.Name,
                                      p.PropertyType,
-                                     Schema.Flavor.TypeResolver.GetDataTypeName(p.PropertyType),
-                                     p.Name == nameof(IHasPrimary.ID),
+                                     Schema.Flavor.TypeResolver.GetDataTypeName(p.PropertyType, isPrimary),
+                                     isPrimary,
                                      isUnique,
                                      isNullable,
                                      null));
@@ -669,7 +670,7 @@ public class TableDef
 
     var colDef = new ColumnDef(parentDef.Name + "_" + nameof(IHasPrimary.ID),
                                typeof(int),
-                               Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int)),
+                               Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false),
                                false,
                                isUnique,
                                isNullable,
@@ -762,7 +763,7 @@ public class TableDef
       string def = $"{useName} {col.DataType}";
       if (col.IsPrimary)
       {
-        def += " PRIMARY KEY";
+        def += " PRIMARY KEY"; // + Schema.Flavor.GetIdentitySyntax(col); // flavo  PRIMARY KEY";
       }
 
       if (!col.IsNullable)

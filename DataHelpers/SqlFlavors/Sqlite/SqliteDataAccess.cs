@@ -5,20 +5,6 @@ using Microsoft.Data.Sqlite;
 
 namespace DataHelpers.Data;
 
-// ==========================================================================
-public interface IDataAccess
-{
-  SchemaDefinition SchemaDef { get; }
-  IEnumerable<T> RunQuery<T>(string query, object? qParams);
-  int RunExecute(string query, object? qParams);
-
-  /// <summary>
-  /// Runs a query which is expected to return a single result.
-  /// If more than one result exists, this will throw an exception.
-  /// </summary>
-  T? RunSingleQuery<T>(string query, object? parameters);
-}
-
 // ========================================================================== 
 public class SqliteDataAccess<TSchema> : IDataAccess
 {
@@ -77,12 +63,12 @@ public class SqliteDataAccess<TSchema> : IDataAccess
     bool hasCorrectSchema = ValidateSchema();
     if (!hasCorrectSchema)
     {
-      CreateSchema();
+      CreateDatabase();
     }
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  private void CreateSchema()
+  private void CreateDatabase()
   {
     string query = SchemaDef.GetCreateSQL();
 

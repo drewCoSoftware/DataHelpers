@@ -9,13 +9,15 @@
   public interface ISqlFlavor
   {
     IDataTypeResolver TypeResolver { get; }
+
+//    string GetIdentitySyntax(ColumnDef col);
   }
 
 
   // ============================================================================================================================
   public interface IDataTypeResolver
   {
-    string GetDataTypeName(Type t);
-//    Type GetRuntimeType(string dataTypeName);
+    // NOTE: Sometimes we have to know if we are dealing with a primary key or not.
+    string GetDataTypeName(Type t, bool isPrimaryCol);
   }
 }
