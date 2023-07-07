@@ -4,31 +4,21 @@ using Npgsql;
 using Dapper;
 using drewCo.Tools;
 
-
 // ========================================================================== 
-
-public class PostgresDataAccess<TSchema> : IDataAccess
+public class PostgresDataAccess : IDataAccess
 {
-  // This is the ISO8601 format mentioned in:
-  // https://www.sqlite.org/datatype3.html
-  public const string SQLITE_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss.fffffff";
+  public SchemaDefinition SchemaDef => throw new NotImplementedException();
 
-  // public string DataDirectory { get; private set; }
-  // public string DBFilePath { get; private set; }
   public string ConnectionString { get; private set; }
-
-  private SchemaDefinition _Schema;
-  public SchemaDefinition SchemaDef { get { return _Schema; } }
-
   private string? DatabaseName { get; set; } = null;
   private bool IsDefaultDatabase = true;   // use the default 'postgres' database when one isn't specifically set in the connection string.
 
   // -----------------------------------------------------------------------------------------------
   public PostgresDataAccess(string connectionString_)
   {
-    ConnectionString = connectionString_;
+    this.ConnectionString = connectionString_;
 
-    string[] parts = ConnectionString.Split(";");
+  string[] parts = ConnectionString.Split(";");
     foreach(var p in parts)
     {
         string[] kvpParts = p.Split("=");
@@ -42,12 +32,6 @@ public class PostgresDataAccess<TSchema> : IDataAccess
     if (IsDefaultDatabase){
       ConnectionString += "Database=postgres";
     }
-
-    // // TODO: Add data type mapping as needed:
-    // SqlMapper.RemoveTypeMap(typeof(DateTimeOffset));
-    // SqlMapper.AddTypeHandler<DateTimeOffset>(new DateTimeOffsetHandler());
-
-    _Schema = new SchemaDefinition(new PostgresFlavor(), typeof(TSchema));
   }
 
   // -----------------------------------------------------------------------------------------------
@@ -139,6 +123,11 @@ public class PostgresDataAccess<TSchema> : IDataAccess
     // return res;
   }
 
+  // public IEnumerable<T> RunQuery<T>(string query, object? qParams)
+  // {
+  //   throw new NotImplementedException();
+  // }
+
   // -----------------------------------------------------------------------------------------------
   public int RunExecute(string query, object? qParams)
   {
@@ -157,6 +146,7 @@ public class PostgresDataAccess<TSchema> : IDataAccess
     return res;
   }
 
+
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// Run a query where a single, or no result is expected.
@@ -170,6 +160,58 @@ public class PostgresDataAccess<TSchema> : IDataAccess
     T? res = qr.SingleOrDefault();
     return res;
   }
+
+
+  // public T? RunSingleQuery<T>(string query, object? parameters)
+  // {
+  //   throw new NotImplementedException();
+  // }
+}
+
+// ========================================================================== 
+public class PostgresDataAccess<TSchema> : PostgresDataAccess
+{
+  // This is the ISO8601 format mentioned in:
+  // https://www.sqlite.org/datatype3.html
+  public const string SQLITE_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss.fffffff";
+
+
+  private SchemaDefinition _Schema;
+  public SchemaDefinition SchemaDef { get { return _Schema; } }
+
+
+  // -----------------------------------------------------------------------------------------------
+  public PostgresDataAccess(string connectionString_)
+    : base(connectionString_)
+  {
+//    ConnectionString = connectionString_;
+
+  
+    // // TODO: Add data type mapping as needed:
+    // SqlMapper.RemoveTypeMap(typeof(DateTimeOffset));
+    // SqlMapper.AddTypeHandler<DateTimeOffset>(new DateTimeOffsetHandler());
+
+    _Schema = new SchemaDefinition(new PostgresFlavor(), typeof(TSchema));
+  }
+
+
+  // // -----------------------------------------------------------------------------------------------
+  // public int RunExecute(string query, object? qParams)
+  // {
+  //   using (var conn = CreateConnection())
+  //   {
+  //     conn.Open();
+  //     int res = RunExecute(conn, query, qParams);
+  //     return res;
+  //   }
+  // }
+
+  // // --------------------------------------------------------------------------------------------------------------------------
+  // protected int RunExecute(NpgsqlConnection conn, string query, object? qParams)
+  // {
+  //   int res = conn.Execute(query, qParams);
+  //   return res;
+  // }
 
 
   // --------------------------------------------------------------------------------------------------------------------------

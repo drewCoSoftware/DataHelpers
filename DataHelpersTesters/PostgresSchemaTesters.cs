@@ -2,23 +2,76 @@
 
 
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using DataHelpers.Data;
 using DataHelpersTesters;
 using drewCo.Tools;
 using Xunit;
+
+
+// =========================================================================================================================
+class TestTable
+{
+  public int id { get; set; }
+  public string? some_text { get; set; }
+  public int some_number { get; set; }
+}
 
 // =========================================================================================================================
 public class PostgresSchemaTesters
 {
   public const string TEST_DB_NAME = "DataHelpersTesters";
 
+  
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// This just shows that we can insert some data into an example table in our test database.
+  /// The interresting part of all of this is that we are just issuing raw queries against an
+  /// existing schema vs. defining a class, creating a table, etc.
+  /// </summary>
+  [Fact]
+  public void CanInsertIntoExampleTableWithRawQuery()
+  {
+    string connectionString = GetConnectionString();
+
+    // NOTE: We don't have a way to create schema definitions for single tables!
+    var dal = new PostgresDataAccess(connectionString);
+
+    // string selectQr =  dal.SchemaDef.GetSelectQuery<TestTable>(null);
+    // int x = 10;
+    List<TestTable> results = dal.RunQuery<TestTable>("SELECT * FROM example_table ORDER BY id DESC LIMIT 1", null).ToList();
+    
+    // Check to see how many results we have....
+    int greatestId = 0;
+    Assert.True(results.Count <= 1);
+    if (results.Count > 0)
+    {
+        greatestId = results[0].id;
+    }
+
+    string newName = RandomTools.GetAlphaString(8);
+    int newNumber = RandomTools.RNG.Next(-100 , 100);
+    string insertQR = "INSERT INTO example_table (some_text, some_number) VALUES (@some_text, @some_number) RETURNING id";
+
+    int newId = dal.RunQuery<int>(insertQR, new { 
+      some_text = newName,
+      some_number = newNumber
+    }).ToList()[0];
+    
+
+    // Make sure that the new ID is valid....
+    // NOTE: If this approach doesn't work long term, we can just use the new id to select the row
+    // and make sure that our parameters (from above) match.
+    Assert.True(newId > greatestId);
+
+  }
+
   // --------------------------------------------------------------------------------------------------------------------------
   [Fact]
   public void CanCreatePostgresSchema()
   {
-    //SchemaDefinition schema = CreatePostgresSchema<ExampleSchema>();
-
     CreatePostgresDatabase<ExampleSchema>(TEST_DB_NAME, out SchemaDefinition schemaDef);
     Assert.NotNull(schemaDef);
   }
@@ -51,8 +104,8 @@ public class PostgresSchemaTesters
     // NOTE: We are using 'RunSingleQuery' here so that we can get the returned ID!
     int newID = dal.RunSingleQuery<int>(insertQuery, parent);
     Assert.True(newID != 0);
-    
-//    Assert.Equal(1, newID);
+
+    //    Assert.Equal(1, newID);
 
     // HACK: This should maybe be assinged during insert?
     parent.ID = newID;
@@ -87,20 +140,23 @@ public class PostgresSchemaTesters
   // --------------------------------------------------------------------------------------------------------------------------
   protected PostgresDataAccess<T> CreatePostgresDatabase<T>(string dbName, out SchemaDefinition schema)
   {
-    // string dataDir = Path.Combine("./TestData", "Databases");
-    // FileTools.CreateDirectory(dataDir);
-    // string dbFilePath = Path.GetFullPath(Path.Combine(dataDir, dbName + ".sqlite"));
-    // FileTools.DeleteExistingFile(dbFilePath);
-    // NOTE: You will need to setup a localhost DB that has the appropriate creds.
-    // Since this is a test DB for features, don't worry about the stupid username and password.
-    // Don't put sensitive data on a TEST DB!
-    string connectionString = $"Host=localhost;Port=5432;Username=test;Password=abc123;Database=DataHelpersTesters";
+    string connectionString = GetConnectionString();
 
     schema = CreatePostgresSchema<T>();
     var dal = new PostgresDataAccess<T>(connectionString);
     dal.SetupDatabase();
 
     return dal;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private string GetConnectionString(string dbName = "DataHelpersTesters")
+  {
+    // NOTE: You will need to setup a localhost DB that has the appropriate creds.
+    // Since this is a test DB for features, don't worry about the stupid username and password.
+    // Don't put sensitive data on a TEST DB!
+    string res = $"Host=localhost;Port=5432;Username=test;Password=abc123;Database={dbName}";
+    return res;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
