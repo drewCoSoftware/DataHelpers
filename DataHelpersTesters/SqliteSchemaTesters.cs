@@ -260,7 +260,7 @@ public class SqliteSchemaTesters : TestBase
   public void CanGetCreateTableQueryWithForeignKey()
   {
     var schema = new SchemaDefinition(new SqliteFlavor(), typeof(ExampleSchema));
-    Assert.Equal(2, schema.TableDefs.Count);
+    Assert.Equal(3, schema.TableDefs.Count);
 
     // Make sure that we have the correct table names!
     var tables = new[] { "Parents", "Kids" };

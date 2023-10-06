@@ -8,7 +8,7 @@ using Xunit;
 
 public class TestBase
 {
-    // --------------------------------------------------------------------------------------------------------------------------
+  // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// Check the given sql against the current known good sql by test name.
   /// If there is no known good sql (it hasn't been generated) you will need to manually check and approve the code.
@@ -52,12 +52,16 @@ public class TestBase
 
       string json = JsonSerializer.Serialize(comp, new JsonSerializerOptions()
       {
-          WriteIndented = true
+        WriteIndented = true
       });
       File.WriteAllText(sqlFilePath, json);
 
       // Fail this test anyway...
-      Console.WriteLine("The reference SQL does not exist!");
+      // We fail here on purpose so that you, the developer can check the newly generated data.
+      Console.WriteLine("The reference SQL does not exist and will be created!");
+      Console.WriteLine("It is your responsibility to check and validate the new data!");
+      Console.WriteLine("If you approve of the content, add or update the file into the repository.");
+
       Assert.True(false);
     }
   }

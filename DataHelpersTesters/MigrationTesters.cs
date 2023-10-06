@@ -20,7 +20,7 @@ public class MigrationTesters : TestBase
   public void CanCreateMigrationForNewSchema()
   {
     var def = new SchemaDefinition(new SqliteFlavor(), typeof(ExampleSchema));
-    Assert.Equal(2, def.TableDefs.Count);
+    Assert.Equal(3, def.TableDefs.Count);
 
     const string MIGRATION_OUTPUT_DIR = "./Migrations";
     string outputDir = Path.GetFullPath(MIGRATION_OUTPUT_DIR);
