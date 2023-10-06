@@ -51,9 +51,9 @@ public class PostgresDataAccess : IDataAccess
     // var dataSource = dataSourceBuilder.Build();
     using (var conn = CreateConnection()) //  new PostgresConnection(ConnectionString))
     {
-
       conn.Open();
       var res = RunQuery<T>(conn, query, qParams);
+      conn.Close();
       return res;
     }
 
@@ -90,43 +90,8 @@ public class PostgresDataAccess : IDataAccess
     var res = conn.Query<T>(query, parameters);
     return res;
 
-    // using (var cmd = new NpgsqlCommand(query, conn))
-    // {
-    //   // Looks like we have to iterate over the properties of the paramaters object.
-    //   if (parameters != null)
-    //   {
-    //     // TODO: drewco.tools?
-    //     // maybe a new function to get readable properties?
-    //     var props = parameters.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public);
-    //     foreach (var p in props)
-    //     {
-    //       if (!p.CanRead) { continue; }
-    //       object? val = p.GetValue(parameters);
-    //       if (val != null)
-    //       {
-    //         cmd.Parameters.AddWithValue(p.Name, val);
-    //       }
-    //     }
-    //   }
-
-    //   using(var reader = cmd.ExecuteReader())
-    //   {
-    //     while(reader.Read())
-    //     {
-
-    //     }
-    //   }
-    //   // cmd.Parameters.Add(
-    // }
-
-    // var res = conn.Query<T>(query, parameters);
-    // return res;
   }
 
-  // public IEnumerable<T> RunQuery<T>(string query, object? qParams)
-  // {
-  //   throw new NotImplementedException();
-  // }
 
   // -----------------------------------------------------------------------------------------------
   public int RunExecute(string query, object? qParams)
@@ -135,6 +100,8 @@ public class PostgresDataAccess : IDataAccess
     {
       conn.Open();
       int res = RunExecute(conn, query, qParams);
+
+      conn.Close();
       return res;
     }
   }

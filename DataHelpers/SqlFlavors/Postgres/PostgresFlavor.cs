@@ -34,7 +34,7 @@ public class PostgresDataTypeResolver : IDataTypeResolver
   {
     string res = "";
 
-    if (t == typeof(Int32))
+    if (t == typeof(Int32) || t == typeof(Int32?))
     {
       res = isPrimaryCol ? "serial" : "integer";
     }
@@ -46,9 +46,9 @@ public class PostgresDataTypeResolver : IDataTypeResolver
     {
       res = "real";
     }
-    else if (t == typeof(double))
+    else if (t == typeof(double) || t == typeof(double?))
     {
-      res = "double";
+      res = "float8";
     }
     else if (t == typeof(string))
     {
@@ -69,6 +69,10 @@ public class PostgresDataTypeResolver : IDataTypeResolver
     {
       // lol, no boolean type either!
       res = "boolean";
+    }
+    else if (t == typeof(Guid) || t == typeof(Guid?))
+    {
+      res = "uuid";
     }
     else
     {
