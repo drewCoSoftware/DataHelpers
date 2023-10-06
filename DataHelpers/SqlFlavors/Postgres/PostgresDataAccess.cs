@@ -4,6 +4,8 @@ using Npgsql;
 using Dapper;
 using drewCo.Tools;
 using System.Text;
+using NpgsqlTypes;
+using System.Diagnostics;
 
 // ========================================================================== 
 public class PostgresDataAccess : IDataAccess
@@ -46,8 +48,14 @@ public class PostgresDataAccess : IDataAccess
   }
 
   // -----------------------------------------------------------------------------------------------
-  public int BulkInsert<T>(TableDef tableDef, List<T> toInsert)
+  public int BulkInsert<T>(TableDef tableDef, IEnumerable<T> toInsert)
   {
+    int count = toInsert.Count();
+    if (count == 0)
+    {
+      // Do nothing....
+      return 0;
+    }
     Dictionary<string, ColumnDef> columns = new Dictionary<string, ColumnDef>();
     Dictionary<string, PropertyInfo> props = new Dictionary<string, PropertyInfo>();
 
@@ -91,12 +99,11 @@ public class PostgresDataAccess : IDataAccess
       sb.Append(valPart);
 
       ++index;
-      if (index < toInsert.Count)
+      if (index < count)
       {
         sb.Append("," + Environment.NewLine);
       }
     }
-    //string useQuery = sb.ToString();
 
     int res = -1;
     using (var conn = CreateConnection()) //  new PostgresConnection(ConnectionString))
@@ -122,7 +129,7 @@ public class PostgresDataAccess : IDataAccess
           var param = new NpgsqlParameter()
           {
             ParameterName = pName,
-            Value = val
+            Value = val ?? DBNull.Value
           };
           cmd.Parameters.Add(param);
         }
@@ -136,6 +143,20 @@ public class PostgresDataAccess : IDataAccess
 
     return res;
 
+  }
+
+  // TODO: This should be put on the column defs, probably.
+  private NpgsqlDbType GetDbType(Type propertyType)
+  {
+    if (propertyType == typeof(string))
+    {
+      return NpgsqlDbType.Varchar;
+    }
+    else
+    {
+      Debug.WriteLine($"No translations for data type: {propertyType} to {nameof(NpgsqlDbType)}");
+      return NpgsqlDbType.Unknown;
+    }
   }
 
   // -----------------------------------------------------------------------------------------------
