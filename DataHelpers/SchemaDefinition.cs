@@ -9,6 +9,8 @@ using System.Reflection.Emit;
 
 namespace DataHelpers.Data;
 
+internal record NamesAndValues(List<string> ColNames, List<string> ColValues, string? PrimaryKeyName);
+
 // ============================================================================================================================
 public class SchemaDefinition
 {
@@ -806,17 +808,46 @@ public class TableDef
 
   }
 
-  record NamesAndValues(List<string> ColNames, List<string> ColValues, string? PrimaryKeyName);
+  // // --------------------------------------------------------------------------------------------------------------------------
+  // internal List<string> GetInsertValueParameterNames()
+  // {
+  //   var colVals = new List<string>();
+  //   string? pkName = null;
+  //   foreach (var c in this.Columns)
+  //   {
+  //     string colName = SchemaDefinition.FormatName(c.Name);
+  //     if (c.IsPrimary)
+  //     {
+  //       pkName = colName;
+  //       continue;
+  //     }
+
+  //     // NOTE: This makes no consideration for foreign keys, cols with defaults, etc.
+  //     // We just throw them all in.
+  //     colVals.Add("@" + c.Name);  // NOTE: We are using the same casing as the original datatype for the value parameters!
+  //   }
+
+  //   return colVals;
+  // }
+  // --------------------------------------------------------------------------------------------------------------------------
+  internal NamesAndValues GetNamesAndValues(bool useFormattedNames = true)
+  {
+      return GetNamesAndValues(this.Columns, useFormattedNames);
+  }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  private NamesAndValues GetNamesAndValues(IEnumerable<ColumnDef> columns)
+  internal NamesAndValues GetNamesAndValues(IEnumerable<ColumnDef> columns, bool useFormattedNames = true)
   {
     var colNames = new List<string>();
     var colVals = new List<string>();
     string? pkName = null;
     foreach (var c in columns)
     {
-      string colName = SchemaDefinition.FormatName(c.Name);
+      string colName = c.Name;
+      if (useFormattedNames)
+      {
+      colName = SchemaDefinition.FormatName(c.Name);
+      }
       if (c.IsPrimary)
       {
         pkName = colName;
@@ -833,7 +864,15 @@ public class TableDef
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  private string GetInsertPart(NamesAndValues namesAndVals)
+  internal string GetInsertPart()
+  {
+    var nv = GetNamesAndValues(this.Columns);
+    string res = GetInsertPart(nv);
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  internal string GetInsertPart(NamesAndValues namesAndVals)
   {
     StringBuilder sb = new StringBuilder(0x400);
     sb.Append($"INSERT INTO {this.Name} (");
@@ -908,6 +947,14 @@ public class TableDef
     var sb = new StringBuilder(0x4000);
     string insertPart = GetInsertPart(namesAndVals);
     sb.Append(insertPart);
+    sb.Append("VALUES ");
+
+    // Now for each item in the list we need to match the column to the property names....
+    // --> Maybe I should just figure out how to do this command + parameter style vs. doing it twice?
+    // --> YES!  do it the right way.  This function can return both the parameterized query, and the
+    // command/parameter list....
+    // vals can be like : (@name_1, @number_1), (@name_2, @number_2), etc.
+    throw new NotImplementedException();
 
 
     string res = sb.ToString();
@@ -917,7 +964,8 @@ public class TableDef
 }
 
 // ============================================================================================================================
-public record ColumnDef(string Name,
+public record ColumnDef(
+  string Name,              // This is the same name as the property that this def comes from.
   Type RuntimeType,
   string DataType,
   bool IsPrimary,

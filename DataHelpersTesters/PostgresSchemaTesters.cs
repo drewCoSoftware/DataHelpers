@@ -46,20 +46,24 @@ public class PostgresSchemaTesters
 
     // Now we will generate + bulk update our items.
     const int MAX_ITEMS = 5;
-    DateTimeOffset startDate = new DateTimeOffset(2000,1,1,0,0,0, TimeSpan.Zero);
+    DateTimeOffset startDate = new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
     var toInsert = new List<SomeTable>();
-    for(int i = 0; i < MAX_ITEMS; i++) 
+    for (int i = 0; i < MAX_ITEMS; i++)
     {
-      var item = new SomeTable() {
-        Name = "item_" + i,
-        Number = i,
+      var item = new SomeTable()
+      {
+        Name = "value_" + i,
+        Number = (i + 1) *100,
         Date = startDate + TimeSpan.FromDays(i)
       };
       toInsert.Add(item);
     }
 
-    string query = tableDef.ComputeBulkInsertQuery(toInsert);
+    int inserted = dal.BulkInsert<SomeTable>(tableDef, toInsert);
+    Assert.Equal(MAX_ITEMS, inserted);
+
+    int x = 10;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------

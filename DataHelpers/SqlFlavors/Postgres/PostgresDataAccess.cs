@@ -3,6 +3,7 @@ using DataHelpers.Data;
 using Npgsql;
 using Dapper;
 using drewCo.Tools;
+using System.Text;
 
 // ========================================================================== 
 public class PostgresDataAccess : IDataAccess
@@ -18,18 +19,19 @@ public class PostgresDataAccess : IDataAccess
   {
     this.ConnectionString = connectionString_;
 
-  string[] parts = ConnectionString.Split(";");
-    foreach(var p in parts)
+    string[] parts = ConnectionString.Split(";");
+    foreach (var p in parts)
     {
-        string[] kvpParts = p.Split("=");
-          if (kvpParts[0].Equals("database", StringComparison.OrdinalIgnoreCase))
-          {
-            DatabaseName = kvpParts[1];
-            IsDefaultDatabase = false;
-          }
+      string[] kvpParts = p.Split("=");
+      if (kvpParts[0].Equals("database", StringComparison.OrdinalIgnoreCase))
+      {
+        DatabaseName = kvpParts[1];
+        IsDefaultDatabase = false;
+      }
     }
 
-    if (IsDefaultDatabase){
+    if (IsDefaultDatabase)
+    {
       ConnectionString += "Database=postgres";
     }
   }
@@ -41,6 +43,99 @@ public class PostgresDataAccess : IDataAccess
     NpgsqlDataSource dataSource = dataSourceBuilder.Build();
     NpgsqlConnection res = dataSource.CreateConnection();
     return res;
+  }
+
+  // -----------------------------------------------------------------------------------------------
+  public int BulkInsert<T>(TableDef tableDef, List<T> toInsert)
+  {
+    Dictionary<string, ColumnDef> columns = new Dictionary<string, ColumnDef>();
+    Dictionary<string, PropertyInfo> props = new Dictionary<string, PropertyInfo>();
+
+    NamesAndValues namesAndValues = tableDef.GetNamesAndValues(false);
+    List<string> valNamesBase = namesAndValues.ColValues;
+    List<string> propNames = namesAndValues.ColNames;
+
+    // We should get this off of the tabeDef....
+    // The problem is that we can enumerating over the data....
+    var lProps = ReflectionTools.GetProperties<T>();
+
+    //    var lProps = ReflectionTools.GetProperties<T>();
+    foreach (var col in tableDef.Columns)
+    {
+      // Some calls may be filtered out according to the def (identify PKs for example)
+      //      if (col.IsPrimary) { continue; }
+      if (!propNames.Contains(col.Name)) { continue; }
+
+      var match = (from x in lProps
+                   where x.Name == col.Name
+                   select x).SingleOrDefault();
+      if (match != null)
+      {
+        string colName = col.Name;
+        columns.Add(colName, col);
+        props.Add(colName, match);
+      }
+    }
+
+    var sb = new StringBuilder(0x4000);
+    string insertPart = tableDef.GetInsertPart();
+    sb.Append(insertPart + Environment.NewLine);
+    sb.Append(" VALUES " + Environment.NewLine);
+
+    int index = 0;
+    foreach (var item in toInsert)
+    {
+      string nameParts = string.Join(", ", (from x in valNamesBase
+                                            select x + "_" + index));
+      string valPart = "(" + nameParts + ")";
+      sb.Append(valPart);
+
+      ++index;
+      if (index < toInsert.Count)
+      {
+        sb.Append("," + Environment.NewLine);
+      }
+    }
+    //string useQuery = sb.ToString();
+
+    int res = -1;
+    using (var conn = CreateConnection()) //  new PostgresConnection(ConnectionString))
+    {
+
+      conn.Open();
+
+      NpgsqlCommand cmd = conn.CreateCommand();
+      cmd.CommandText = sb.ToString();
+
+      // Now add all of the parameters.
+      index = 0;
+      foreach (var item in toInsert)
+      {
+        foreach (var c in propNames)
+        {
+          string pName = SchemaDefinition.FormatName(c);
+          pName += "_" + index;
+
+          var prop = props[c];
+          object? val = prop.GetValue(item);
+
+          var param = new NpgsqlParameter()
+          {
+            ParameterName = pName,
+            Value = val
+          };
+          cmd.Parameters.Add(param);
+        }
+
+        ++index;
+      }
+
+      res = cmd.ExecuteNonQuery();
+      conn.Close();
+    }
+
+    return res;
+
   }
 
   // -----------------------------------------------------------------------------------------------
@@ -62,28 +157,28 @@ public class PostgresDataAccess : IDataAccess
   // --------------------------------------------------------------------------------------------------------------------------
   protected IEnumerable<T> RunQuery<T>(NpgsqlConnection conn, string query, object? parameters)
   {
-    
+
     // We will fix any datetimeoffset parametesr to have a UTC offset which is required
     // by postgresql.
     if (parameters != null)
     {
-    var props = ReflectionTools.GetProperties(parameters.GetType());
-    foreach(var p in props) 
-    {
-      if (p.PropertyType == typeof(DateTimeOffset) || p.PropertyType == typeof(DateTimeOffset?))
+      var props = ReflectionTools.GetProperties(parameters.GetType());
+      foreach (var p in props)
       {
-        if (!p.CanWrite)
+        if (p.PropertyType == typeof(DateTimeOffset) || p.PropertyType == typeof(DateTimeOffset?))
         {
-          Console.WriteLine($"Warning!  DatetimeOffset value for property {p.Name} is not writable!  Operation will fail if date offset is not zero!");
-        }
-        object? val = p.GetValue(parameters);
-        if (val != null)
-        {
-          DateTimeOffset useVal = ((DateTimeOffset)val).ToUniversalTime();
-          p.SetValue(parameters, useVal);
+          if (!p.CanWrite)
+          {
+            Console.WriteLine($"Warning!  DatetimeOffset value for property {p.Name} is not writable!  Operation will fail if date offset is not zero!");
+          }
+          object? val = p.GetValue(parameters);
+          if (val != null)
+          {
+            DateTimeOffset useVal = ((DateTimeOffset)val).ToUniversalTime();
+            p.SetValue(parameters, useVal);
+          }
         }
       }
-    }
     }
 
 
@@ -151,9 +246,9 @@ public class PostgresDataAccess<TSchema> : PostgresDataAccess
   public PostgresDataAccess(string connectionString_)
     : base(connectionString_)
   {
-//    ConnectionString = connectionString_;
+    //    ConnectionString = connectionString_;
 
-  
+
     // // TODO: Add data type mapping as needed:
     // SqlMapper.RemoveTypeMap(typeof(DateTimeOffset));
     // SqlMapper.AddTypeHandler<DateTimeOffset>(new DateTimeOffsetHandler());
@@ -215,7 +310,7 @@ public class PostgresDataAccess<TSchema> : PostgresDataAccess
 
   // --------------------------------------------------------------------------------------------------------------------------
   private bool ValidateSchemaExists()
-  { 
+  {
     return false;
 
 
@@ -226,31 +321,31 @@ public class PostgresDataAccess<TSchema> : PostgresDataAccess
     }
 
     return true;
-  //   // Make sure that the file exists!
-  //   var parts = ConnectionString.Split(";");
-  //   foreach (var p in parts)
-  //   {
-  //     if (p.StartsWith("Data Source"))
-  //     {
-  //       string filePath = p.Split("=")[1].Trim();
-  //       if (!File.Exists(filePath))
-  //       {
-  //         Debug.WriteLine($"The database file at: {filePath} does not exist!");
-  //         return false;
-  //       }
-  //     }
-  //   }
+    //   // Make sure that the file exists!
+    //   var parts = ConnectionString.Split(";");
+    //   foreach (var p in parts)
+    //   {
+    //     if (p.StartsWith("Data Source"))
+    //     {
+    //       string filePath = p.Split("=")[1].Trim();
+    //       if (!File.Exists(filePath))
+    //       {
+    //         Debug.WriteLine($"The database file at: {filePath} does not exist!");
+    //         return false;
+    //       }
+    //     }
+    //   }
 
-  //   var props = ReflectionTools.GetProperties<TSchema>();
-  //   foreach (var p in props)
-  //   {
-  //     if (!HasTable(p.Name)) { return false; }
-  //   }
+    //   var props = ReflectionTools.GetProperties<TSchema>();
+    //   foreach (var p in props)
+    //   {
+    //     if (!HasTable(p.Name)) { return false; }
+    //   }
 
-  //   return true;
-  //   // NOTE: This is simple.  In the future we could come up with a more robust verison of this.
-  //   // bool res = HasTable(nameof(TimeManSchema.Sessions));
-  //   // return res;
+    //   return true;
+    //   // NOTE: This is simple.  In the future we could come up with a more robust verison of this.
+    //   // bool res = HasTable(nameof(TimeManSchema.Sessions));
+    //   // return res;
   }
 
 
