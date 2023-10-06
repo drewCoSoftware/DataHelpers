@@ -3,8 +3,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using DataHelpers.Data;
 using DataHelpersTesters;
 using drewCo.Tools;
@@ -24,7 +26,42 @@ public class PostgresSchemaTesters
 {
   public const string TEST_DB_NAME = "DataHelpersTesters";
 
-  
+  // --------------------------------------------------------------------------------------------------------------------------
+  [Fact]
+  public void CanBulkInsertItems()
+  {
+    string connectionString = GetConnectionString();
+    var dal = new PostgresDataAccess(connectionString);
+
+    var schema = CreatePostgresSchema<ExampleSchema>();
+    TableDef tableDef = schema.GetTableDef<SomeTable>()!;
+    Assert.NotNull(tableDef);
+
+    string? tableName = tableDef?.Name;
+    Assert.NotNull(tableName);
+
+    // Clear the old data first.
+    dal.RunExecute($"TRUNCATE table {tableName}", null);
+
+
+    // Now we will generate + bulk update our items.
+    const int MAX_ITEMS = 5;
+    DateTimeOffset startDate = new DateTimeOffset(2000,1,1,0,0,0, TimeSpan.Zero);
+
+    var toInsert = new List<SomeTable>();
+    for(int i = 0; i < MAX_ITEMS; i++) 
+    {
+      var item = new SomeTable() {
+        Name = "item_" + i,
+        Number = i,
+        Date = startDate + TimeSpan.FromDays(i)
+      };
+      toInsert.Add(item);
+    }
+
+    string query = tableDef.ComputeBulkInsertQuery(toInsert);
+  }
+
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// This just shows that we can insert some data into an example table in our test database.
@@ -42,24 +79,25 @@ public class PostgresSchemaTesters
     // string selectQr =  dal.SchemaDef.GetSelectQuery<TestTable>(null);
     // int x = 10;
     List<TestTable> results = dal.RunQuery<TestTable>("SELECT * FROM example_table ORDER BY id DESC LIMIT 1", null).ToList();
-    
+
     // Check to see how many results we have....
     int greatestId = 0;
     Assert.True(results.Count <= 1);
     if (results.Count > 0)
     {
-        greatestId = results[0].id;
+      greatestId = results[0].id;
     }
 
     string newName = RandomTools.GetAlphaString(8);
-    int newNumber = RandomTools.RNG.Next(-100 , 100);
+    int newNumber = RandomTools.RNG.Next(-100, 100);
     string insertQR = "INSERT INTO example_table (some_text, some_number) VALUES (@some_text, @some_number) RETURNING id";
 
-    int newId = dal.RunQuery<int>(insertQR, new { 
+    int newId = dal.RunQuery<int>(insertQR, new
+    {
       some_text = newName,
       some_number = newNumber
     }).ToList()[0];
-    
+
 
     // Make sure that the new ID is valid....
     // NOTE: If this approach doesn't work long term, we can just use the new id to select the row

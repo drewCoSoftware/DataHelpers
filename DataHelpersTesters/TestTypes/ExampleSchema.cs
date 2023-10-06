@@ -15,6 +15,19 @@ class ExampleSchema
   // not as a means to resolve that data!
   public List<ExampleParent> Parents { get; set; } = new List<ExampleParent>();
   public List<ExampleChild> Kids { get; set; } = new List<ExampleChild>();
+  public List<SomeTable> SomeTable { get; set; } = new List<SomeTable>();
+}
+
+// ==========================================================================
+/// <summary>
+/// Just a regular old table with no relations.
+/// </summary> 
+public class SomeTable
+{
+  public int ID { get; set; }
+  public string Name { get; set; }
+  public int Number { get; set; }
+  public DateTimeOffset Date { get; set; }
 }
 
 // ==========================================================================   

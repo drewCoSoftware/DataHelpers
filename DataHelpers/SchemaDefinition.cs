@@ -833,15 +833,32 @@ public class TableDef
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public string GetInsertQuery()
+  private string GetInsertPart(NamesAndValues namesAndVals)
   {
-    var namesAndVals = GetNamesAndValues(this.Columns);
-
     StringBuilder sb = new StringBuilder(0x400);
     sb.Append($"INSERT INTO {this.Name} (");
     sb.Append(string.Join(",", namesAndVals.ColNames));
+    sb.Append(")");
 
-    sb.Append(") VALUES (");
+    string res = sb.ToString();
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public string GetInsertQuery()
+  {
+    NamesAndValues namesAndVals = GetNamesAndValues(this.Columns);
+
+    StringBuilder sb = new StringBuilder(0x400);
+    string insertPart = GetInsertPart(namesAndVals);
+    sb.Append(insertPart);
+
+    sb.Append($"INSERT INTO {this.Name} (");
+    sb.Append(string.Join(",", namesAndVals.ColNames));
+
+
+
+    sb.Append(" VALUES (");
     sb.Append(string.Join(",", namesAndVals.ColValues));
 
     sb.Append(")");
@@ -873,6 +890,29 @@ public class TableDef
 
     string res = sb.ToString();
     return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Creates a query than can be used to bulk insert items into a database.
+  /// WARNING!  This will generate the query with raw values!  Parameters aren't supported at this time!
+  /// </summary>
+  /// <remarks>
+  /// Once we can prove that this works as expected, we will deprecate it and create a safe version that
+  /// uses parameters, etc.
+  /// </remarks>
+  public string ComputeBulkInsertQuery<T>(IEnumerable<T> toInsert)
+  {
+    NamesAndValues namesAndVals = GetNamesAndValues(this.Columns);
+
+    var sb = new StringBuilder(0x4000);
+    string insertPart = GetInsertPart(namesAndVals);
+    sb.Append(insertPart);
+
+
+    string res = sb.ToString();
+    return res;
+    //throw new NotImplementedException();
   }
 }
 
