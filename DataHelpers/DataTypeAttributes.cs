@@ -13,3 +13,10 @@ public class UniqueAttribute : Attribute
 [AttributeUsage(AttributeTargets.Property)]
 public class IsNullableAttribute : Attribute
 { }
+
+
+// ==========================================================================
+[AttributeUsage(AttributeTargets.Property)]
+public class IgnoreAttribute : Attribute
+{ }
+
