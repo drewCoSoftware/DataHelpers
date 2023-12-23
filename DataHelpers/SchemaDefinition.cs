@@ -626,6 +626,8 @@ public class TableDef
       }
 
       bool isUnique = ReflectionTools.HasAttribute<UniqueAttribute>(p);
+
+      // TODO: The property type should also be checked for nullable!
       bool isNullable = ReflectionTools.HasAttribute<IsNullableAttribute>(p);
       bool isPrimary = p.Name == nameof(IHasPrimary.ID);
 
