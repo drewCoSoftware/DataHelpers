@@ -614,6 +614,7 @@ public class TableDef
     foreach (var p in ReflectionTools.GetProperties(DataType))
     {
       if (!p.CanWrite) { continue; }
+      if (ReflectionTools.HasAttribute<IgnoreAttribute>(p)) { continue; }
 
       // OPTIONS:
       const bool USE_JSON_IGNORE = true;
