@@ -6,6 +6,14 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DocumentationFile>C:\code\licklicklick\Code\Repos\DataHelpers\DataHelpers\DataHelpers.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DocumentationFile>C:\code\licklicklick\Code\Repos\DataHelpers\DataHelpers\DataHelpers.xml</DocumentationFile>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="drewCo.Tools" Version="1.1.3" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="6.0.1" />
