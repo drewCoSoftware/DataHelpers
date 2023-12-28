@@ -1,7 +1,7 @@
 <package>
   <metadata>
     <id>DataHelpers</id>
-    <version>1.0.0.0</version>
+    <version>0.1.0.0</version>
     <title>DataHelpers</title>
     <authors>Andrew A. Ritz</authors>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
@@ -11,6 +11,9 @@
     <copyright>2022-2023 Andrew A. Ritz</copyright>
     
     <dependencies>
+	<dependency id="Npgsql" version="8.0.1" />
+	<dependency id="Dapper" version="2.0.123" />
+	<dependency id="drewCo.Tools" version="1.1.3" />
       <group targetFramework="net6.0" />
     </dependencies>
 
