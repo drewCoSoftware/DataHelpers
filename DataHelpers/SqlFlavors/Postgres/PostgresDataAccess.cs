@@ -6,6 +6,7 @@ using drewCo.Tools;
 using System.Text;
 using NpgsqlTypes;
 using System.Diagnostics;
+using drewCo;
 
 // ========================================================================== 
 public class PostgresDataAccess : IDataAccess
@@ -38,12 +39,27 @@ public class PostgresDataAccess : IDataAccess
     }
   }
 
-  // -----------------------------------------------------------------------------------------------
-  public NpgsqlConnection CreateConnection()
+  private NpgsqlDataSource _DataSource = null!;
+  private NpgsqlDataSource DataSource
+  {
+    get
+    {
+      return _DataSource ?? (_DataSource = CreateDataSource());
+    }
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private NpgsqlDataSource CreateDataSource()
   {
     var dataSourceBuilder = new NpgsqlDataSourceBuilder(ConnectionString);
     NpgsqlDataSource dataSource = dataSourceBuilder.Build();
-    NpgsqlConnection res = dataSource.CreateConnection();
+    return dataSource;
+  }
+
+  // -----------------------------------------------------------------------------------------------
+  public NpgsqlConnection OpenConnection()
+  {
+    NpgsqlConnection res = DataSource.OpenConnection();
     return res;
   }
 
@@ -106,10 +122,8 @@ public class PostgresDataAccess : IDataAccess
     }
 
     int res = -1;
-    using (var conn = CreateConnection()) //  new PostgresConnection(ConnectionString))
+    using (var conn = OpenConnection()) //  new PostgresConnection(ConnectionString))
     {
-
-      conn.Open();
 
       NpgsqlCommand cmd = conn.CreateCommand();
       cmd.CommandText = sb.ToString();
@@ -165,9 +179,8 @@ public class PostgresDataAccess : IDataAccess
 
     // var dataSourceBuilder = new NpgsqlDataSourceBuilder(ConnectionString);
     // var dataSource = dataSourceBuilder.Build();
-    using (var conn = CreateConnection()) //  new PostgresConnection(ConnectionString))
+    using (var conn = OpenConnection()) //  new PostgresConnection(ConnectionString))
     {
-      conn.Open();
       var res = RunQuery<T>(conn, query, qParams);
       conn.Close();
       return res;
@@ -212,9 +225,8 @@ public class PostgresDataAccess : IDataAccess
   // -----------------------------------------------------------------------------------------------
   public int RunExecute(string query, object? qParams)
   {
-    using (var conn = CreateConnection())
+    using (var conn = OpenConnection())
     {
-      conn.Open();
       int res = RunExecute(conn, query, qParams);
 
       conn.Close();
@@ -316,9 +328,8 @@ public class PostgresDataAccess<TSchema> : PostgresDataAccess
   {
     string query = SchemaDef.GetCreateSQL();
 
-    using (var conn = CreateConnection())
+    using (var conn = OpenConnection())
     {
-      conn.Open();
       using (var tx = conn.BeginTransaction())
       {
         conn.Execute(query);
@@ -337,7 +348,7 @@ public class PostgresDataAccess<TSchema> : PostgresDataAccess
 
     // NOTE: I am not really sure how ask postgres what databases it may or may not have.....
     // We can worry about this later as we don't need it right now.
-    using (var conn = CreateConnection())
+    using (var conn = OpenConnection())
     {
     }
 
