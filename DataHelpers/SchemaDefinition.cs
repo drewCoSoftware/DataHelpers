@@ -630,7 +630,7 @@ public class TableDef
 
       // TODO: The property type should also be checked for nullable!
       bool isNullable = ReflectionTools.HasAttribute<IsNullableAttribute>(p);
-      bool isPrimary = p.Name == nameof(IHasPrimary.ID);
+      bool isPrimary = p.Name == nameof(IHasPrimary.ID) || ReflectionTools.HasAttribute<PrimaryKey>(p);
 
       var childAttr = ReflectionTools.GetAttribute<ChildRelationship>(p);
       if (childAttr != null)

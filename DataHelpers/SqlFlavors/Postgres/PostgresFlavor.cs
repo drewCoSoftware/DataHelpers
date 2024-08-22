@@ -65,6 +65,11 @@ public class PostgresDataTypeResolver : IDataTypeResolver
       // who simply can't/won't care about UTC.
       res = "timestamptz";
     }
+    else if (t == typeof(DateTime) ||
+          t == typeof(DateTime?))
+    {
+      res = "date";
+    }
     else if (t == typeof(bool))
     {
       // lol, no boolean type either!
@@ -73,6 +78,10 @@ public class PostgresDataTypeResolver : IDataTypeResolver
     else if (t == typeof(Guid) || t == typeof(Guid?))
     {
       res = "uuid";
+    }
+    else if (t == typeof(decimal) || t == typeof(decimal?))
+    {
+      res = "money";
     }
     else
     {
