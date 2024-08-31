@@ -6,7 +6,7 @@ using drewCo.Tools;
 using System.Text;
 using NpgsqlTypes;
 using System.Diagnostics;
-using drewCo;
+
 
 // ========================================================================== 
 public class PostgresDataAccess : IDataAccess
@@ -177,8 +177,6 @@ public class PostgresDataAccess : IDataAccess
   public IEnumerable<T> RunQuery<T>(string query, object? qParams)
   {
 
-    // var dataSourceBuilder = new NpgsqlDataSourceBuilder(ConnectionString);
-    // var dataSource = dataSourceBuilder.Build();
     using (var conn = OpenConnection()) //  new PostgresConnection(ConnectionString))
     {
       var res = RunQuery<T>(conn, query, qParams);
