@@ -4,7 +4,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using drewCo.Tools;
-using Xunit;
+using NUnit.Framework;
 
 public class TestBase
 {
@@ -34,12 +34,12 @@ public class TestBase
       var comp = TestSQLOutput.Load(sqlFilePath);
       if (comp.IsApproved)
       {
-        Assert.Equal(sql, comp.SQL);
+        Assert.Equals(sql, comp.SQL);
       }
       else
       {
         Console.WriteLine("The reference SQL is not approved!");
-        Assert.True(false);
+        Assert.That(false);
       }
     }
     else
@@ -62,7 +62,7 @@ public class TestBase
       Console.WriteLine("It is your responsibility to check and validate the new data!");
       Console.WriteLine("If you approve of the content, add or update the file into the repository.");
 
-      Assert.True(false);
+      Assert.That(false);
     }
   }
 

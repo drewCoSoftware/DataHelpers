@@ -5,7 +5,9 @@ using System.Text.Json;
 using DataHelpers.Data;
 using DataHelpers.Migrations;
 using drewCo.Tools;
-using Xunit;
+
+using NUnit.Framework;
+
 namespace DataHelpersTesters;
 
 public class MigrationTesters : TestBase
@@ -16,11 +18,11 @@ public class MigrationTesters : TestBase
   /// Show that we can generate a migration that will 'CREATE' tables
   /// when no previous migration exists.
   /// </summary>
-  [Fact]
+  [Test]  
   public void CanCreateMigrationForNewSchema()
   {
     var def = new SchemaDefinition(new SqliteFlavor(), typeof(ExampleSchema));
-    Assert.Equal(3, def.TableDefs.Count);
+    Assert.Equals(3, def.TableDefs.Count);
 
     const string MIGRATION_OUTPUT_DIR = "./Migrations";
     string outputDir = Path.GetFullPath(MIGRATION_OUTPUT_DIR);
@@ -41,17 +43,18 @@ public class MigrationTesters : TestBase
 
     string path = Path.Combine(dataDir, DB_NAME + ".sqlite");
     FileTools.DeleteExistingFile(path);
-    Assert.False(File.Exists(path));
+
+    Assert.That(File.Exists(path));
 
     var dal = new SqliteDataAccess<ExampleSchema>(dataDir, DB_NAME);
     mh.ApplyMigration(migration, dal);
 
     // Does the new DB file exist?
     // TODO: We need a real way to validate that it has the correct schema.
-    Assert.True(File.Exists(path));
+    Assert.That(File.Exists(path));
 
     // Make sure that we also have migration data available...
-    Assert.True(File.Exists(migration.SchemaFilePath));
+    Assert.That(File.Exists(migration.SchemaFilePath));
   }
 
 }

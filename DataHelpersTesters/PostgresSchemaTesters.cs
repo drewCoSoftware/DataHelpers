@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 using DataHelpers.Data;
 using DataHelpersTesters;
 using drewCo.Tools;
-using Xunit;
+using NUnit.Framework;
 
 
 // =========================================================================================================================
@@ -27,7 +27,7 @@ public class PostgresSchemaTesters
   public const string TEST_DB_NAME = "DataHelpersTesters";
 
   // --------------------------------------------------------------------------------------------------------------------------
-  [Fact]
+  [Test]
   public void CanBulkInsertItems()
   {
     string connectionString = GetConnectionString();
@@ -35,10 +35,10 @@ public class PostgresSchemaTesters
 
     var schema = CreatePostgresSchema<ExampleSchema>();
     TableDef tableDef = schema.GetTableDef<SomeTable>()!;
-    Assert.NotNull(tableDef);
+    Assert.That(tableDef, Is.Null);
 
     string? tableName = tableDef?.Name;
-    Assert.NotNull(tableName);
+    Assert.That(tableName, Is.Null);
 
     // Clear the old data first.
     dal.RunExecute($"TRUNCATE table {tableName}", null);
@@ -54,14 +54,14 @@ public class PostgresSchemaTesters
       var item = new SomeTable()
       {
         Name = "value_" + i,
-        Number = (i + 1) *100,
+        Number = (i + 1) * 100,
         Date = startDate + TimeSpan.FromDays(i)
       };
       toInsert.Add(item);
     }
 
     int inserted = dal.BulkInsert<SomeTable>(tableDef, toInsert);
-    Assert.Equal(MAX_ITEMS, inserted);
+    Assert.Equals(MAX_ITEMS, inserted);
 
     int x = 10;
   }
@@ -72,7 +72,7 @@ public class PostgresSchemaTesters
   /// The interresting part of all of this is that we are just issuing raw queries against an
   /// existing schema vs. defining a class, creating a table, etc.
   /// </summary>
-  [Fact]
+  [Test]
   public void CanInsertIntoExampleTableWithRawQuery()
   {
     string connectionString = GetConnectionString();
@@ -86,7 +86,7 @@ public class PostgresSchemaTesters
 
     // Check to see how many results we have....
     int greatestId = 0;
-    Assert.True(results.Count <= 1);
+    Assert.That(results.Count <= 1);
     if (results.Count > 0)
     {
       greatestId = results[0].id;
@@ -106,16 +106,16 @@ public class PostgresSchemaTesters
     // Make sure that the new ID is valid....
     // NOTE: If this approach doesn't work long term, we can just use the new id to select the row
     // and make sure that our parameters (from above) match.
-    Assert.True(newId > greatestId);
+    Assert.That(newId > greatestId);
 
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  [Fact]
+  [Test]
   public void CanCreatePostgresSchema()
   {
     CreatePostgresDatabase<ExampleSchema>(TEST_DB_NAME, out SchemaDefinition schemaDef);
-    Assert.NotNull(schemaDef);
+    Assert.That(schemaDef, Is.Null);
   }
 
 
@@ -129,7 +129,7 @@ public class PostgresSchemaTesters
   // --> Since the goal of this project is to have a generic way to talk to make DB drivers, it would
   // make sense to just write one set of test cases (which are generic) and then run them for all of the DB
   // drivers that we might have.
-  [Fact]
+  [Test]
   public void CanInsertChildRecordsWithParentID()
   {
     var dal = CreatePostgresDatabase<ExampleSchema>(nameof(CanInsertChildRecordsWithParentID), out SchemaDefinition schema);
@@ -141,13 +141,13 @@ public class PostgresSchemaTesters
     };
 
     string insertQuery = schema.GetTableDef("Parents")?.GetInsertQuery() ?? string.Empty;
-    Assert.NotEmpty(insertQuery);
+    Assert.That(insertQuery.Count() == 0);
 
     // NOTE: We are using 'RunSingleQuery' here so that we can get the returned ID!
     int newID = dal.RunSingleQuery<int>(insertQuery, parent);
-    Assert.True(newID != 0);
+    Assert.That(newID != 0);
 
-    //    Assert.Equal(1, newID);
+    //    Assert.Equals(1, newID);
 
     // HACK: This should maybe be assinged during insert?
     parent.ID = newID;
@@ -155,7 +155,7 @@ public class PostgresSchemaTesters
     // Confirm that we can get the data back out...
     string select = schema.GetSelectQuery<ExampleParent>(x => x.ID == newID);
     var parentCheck = dal.RunQuery<ExampleParent>(select, new { ID = newID });
-    Assert.NotNull(parentCheck);
+    Assert.That(parentCheck, Is.Null);
 
     // Now we will insert the child record:
     var child = new ExampleChild()
@@ -172,8 +172,8 @@ public class PostgresSchemaTesters
 
     string selectChild = schema.GetSelectQuery<ExampleChild>(x => x.ID == childID);
     var childCheck = dal.RunSingleQuery<ExampleChild>(selectChild, new { ID = childID });
-    Assert.NotNull(childCheck);
-    Assert.Equal("Child1", childCheck!.Label);
+    Assert.That(childCheck, Is.Null);
+    Assert.Equals("Child1", childCheck!.Label);
 
   }
 

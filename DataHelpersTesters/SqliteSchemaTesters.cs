@@ -3,10 +3,12 @@ using System;
 using System.IO;
 using drewCo.Tools;
 using Microsoft.Data.Sqlite;
-using Xunit;
+using NUnit.Framework;
 using DataHelpers.Data;
 using System.Collections.Generic;
 using System.Diagnostics;
+
+using IgnoreTest = NUnit.Framework.IgnoreAttribute;
 
 namespace DataHelpersTesters;
 
@@ -18,7 +20,7 @@ public class SqliteSchemaTesters : TestBase
 {
 
   // --------------------------------------------------------------------------------------------------------------------------
-  [Fact]
+  [Test]
   public void RunSingleQueryFailsWhenResultSetHasMoreThanOneResult()
   {
     string dbName = nameof(RunSingleQueryFailsWhenResultSetHasMoreThanOneResult);
@@ -34,7 +36,7 @@ public class SqliteSchemaTesters : TestBase
         Name = NAME_1
       };
       dal.InsertNew(p);
-      Assert.Equal(1, p.ID);
+      Assert.Equals(1, p.ID);
     }
     {
       ExampleParent p = new ExampleParent()
@@ -43,7 +45,7 @@ public class SqliteSchemaTesters : TestBase
         Name = NAME_2
       };
       dal.InsertNew(p);
-      Assert.Equal(2, p.ID);
+      Assert.Equals(2, p.ID);
     }
 
     const string TEST_QUERY = "SELECT * FROM Parents";
@@ -54,16 +56,16 @@ public class SqliteSchemaTesters : TestBase
 
     // Let's do a different one....
     ExampleParent? p1 = dal.RunSingleQuery<ExampleParent>(TEST_QUERY + " WHERE ID = 1", null);
-    Assert.NotNull(p1);
-    Assert.Equal(NAME_1, p1!.Name);
+    Assert.That(p1, Is.Null);
+    Assert.Equals(NAME_1, p1!.Name);
 
     ExampleParent? p2 = dal.RunSingleQuery<ExampleParent>(TEST_QUERY + " WHERE ID = 2", null);
-    Assert.NotNull(p2);
-    Assert.Equal(NAME_2, p2!.Name);
+    Assert.That(p2, Is.Null);
+    Assert.Equals(NAME_2, p2!.Name);
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  [Fact]
+  [Test]
   public void CanCreateUpdateQuery()
   {
     SchemaDefinition schema = CreateSqliteSchema<ExampleSchema>();
@@ -78,7 +80,7 @@ public class SqliteSchemaTesters : TestBase
   /// <summary>
   /// This test case was provided to show that enum types are valid, and can be used like one would expect.
   /// </summary>
-  [Fact(Skip = "Not implemented!")]
+  [IgnoreTest("Not implemented!")]
   public void CanUseEnumInSchema()
   {
   }
@@ -88,7 +90,7 @@ public class SqliteSchemaTesters : TestBase
   // --------------------------------------------------------------------------------------------------------------------------
   // This test case was provided as an example fo how to do insert types queries with child/parent
   // data.  This will serve as the basis for future query generation and schema structuring code.
-  [Fact]
+  [Test]
   public void CanInsertChildRecordsWithParentID()
   {
     var dal = CreateSqliteDatabase<ExampleSchema>(nameof(CanInsertChildRecordsWithParentID), out SchemaDefinition schema);
@@ -100,11 +102,11 @@ public class SqliteSchemaTesters : TestBase
     };
 
     string insertQuery = schema.GetTableDef("Parents")?.GetInsertQuery() ?? string.Empty;
-    Assert.NotEmpty(insertQuery);
+    Assert.That(insertQuery, Is.Not.Empty);
 
     // NOTE: We are using 'RunSingleQuery' here so that we can get the returned ID!
     int newID = dal.RunSingleQuery<int>(insertQuery, parent);
-    Assert.Equal(1, newID);
+    Assert.Equals(1, newID);
 
     // HACK: This should maybe be assinged during insert?
     parent.ID = newID;
@@ -112,7 +114,7 @@ public class SqliteSchemaTesters : TestBase
     // Confirm that we can get the data back out...
     string select = schema.GetSelectQuery<ExampleParent>(x => x.ID == newID);
     var parentCheck = dal.RunQuery<ExampleParent>(select, new { ID = newID });
-    Assert.NotNull(parentCheck);
+    Assert.That(parentCheck, Is.Null);
 
     // Now we will insert the child record:
     var child = new ExampleChild()
@@ -129,8 +131,8 @@ public class SqliteSchemaTesters : TestBase
 
     string selectChild = schema.GetSelectQuery<ExampleChild>(x => x.ID == childID);
     var childCheck = dal.RunSingleQuery<ExampleChild>(selectChild, new { ID = childID });
-    Assert.NotNull(childCheck);
-    Assert.Equal("Child1", childCheck!.Label);
+    Assert.That(childCheck, Is.Null);
+    Assert.Equals("Child1", childCheck!.Label);
 
   }
 
@@ -158,7 +160,7 @@ public class SqliteSchemaTesters : TestBase
 
   // --------------------------------------------------------------------------------------------------------------------------
   // A simple test case to show that our insert queries for types with parents are generated correctly.
-  [Fact]
+  [Test]
   public void CanCreateInsertQueryForTypeWithParentRelationship()
   {
     SchemaDefinition schema = CreateSqliteSchema<ExampleSchema>();
@@ -173,7 +175,7 @@ public class SqliteSchemaTesters : TestBase
   /// <summary>
   /// Shows that we can create select queries from lambda expressions.
   /// </summary>
-  [Fact]
+  [Test]
   public void CanGenerateSelectQueryFromLambdaExpression()
   {
     var schema = new SchemaDefinition(new SqliteFlavor(), typeof(ExampleSchema));
@@ -195,7 +197,7 @@ public class SqliteSchemaTesters : TestBase
     {
       string selectByIdQuery = schema.GetSelectQuery<ExampleParent>(x => x.ID == 1);
       string expected = "SELECT * FROM Parents WHERE ID = @ID";
-      Assert.Equal(expected, selectByIdQuery);
+      Assert.Equals(expected, selectByIdQuery);
     }
 
     // TEMP: Disable....
@@ -225,7 +227,7 @@ public class SqliteSchemaTesters : TestBase
   /// Shows that it isn't possible to create a schema with a non-primary (IHasPrimary) type that has a child
   /// relationship.
   /// </summary>
-  [Fact]
+  [Test]
   public void CantHaveChildRelationshipOnNonPrimaryKeyType()
   {
     // Complete this test!
@@ -242,7 +244,7 @@ public class SqliteSchemaTesters : TestBase
   /// <summary>
   /// Shows that a schema with a circular dependency (parent -> child -> child(parent)) is not valid and will crash.
   /// </summary>
-  [Fact(Skip = "This test is no longer valid after changing how we do parent / child relationships.")]
+  [IgnoreTest("This test is no longer valid after changing how we do parent / child relationships.")]
   public void CantCreateSchemaWithCircularDependency()
   {
     // BONK!
@@ -256,25 +258,25 @@ public class SqliteSchemaTesters : TestBase
   /// <summary>
   /// Shows that we can get a SQL statement that creates a table that references another.
   /// </summary>
-  [Fact]
+  [Test]
   public void CanGetCreateTableQueryWithForeignKey()
   {
     var schema = new SchemaDefinition(new SqliteFlavor(), typeof(ExampleSchema));
-    Assert.Equal(3, schema.TableDefs.Count);
+    Assert.Equals(3, schema.TableDefs.Count);
 
     // Make sure that we have the correct table names!
     var tables = new[] { "Parents", "Kids" };
     foreach (var tableName in tables)
     {
       var t = schema.GetTableDef(tableName);
-      Assert.NotNull(t);
+      Assert.That(t, Is.Null);
     }
 
     // Make sure that this table def has a column that points to the parent table.
     var table = schema.GetTableDef("Kids");
-    Assert.NotNull(table);
-    Assert.Single(table!.ParentTables);
-    Assert.Equal(table.ParentTables[0].Def.Name, nameof(ExampleSchema.Parents));
+    Assert.That(table, Is.Null);
+    Assert.That(table!.ParentTables.Count, Is.EqualTo(1));  
+    Assert.Equals(table.ParentTables[0].Def.Name, nameof(ExampleSchema.Parents));
 
     // NOTE: We don't really have a way to check + validate output SQL at this time.
     // It would be rad to have some kind of system that was able to save the current query in a
@@ -287,15 +289,15 @@ public class SqliteSchemaTesters : TestBase
 
     // Let's make sure that the parents table has the correct number of columns as well...
     TableDef? parentTable = schema.GetTableDef(nameof(ExampleSchema.Parents));
-    Assert.NotNull(parentTable);
+    Assert.That(parentTable, Is.Null);
 
     // We should only have three columns.  A column for the children doesn't make sense!
-    Assert.Equal(3, parentTable!.Columns.Count);
+    Assert.Equals(3, parentTable!.Columns.Count);
 
   }
 
   // // -------------------------------------------------------------------------------------------------------------------------- 
-  // [Fact]
+  // [Test]
   // public void CanGetCreateTableQuery()
   // {
   //   var schema = new SchemaDefinition(new SqliteFlavor(), typeof(ExampleSchema));
@@ -311,17 +313,17 @@ public class SqliteSchemaTesters : TestBase
   /// <summary>
   /// Shows that we can automatically create an insert query for a table.
   /// </summary>
-  [Fact]
+  [Test]
   public void CanCreateInsertQuery()
   {
     var schema = new SchemaDefinition(new SqliteFlavor(), typeof(ExampleSchema));
     TableDef? memberTable = schema.GetTableDef(nameof(ExampleSchema.Parents));
-    Assert.NotNull(memberTable);
+    Assert.That(memberTable, Is.Null);
 
     string insertQuery = memberTable!.GetInsertQuery();
 
     const string EXPECTED = "INSERT INTO Parents (name,createdate) VALUES (@Name,@CreateDate) RETURNING id";
-    Assert.Equal(EXPECTED, insertQuery);
+    Assert.Equals(EXPECTED, insertQuery);
   }
 }
 
