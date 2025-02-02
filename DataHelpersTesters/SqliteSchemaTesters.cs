@@ -36,7 +36,7 @@ public class SqliteSchemaTesters : TestBase
         Name = NAME_1
       };
       dal.InsertNew(p);
-      Assert.Equals(1, p.ID);
+      Assert.That(1, Is.EqualTo(p.ID));
     }
     {
       ExampleParent p = new ExampleParent()
@@ -45,7 +45,7 @@ public class SqliteSchemaTesters : TestBase
         Name = NAME_2
       };
       dal.InsertNew(p);
-      Assert.Equals(2, p.ID);
+      Assert.That(2, Is.EqualTo(p.ID));
     }
 
     const string TEST_QUERY = "SELECT * FROM Parents";
@@ -56,12 +56,12 @@ public class SqliteSchemaTesters : TestBase
 
     // Let's do a different one....
     ExampleParent? p1 = dal.RunSingleQuery<ExampleParent>(TEST_QUERY + " WHERE ID = 1", null);
-    Assert.That(p1, Is.Null);
-    Assert.Equals(NAME_1, p1!.Name);
+    Assert.That(p1, Is.Not.Null);
+    Assert.That(NAME_1, Is.EqualTo(p1!.Name));
 
     ExampleParent? p2 = dal.RunSingleQuery<ExampleParent>(TEST_QUERY + " WHERE ID = 2", null);
-    Assert.That(p2, Is.Null);
-    Assert.Equals(NAME_2, p2!.Name);
+    Assert.That(p2, Is.Not.Null);
+    Assert.That(NAME_2, Is.EqualTo(p2!.Name));
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -114,7 +114,7 @@ public class SqliteSchemaTesters : TestBase
     // Confirm that we can get the data back out...
     string select = schema.GetSelectQuery<ExampleParent>(x => x.ID == newID);
     var parentCheck = dal.RunQuery<ExampleParent>(select, new { ID = newID });
-    Assert.That(parentCheck, Is.Null);
+    Assert.That(parentCheck, Is.Not.Null);
 
     // Now we will insert the child record:
     var child = new ExampleChild()
@@ -131,8 +131,8 @@ public class SqliteSchemaTesters : TestBase
 
     string selectChild = schema.GetSelectQuery<ExampleChild>(x => x.ID == childID);
     var childCheck = dal.RunSingleQuery<ExampleChild>(selectChild, new { ID = childID });
-    Assert.That(childCheck, Is.Null);
-    Assert.Equals("Child1", childCheck!.Label);
+    Assert.That(childCheck, Is.Not.Null);
+    Assert.That("Child1", Is.EqualTo(childCheck!.Label));
 
   }
 
@@ -262,21 +262,21 @@ public class SqliteSchemaTesters : TestBase
   public void CanGetCreateTableQueryWithForeignKey()
   {
     var schema = new SchemaDefinition(new SqliteFlavor(), typeof(ExampleSchema));
-    Assert.Equals(3, schema.TableDefs.Count);
+    Assert.That(3, Is.EqualTo(schema.TableDefs.Count));
 
     // Make sure that we have the correct table names!
     var tables = new[] { "Parents", "Kids" };
     foreach (var tableName in tables)
     {
       var t = schema.GetTableDef(tableName);
-      Assert.That(t, Is.Null);
+      Assert.That(t, Is.Not.Null);
     }
 
     // Make sure that this table def has a column that points to the parent table.
     var table = schema.GetTableDef("Kids");
-    Assert.That(table, Is.Null);
+    Assert.That(table, Is.Not.Null);
     Assert.That(table!.ParentTables.Count, Is.EqualTo(1));
-    Assert.Equals(table.ParentTables[0].Def.Name, nameof(ExampleSchema.Parents));
+    Assert.That(table.ParentTables[0].Def.Name, Is.EqualTo( nameof(ExampleSchema.Parents)));
 
     // NOTE: We don't really have a way to check + validate output SQL at this time.
     // It would be rad to have some kind of system that was able to save the current query in a
@@ -289,10 +289,10 @@ public class SqliteSchemaTesters : TestBase
 
     // Let's make sure that the parents table has the correct number of columns as well...
     TableDef? parentTable = schema.GetTableDef(nameof(ExampleSchema.Parents));
-    Assert.That(parentTable, Is.Null);
+    Assert.That(parentTable, Is.Not.Null);
 
     // We should only have three columns.  A column for the children doesn't make sense!
-    Assert.Equals(3, parentTable!.Columns.Count);
+    Assert.That(3, Is.EqualTo(parentTable!.Columns.Count));
 
   }
 

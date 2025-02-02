@@ -32,9 +32,13 @@ public class TestBase
     if (File.Exists(sqlFilePath))
     {
       var comp = TestSQLOutput.Load(sqlFilePath);
+
+      string srcSql = sql.Replace("\r", string.Empty).Replace("\n", string.Empty);
+      string compSql = comp.SQL.Replace("\r", string.Empty).Replace("\n", string.Empty);
+
       if (comp.IsApproved)
       {
-        Assert.Equals(sql, comp.SQL);
+        Assert.That(srcSql, Is.EqualTo(compSql));
       }
       else
       {

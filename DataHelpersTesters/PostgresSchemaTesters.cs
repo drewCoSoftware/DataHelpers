@@ -22,6 +22,9 @@ class TestTable
 }
 
 // =========================================================================================================================
+/// <summary>
+/// NOTE: You will need to setup and run a postgres database on your local machine in order for this to work.
+/// </summary>
 public class PostgresSchemaTesters
 {
   public const string TEST_DB_NAME = "DataHelpersTesters";
@@ -35,10 +38,10 @@ public class PostgresSchemaTesters
 
     var schema = CreatePostgresSchema<ExampleSchema>();
     TableDef tableDef = schema.GetTableDef<SomeTable>()!;
-    Assert.That(tableDef, Is.Null);
+    Assert.That(tableDef, Is.Not.Null);
 
     string? tableName = tableDef?.Name;
-    Assert.That(tableName, Is.Null);
+    Assert.That(tableName, Is.Not.Null);
 
     // Clear the old data first.
     dal.RunExecute($"TRUNCATE table {tableName}", null);
@@ -61,7 +64,7 @@ public class PostgresSchemaTesters
     }
 
     int inserted = dal.BulkInsert<SomeTable>(tableDef, toInsert);
-    Assert.Equals(MAX_ITEMS, inserted);
+    Assert.That(MAX_ITEMS, Is.EqualTo(inserted));
 
     int x = 10;
   }

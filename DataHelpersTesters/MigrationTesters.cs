@@ -22,7 +22,7 @@ public class MigrationTesters : TestBase
   public void CanCreateMigrationForNewSchema()
   {
     var def = new SchemaDefinition(new SqliteFlavor(), typeof(ExampleSchema));
-    Assert.Equals(3, def.TableDefs.Count);
+    Assert.That(3, Is.EqualTo(def.TableDefs.Count));
 
     const string MIGRATION_OUTPUT_DIR = "./Migrations";
     string outputDir = Path.GetFullPath(MIGRATION_OUTPUT_DIR);
@@ -44,7 +44,7 @@ public class MigrationTesters : TestBase
     string path = Path.Combine(dataDir, DB_NAME + ".sqlite");
     FileTools.DeleteExistingFile(path);
 
-    Assert.That(File.Exists(path));
+    Assert.That(!File.Exists(path));
 
     var dal = new SqliteDataAccess<ExampleSchema>(dataDir, DB_NAME);
     mh.ApplyMigration(migration, dal);
