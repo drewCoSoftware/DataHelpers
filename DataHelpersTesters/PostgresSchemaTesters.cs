@@ -147,7 +147,7 @@ public class PostgresSchemaTesters
     int newID = dal.RunSingleQuery<int>(insertQuery, parent);
     Assert.That(newID != 0);
 
-    //    Assert.Equals(1, newID);
+    //    Assert.That(1, Is.EqualTo(newID));
 
     // HACK: This should maybe be assinged during insert?
     parent.ID = newID;

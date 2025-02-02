@@ -106,7 +106,7 @@ public class SqliteSchemaTesters : TestBase
 
     // NOTE: We are using 'RunSingleQuery' here so that we can get the returned ID!
     int newID = dal.RunSingleQuery<int>(insertQuery, parent);
-    Assert.Equals(1, newID);
+    Assert.That(1, Is.EqualTo(newID));
 
     // HACK: This should maybe be assinged during insert?
     parent.ID = newID;
@@ -197,7 +197,7 @@ public class SqliteSchemaTesters : TestBase
     {
       string selectByIdQuery = schema.GetSelectQuery<ExampleParent>(x => x.ID == 1);
       string expected = "SELECT * FROM Parents WHERE ID = @ID";
-      Assert.Equals(expected, selectByIdQuery);
+      Assert.That(expected, Is.EqualTo(selectByIdQuery));
     }
 
     // TEMP: Disable....
@@ -275,7 +275,7 @@ public class SqliteSchemaTesters : TestBase
     // Make sure that this table def has a column that points to the parent table.
     var table = schema.GetTableDef("Kids");
     Assert.That(table, Is.Null);
-    Assert.That(table!.ParentTables.Count, Is.EqualTo(1));  
+    Assert.That(table!.ParentTables.Count, Is.EqualTo(1));
     Assert.Equals(table.ParentTables[0].Def.Name, nameof(ExampleSchema.Parents));
 
     // NOTE: We don't really have a way to check + validate output SQL at this time.
@@ -318,12 +318,12 @@ public class SqliteSchemaTesters : TestBase
   {
     var schema = new SchemaDefinition(new SqliteFlavor(), typeof(ExampleSchema));
     TableDef? memberTable = schema.GetTableDef(nameof(ExampleSchema.Parents));
-    Assert.That(memberTable, Is.Null);
+    Assert.That(memberTable, Is.Not.Null);
 
     string insertQuery = memberTable!.GetInsertQuery();
 
     const string EXPECTED = "INSERT INTO Parents (name,createdate) VALUES (@Name,@CreateDate) RETURNING id";
-    Assert.Equals(EXPECTED, insertQuery);
+    Assert.That(EXPECTED, Is.EqualTo(insertQuery));
   }
 }
 
