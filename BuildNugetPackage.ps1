@@ -11,7 +11,7 @@ if (Item-Exists("nuget-build")) {
 }
 New-Item "nuget-build" -ItemType "Directory"
 New-Item "nuget-build\lib" -ItemType "Directory"
-New-Item "nuget-build\lib\net6.0" -ItemType "Directory"
+New-Item "nuget-build\lib\net8.0" -ItemType "Directory"
 
 
 
@@ -19,8 +19,8 @@ New-Item "nuget-build\lib\net6.0" -ItemType "Directory"
 dotnet build DataHelpers.sln -c Release
 
 # Copy the appropriate files to the nuget dir....
-$fromDir = "DataHelpers\bin\Release\net6.0\"
-$toDir = "nuget-build\lib\net6.0\"
+$fromDir = "DataHelpers\bin\Release\net8.0\"
+$toDir = "nuget-build\lib\net8.0\"
 Copy-Item ($fromDir + "DataHelpers.dll") ($toDir + "DataHelpers.dll")
 Copy-Item ($fromDir + "DataHelpers.pdb") ($toDir + "DataHelpers.pdb")
 Copy-Item ($fromDir + "DataHelpers.xml") ($toDir + "DataHelpers.xml")

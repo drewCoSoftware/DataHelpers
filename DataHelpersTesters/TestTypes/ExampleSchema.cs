@@ -15,14 +15,14 @@ class ExampleSchema
   // not as a means to resolve that data!
   public List<ExampleParent> Parents { get; set; } = new List<ExampleParent>();
   public List<ExampleChild> Kids { get; set; } = new List<ExampleChild>();
-  public List<SomeTable> SomeTable { get; set; } = new List<SomeTable>();
+  public List<SomeData> SomeData { get; set; } = new List<SomeData>();
 }
 
 // ==========================================================================
 /// <summary>
 /// Just a regular old table with no relations.
 /// </summary> 
-public class SomeTable
+public class SomeData : IHasPrimary
 {
   public int ID { get; set; }
   public string Name { get; set; }

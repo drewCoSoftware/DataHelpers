@@ -37,7 +37,7 @@ public class PostgresSchemaTesters
     var dal = new PostgresDataAccess(connectionString);
 
     var schema = CreatePostgresSchema<ExampleSchema>();
-    TableDef tableDef = schema.GetTableDef<SomeTable>()!;
+    TableDef tableDef = schema.GetTableDef<SomeData>()!;
     Assert.That(tableDef, Is.Not.Null);
 
     string? tableName = tableDef?.Name;
@@ -51,10 +51,10 @@ public class PostgresSchemaTesters
     const int MAX_ITEMS = 5;
     DateTimeOffset startDate = new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
-    var toInsert = new List<SomeTable>();
+    var toInsert = new List<SomeData>();
     for (int i = 0; i < MAX_ITEMS; i++)
     {
-      var item = new SomeTable()
+      var item = new SomeData()
       {
         Name = "value_" + i,
         Number = (i + 1) * 100,
@@ -63,7 +63,7 @@ public class PostgresSchemaTesters
       toInsert.Add(item);
     }
 
-    int inserted = dal.BulkInsert<SomeTable>(tableDef, toInsert);
+    int inserted = dal.BulkInsert<SomeData>(tableDef, toInsert);
     Assert.That(MAX_ITEMS, Is.EqualTo(inserted));
 
     int x = 10;
