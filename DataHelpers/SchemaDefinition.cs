@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using System.Reflection;
 using System.Linq.Expressions;
 using System.Reflection.Emit;
+using System.ComponentModel;
 
 namespace DataHelpers.Data;
 
@@ -866,6 +867,18 @@ public class TableDef
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
+  internal string GetSelectByIDQuery()
+  {
+    NamesAndValues namesAndVals = GetNamesAndValues(this.Columns);
+
+    var sb = new StringBuilder(0x400);
+    sb.Append($"SELECT * FROM {this.Name} WHERE {namesAndVals.PrimaryKeyName} = @{nameof(IHasPrimary.ID)}");
+
+    string res = sb.ToString();
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
   public string GetInsertQuery()
   {
     NamesAndValues namesAndVals = GetNamesAndValues(this.Columns);
@@ -907,6 +920,7 @@ public class TableDef
     string res = sb.ToString();
     return res;
   }
+
 }
 
 // ============================================================================================================================

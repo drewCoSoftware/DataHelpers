@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net.Http.Headers;
 using Dapper;
 using drewCo.Tools;
 using Microsoft.Data.Sqlite;
@@ -213,4 +214,54 @@ public class SqliteDataAccess<TSchema> : IDataAccess
     return res;
   }
 
+  // --------------------------------------------------------------------------------------------------------------------------
+  public TableAccess<TSchema> Table(string name)
+  {
+    var td = SchemaDef.GetTableDef(name, false)!;
+
+    var res = new TableAccess<TSchema>(td, this);
+    return res;
+  }
+}
+
+
+// ==============================================================================================================================
+public class TableAccess<TSchema>
+{
+  private TableDef Def = default!;
+  private SqliteDataAccess<TSchema> DAL = default!;
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public TableAccess(TableDef def_, SqliteDataAccess<TSchema> dal_)
+  {
+    Def = def_;
+    DAL = dal_;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public T Get<T>(int id) {
+    string sql = Def.GetSelectByIDQuery();
+    T res = DAL.RunSingleQuery<T>(sql, new { ID = id });
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public int Add(object data)
+  {
+    var dType = data.GetType();
+    if (Def.DataType != dType)
+    {
+      throw new InvalidOperationException($"Input data is of type: {dType} but should be: {Def.DataType}!");
+    }
+
+    string sql = Def.GetInsertQuery();
+    int res = DAL.RunSingleQuery<int>(sql, data);
+    return res;
+  }
+}
+
+// ==============================================================================================================================
+interface ITable<T>
+{
+  public void Add<T>(T data);
 }
