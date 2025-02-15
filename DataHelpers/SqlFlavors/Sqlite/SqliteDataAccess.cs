@@ -239,7 +239,8 @@ public class TableAccess<TSchema>
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public T Get<T>(int id) {
+  public T Get<T>(int id)
+  {
     string sql = Def.GetSelectByIDQuery();
     T res = DAL.RunSingleQuery<T>(sql, new { ID = id });
     return res;
@@ -258,6 +259,37 @@ public class TableAccess<TSchema>
     int res = DAL.RunSingleQuery<int>(sql, data);
     return res;
   }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  // TODO: Add another GetByExample call where we already have the columns named?
+  public T[] GetBy<T>(object example, string? orderBy = null, int pageNumber = 1, int pageSize = 20)
+  {
+    string sql = Def.GetSelectByExampleQuery(example);
+    if (orderBy != null)
+    {
+      sql += $" ORDER BY {orderBy}";
+    }
+
+    int limit = pageSize;
+    int offset = (pageNumber - 1) * pageSize;
+
+    sql += $" LIMIT({limit}) OFFSET({offset})";
+
+    var res = DAL.RunQuery<T>(sql, example);
+    return res.ToArray();
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Get the total number of items in the data set.
+  /// </summary>
+  public int GetItemCount()
+  {
+    string sql = $"SELECT COUNT(*) FROM {Def.Name}";
+    int  res = DAL.RunSingleQuery<int>(sql, null);
+    return res;
+  }
+
 }
 
 // ==============================================================================================================================

@@ -921,6 +921,36 @@ public class TableDef
     return res;
   }
 
+  // --------------------------------------------------------------------------------------------------------------------------
+  private Dictionary<Type, string[]> TypesToPropNames = new Dictionary<Type, string[]>();
+  internal string GetSelectByExampleQuery(object example)
+  {
+    var t = example.GetType();
+    if (!TypesToPropNames.TryGetValue(t, out string[] names))
+    {
+      names = (from x in ReflectionTools.GetProperties(t)
+               select x.Name).ToArray();
+
+      // TODO: Make sure that the names are actually correct?
+
+      TypesToPropNames.Add(t, names);
+    }
+
+
+    var sb = new StringBuilder(0x400);
+    sb.Append($"SELECT * FROM {this.Name} ");
+
+    int len = names.Length;
+    sb.Append($"WHERE {names[0]} = @{names[0]}");
+    for (int i = 0; i < len; i++)
+    {
+       sb.Append($" AND {names[i]} = @{names[i]}");
+    }
+
+    string res = sb.ToString();
+    return res;
+
+  }
 }
 
 // ============================================================================================================================
