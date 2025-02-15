@@ -8,6 +8,8 @@ using System.Linq.Expressions;
 using System.Reflection.Emit;
 using System.ComponentModel;
 
+//using System.com
+
 namespace DataHelpers.Data;
 
 internal record NamesAndValues(List<string> ColNames, List<string> ColValues, string? PrimaryKeyName);
@@ -630,7 +632,9 @@ public class TableDef
       bool isUnique = ReflectionTools.HasAttribute<UniqueAttribute>(p);
 
       // TODO: The property type should also be checked for nullable!
-      bool isNullable = ReflectionTools.HasAttribute<IsNullableAttribute>(p);
+      bool isNullable = ReflectionTools.HasAttribute<IsNullableAttribute>(p) ||
+                        ReflectionTools.HasAttribute<System.Runtime.CompilerServices.NullableAttribute>(p);
+
       bool isPrimary = p.Name == nameof(IHasPrimary.ID) || ReflectionTools.HasAttribute<PrimaryKey>(p);
 
       var childAttr = ReflectionTools.GetAttribute<ChildRelationship>(p);
