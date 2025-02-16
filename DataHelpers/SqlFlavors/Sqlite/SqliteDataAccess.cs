@@ -166,7 +166,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess
   {
     // NOTE: This connection object could be abstracted more so that we could handle
     // connection pooling, etc. as neeed.
-    using (var conn = new SqliteConnection(ConnectionString))
+    using (var conn = GetConnection())
     {
       conn.Open();
       var res = RunQuery<T>(conn, query, qParams);
@@ -176,9 +176,20 @@ public class SqliteDataAccess<TSchema> : IDataAccess
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
+  private SqliteConnection GetConnection()
+  {
+    // NOTE: This is where we might be able to use open connections, deal with transactions, etc.
+    var res = new SqliteConnection(ConnectionString);
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
   protected IEnumerable<T> RunQuery<T>(SqliteConnection conn, string query, object? parameters)
   {
     var res = conn.Query<T>(query, parameters);
+
+    // TODO: Open the connection here?
+
     return res;
   }
 
@@ -257,7 +268,22 @@ public class TableAccess<TSchema>
 
     string sql = Def.GetInsertQuery();
     int res = DAL.RunSingleQuery<int>(sql, data);
+
+    // Auto-assing the primary id.  This is kind of hacky, and I wish that this function was
+    // actually generic or had better constraints.
+    var pd = (data as IHasPrimary);
+    if (pd != null) { pd.ID = res; }
+
     return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  // TODO: Combine / align 'GetBy' functions.
+  public T[] GetBy<T>(object example, IList<string> props) {
+    string sql = Def.GetSelectByExampleQuery(example, props);
+
+    var res = DAL.RunQuery<T>(sql, example);
+    return res.ToArray();
   }
 
   // --------------------------------------------------------------------------------------------------------------------------

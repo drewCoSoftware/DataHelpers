@@ -927,7 +927,7 @@ public class TableDef
 
   // --------------------------------------------------------------------------------------------------------------------------
   private Dictionary<Type, string[]> TypesToPropNames = new Dictionary<Type, string[]>();
-  internal string GetSelectByExampleQuery(object example)
+  internal string GetSelectByExampleQuery(object example, IList<string>? props = null)
   {
     var t = example.GetType();
     if (!TypesToPropNames.TryGetValue(t, out string[] names))
@@ -940,9 +940,10 @@ public class TableDef
       TypesToPropNames.Add(t, names);
     }
 
+    string useCols = props == null ? "*" : string.Join(",", props);
 
     var sb = new StringBuilder(0x400);
-    sb.Append($"SELECT * FROM {this.Name} ");
+    sb.Append($"SELECT {useCols} FROM {this.Name} ");
 
     int len = names.Length;
     sb.Append($"WHERE {names[0]} = @{names[0]}");
