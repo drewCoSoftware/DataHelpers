@@ -250,7 +250,7 @@ public class TableAccess<TSchema>
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public T Get<T>(int id)
+  public T? Get<T>(int id)
   {
     string sql = Def.GetSelectByIDQuery();
     T res = DAL.RunSingleQuery<T>(sql, new { ID = id });
