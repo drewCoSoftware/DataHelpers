@@ -23,10 +23,14 @@ public class SqliteDataAccess<TSchema> : IDataAccess
     // --------------------------------------------------------------------------------------------------------------------------
     public SqliteDataAccess(string dataDir, string dbFileName)
     {
-        DataDirectory =  NormalizePathSeparators(dataDir);
+        DataDirectory = NormalizePathSeparators(dataDir);
 
+        if (!dbFileName.EndsWith(".sqlite"))
+        {
+            dbFileName += ".sqlite";
+        }
 
-        DBFilePath = Path.Combine(DataDirectory, $"{dbFileName}.sqlite");
+        DBFilePath = Path.Combine(DataDirectory, $"{dbFileName}");
         ConnectionString = $"Data Source={DBFilePath};Mode=ReadWriteCreate";
 
         SqlMapper.RemoveTypeMap(typeof(DateTimeOffset));
