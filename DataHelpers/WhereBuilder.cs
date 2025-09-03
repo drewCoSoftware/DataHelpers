@@ -1,4 +1,6 @@
 ﻿// Clanker code, slightly modified.
+using drewCo.Tools;
+using System;
 using System.Globalization;
 using System.Linq.Expressions;
 using System.Text;
@@ -7,21 +9,32 @@ using System.Text;
 // ==============================================================================================================================
 public static class WhereBuilder
 {
+  // --------------------------------------------------------------------------------------------------------------------------
   public static string ToSqlWhere<T>(Expression<Func<T, bool>> predicate)
   {
-    if (predicate is null) throw new ArgumentNullException(nameof(predicate));
+    if (predicate == null) { throw new ArgumentNullException(nameof(predicate)); }
+
     var sb = new StringBuilder();
     AppendExpression(sb, predicate.Body, parentPrec: 0);
     return sb.ToString();
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  // Precedence: higher means binds tighter
-  // OR = 10, AND = 20, NOT = 30, Comparisons (=, <, >, etc.) = 40, atoms = 100
+  private static string ComputeName(string memberName)
+  {
+    if (string.IsNullOrWhiteSpace(memberName)) { throw new ArgumentException("Invalid member name.", nameof(memberName)); }
+    return "@" + memberName;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  // Precedence: higher binds tighter
+  // OR = 10, AND = 20, NOT = 30, Comparisons = 40, atoms = 100
   private static int GetNodePrecedence(Expression e)
   {
     if (e is UnaryExpression ue && ue.NodeType == ExpressionType.Convert)
+    {
       return GetNodePrecedence(ue.Operand);
+    }
 
     return e.NodeType switch
     {
@@ -31,7 +44,7 @@ public static class WhereBuilder
       ExpressionType.Equal or ExpressionType.NotEqual or
       ExpressionType.GreaterThan or ExpressionType.GreaterThanOrEqual or
       ExpressionType.LessThan or ExpressionType.LessThanOrEqual => 40,
-      _ => 100 // member, constant, etc.
+      _ => 100
     };
   }
 
@@ -48,92 +61,114 @@ public static class WhereBuilder
       case ExpressionType.GreaterThanOrEqual:
       case ExpressionType.LessThan:
       case ExpressionType.LessThanOrEqual:
-        AppendBinary(sb, (BinaryExpression)expr, parentPrec);
-        break;
+        {
+          AppendBinary(sb, (BinaryExpression)expr, parentPrec);
+          break;
+        }
 
       case ExpressionType.MemberAccess:
-        AppendMember(sb, (MemberExpression)expr);
-        break;
+        {
+          AppendMember(sb, (MemberExpression)expr);
+          break;
+        }
 
       case ExpressionType.Constant:
-        AppendConstant(sb, (ConstantExpression)expr);
-        break;
+        {
+          AppendConstant(sb, (ConstantExpression)expr);
+          break;
+        }
 
       case ExpressionType.Convert:
-        AppendExpression(sb, ((UnaryExpression)expr).Operand, parentPrec);
-        break;
+        {
+          AppendExpression(sb, ((UnaryExpression)expr).Operand, parentPrec);
+          break;
+        }
 
       case ExpressionType.Not:
         {
-          var opPrec = 30;
           var operand = ((UnaryExpression)expr).Operand;
 
-          // !x.IsActive => @IsActive = 0
+          // !x.IsActive  =>  @IsActive = 0
           if (TryGetBooleanPropertyAccess(operand, out var name))
           {
-            sb.Append('@').Append(name).Append(" = 0");
-            break;
-          }
-
-          int childPrec = GetNodePrecedence(operand);
-          sb.Append("NOT ");
-          if (childPrec < opPrec)
-          {
-            sb.Append('(');
-            AppendExpression(sb, operand, parentPrec: 0);
-            sb.Append(')');
+            sb.Append(ComputeName(name)).Append(" = 0");
           }
           else
           {
-            AppendExpression(sb, operand, parentPrec: opPrec);
+            var opPrec = 30;
+            var childPrec = GetNodePrecedence(operand);
+            sb.Append("NOT ");
+            if (childPrec < opPrec)
+            {
+              sb.Append('(');
+              AppendExpression(sb, operand, parentPrec: 0);
+              sb.Append(')');
+            }
+            else
+            {
+              AppendExpression(sb, operand, parentPrec: opPrec);
+            }
           }
           break;
         }
 
       case ExpressionType.Parameter:
-        sb.Append("1=1"); // shouldn’t really happen in a WHERE; safe default
-        break;
+        {
+          sb.Append("1=1");
+          break;
+        }
 
       default:
-        throw new NotSupportedException($"Unsupported expression node: {expr.NodeType}");
+        {
+          throw new NotSupportedException($"Unsupported expression node: {expr.NodeType}");
+        }
     }
   }
 
+  // --------------------------------------------------------------------------------------------------------------------------
   private static void AppendBinary(StringBuilder sb, BinaryExpression be, int parentPrec)
   {
-    int opPrec = GetNodePrecedence(be);
+    var opPrec = GetNodePrecedence(be);
 
-    // Special-case NULL: x.Prop == null / x.Prop != null
-    if ((be.NodeType == ExpressionType.Equal || be.NodeType == ExpressionType.NotEqual) &&
-        ((IsNullConstant(be.Right) && IsPropertyAccess(be.Left)) ||
-         (IsNullConstant(be.Left) && IsPropertyAccess(be.Right))))
+    // x.Prop == null / x.Prop != null
+    if ((be.NodeType == ExpressionType.Equal || be.NodeType == ExpressionType.NotEqual))
     {
-      var propSide = IsPropertyAccess(be.Left) ? be.Left : be.Right;
-      AppendExpression(sb, propSide, opPrec); // prop is atomic; no parens needed
-      sb.Append(be.NodeType == ExpressionType.Equal ? " IS NULL" : " IS NOT NULL");
-      return;
+      if (IsNullConstant(be.Right) && TryGetParameterMember(be.Left, out var leftProp))
+      {
+        AppendProperty(sb, leftProp);
+        sb.Append(be.NodeType == ExpressionType.Equal ? " IS NULL" : " IS NOT NULL");
+        return;
+      }
+
+      if (IsNullConstant(be.Left) && TryGetParameterMember(be.Right, out var rightProp))
+      {
+        AppendProperty(sb, rightProp);
+        sb.Append(be.NodeType == ExpressionType.Equal ? " IS NULL" : " IS NOT NULL");
+        return;
+      }
     }
 
-    // Left side (with parens only if needed)
+    // LEFT
     var l = be.Left;
-    int lp = GetNodePrecedence(l);
-    bool lpNeedsParens = lp < opPrec;
-    if (lpNeedsParens) sb.Append('(');
+    var lp = GetNodePrecedence(l);
+    var lpNeedsParens = lp < opPrec;
+    if (lpNeedsParens) { sb.Append('('); }
     AppendExpression(sb, l, opPrec);
-    if (lpNeedsParens) sb.Append(')');
+    if (lpNeedsParens) { sb.Append(')'); }
 
-    // Operator
+    // OP
     sb.Append(' ').Append(BinaryOperatorToSql(be.NodeType)).Append(' ');
 
-    // Right side (with parens only if needed)
+    // RIGHT
     var r = be.Right;
-    int rp = GetNodePrecedence(r);
-    bool rpNeedsParens = rp < opPrec;
-    if (rpNeedsParens) sb.Append('(');
+    var rp = GetNodePrecedence(r);
+    var rpNeedsParens = rp < opPrec;
+    if (rpNeedsParens) { sb.Append('('); }
     AppendExpression(sb, r, opPrec);
-    if (rpNeedsParens) sb.Append(')');
+    if (rpNeedsParens) { sb.Append(')'); }
   }
 
+  // --------------------------------------------------------------------------------------------------------------------------
   private static string BinaryOperatorToSql(ExpressionType type) => type switch
   {
     ExpressionType.Equal => "=",
@@ -151,34 +186,60 @@ public static class WhereBuilder
   {
     if (me.Expression is ParameterExpression)
     {
-      // Bare bool / bool? => @Prop = 1
+      // Bare bool / nullable-bool: x.IsActive => @IsActive = 1
       if (IsBooleanType(me.Type))
-        sb.Append('@').Append(me.Member.Name).Append(" = 1");
+      {
+        sb.Append(ComputeName(me.Member.Name)).Append(" = 1");
+      }
       else
-        sb.Append('@').Append(me.Member.Name);
+      {
+        AppendProperty(sb, me);
+      }
       return;
     }
 
     // Captured value or static member
-    object? value = TryEvaluateMemberAccess(me);
+    var value = TryEvaluateMemberAccess(me);
     AppendValue(sb, value);
   }
 
-  private static void AppendConstant(StringBuilder sb, ConstantExpression ce) => AppendValue(sb, ce.Value);
+  private static void AppendProperty(StringBuilder sb, MemberExpression me)
+  {
+    sb.Append(ComputeName(me.Member.Name));
+  }
+
+  private static void AppendConstant(StringBuilder sb, ConstantExpression ce)
+  {
+    AppendValue(sb, ce.Value);
+  }
 
   private static void AppendValue(StringBuilder sb, object? value)
   {
-    if (value is null) { sb.Append("NULL"); return; }
+    if (value is null)
+    {
+      sb.Append("NULL");
+      return;
+    }
 
     switch (Type.GetTypeCode(value.GetType()))
     {
-      case TypeCode.Boolean: sb.Append((bool)value ? "1" : "0"); break;
+      case TypeCode.Boolean:
+        {
+          sb.Append((bool)value ? "1" : "0");
+          break;
+        }
       case TypeCode.String:
-        sb.Append('\'').Append(((string)value).Replace("'", "''")).Append('\''); break;
+        {
+          sb.Append('\'').Append(((string)value).Replace("'", "''")).Append('\'');
+          break;
+        }
       case TypeCode.DateTime:
-        sb.Append('\'')
-          .Append(((DateTime)value).ToString("yyyy-MM-dd HH:mm:ss.fffffff", CultureInfo.InvariantCulture))
-          .Append('\''); break;
+        {
+          sb.Append('\'')
+            .Append(((DateTime)value).ToString("yyyy-MM-dd HH:mm:ss.fffffff", CultureInfo.InvariantCulture))
+            .Append('\'');
+          break;
+        }
       case TypeCode.Decimal:
       case TypeCode.Double:
       case TypeCode.Single:
@@ -190,22 +251,53 @@ public static class WhereBuilder
       case TypeCode.UInt16:
       case TypeCode.UInt32:
       case TypeCode.UInt64:
-        sb.Append(Convert.ToString(value, CultureInfo.InvariantCulture)); break;
+        {
+          sb.Append(Convert.ToString(value, CultureInfo.InvariantCulture));
+          break;
+        }
       default:
-        sb.Append('\'')
-          .Append(Convert.ToString(value, CultureInfo.InvariantCulture)?.Replace("'", "''"))
-          .Append('\''); break;
+        {
+          sb.Append('\'')
+            .Append(Convert.ToString(value, CultureInfo.InvariantCulture)?.Replace("'", "''"))
+            .Append('\'');
+          break;
+        }
     }
   }
 
-  private static bool IsNullConstant(Expression e) => e is ConstantExpression ce && ce.Value is null;
-  private static bool IsPropertyAccess(Expression e) => e is MemberExpression me && me.Expression is ParameterExpression;
-  private static bool IsBooleanType(Type t) => t == typeof(bool) || t == typeof(bool?);
+  private static bool IsNullConstant(Expression e)
+  {
+    return e is ConstantExpression ce && ce.Value is null;
+  }
+
+  private static bool TryGetParameterMember(Expression e, out MemberExpression me)
+  {
+    if (e is MemberExpression m && m.Expression is ParameterExpression)
+    {
+      me = m;
+      return true;
+    }
+
+    if (e is UnaryExpression ue && ue.NodeType == ExpressionType.Convert)
+    {
+      return TryGetParameterMember(ue.Operand, out me);
+    }
+
+    me = default!;
+    return false;
+  }
+
+  private static bool IsBooleanType(Type t)
+  {
+    return t == typeof(bool) || t == typeof(bool?);
+  }
 
   private static bool TryGetBooleanPropertyAccess(Expression e, out string name)
   {
     if (e is UnaryExpression ue && ue.NodeType == ExpressionType.Convert)
+    {
       return TryGetBooleanPropertyAccess(ue.Operand, out name);
+    }
 
     if (e is MemberExpression me && me.Expression is ParameterExpression && IsBooleanType(me.Type))
     {
@@ -219,8 +311,8 @@ public static class WhereBuilder
 
   private static object? TryEvaluateMemberAccess(MemberExpression me)
   {
-    var objectMember = Expression.Convert(me, typeof(object));
-    var getterLambda = Expression.Lambda<Func<object>>(objectMember);
-    return getterLambda.Compile().Invoke();
+    var boxed = Expression.Convert(me, typeof(object));
+    var getter = Expression.Lambda<Func<object>>(boxed);
+    return getter.Compile().Invoke();
   }
 }

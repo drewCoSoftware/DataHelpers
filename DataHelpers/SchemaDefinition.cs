@@ -633,7 +633,8 @@ public class TableDef
 
       // TODO: The property type should also be checked for nullable!
       bool isNullable = ReflectionTools.HasAttribute<IsNullableAttribute>(p) ||
-                        ReflectionTools.HasAttribute<System.Runtime.CompilerServices.NullableAttribute>(p);
+                        ReflectionTools.HasAttribute<System.Runtime.CompilerServices.NullableAttribute>(p) ||
+                        p.PropertyType.Name.StartsWith("Nullable`1");
 
       bool isPrimary = p.Name == nameof(IHasPrimary.ID) || ReflectionTools.HasAttribute<PrimaryKey>(p);
 

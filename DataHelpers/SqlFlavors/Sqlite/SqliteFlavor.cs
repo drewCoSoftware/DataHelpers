@@ -31,7 +31,7 @@ public class SqliteDataTypeResolver : IDataTypeResolver
   {
     string res = "";
 
-    if (t == typeof(Int32) || t == typeof(Int64))
+    if (t == typeof(Int32) || t == typeof(Int64) || t == typeof(Int32?))
     {
       res = "INTEGER";
     }
