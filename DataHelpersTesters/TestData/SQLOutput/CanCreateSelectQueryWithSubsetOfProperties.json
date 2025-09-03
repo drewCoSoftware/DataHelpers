@@ -1,0 +1,4 @@
+{
+  "IsApproved": true,
+  "SQL": "SELECT ID,Name FROM SomeData"
+}

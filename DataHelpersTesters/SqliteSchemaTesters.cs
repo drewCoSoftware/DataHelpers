@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 
 using IgnoreTest = NUnit.Framework.IgnoreAttribute;
+using System.Linq.Expressions;
 
 namespace DataHelpersTesters;
 
@@ -18,6 +19,38 @@ namespace DataHelpersTesters;
 // a way to generate test data for the query generation tests, I think this is very possible.
 public class SqliteSchemaTesters : TestBase
 {
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Show that we can create select queries that are more than just 'select *'
+  /// </summary>
+  [Test]
+  public void CanCreateSelectQueryWithSubsetOfProperties()
+  {
+    var def = new SchemaDefinition(new SqliteFlavor(), typeof(ExampleSchema));
+    var td = def.GetTableDef<SomeData>();
+
+
+    string select1 = td.GetSelectQuery<SomeData>(new Expression<Func<SomeData, object>>[] { x=>x.ID, x=>x.Name });
+
+    CheckSQL(nameof(CanCreateSelectQueryWithSubsetOfProperties), select1);
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Show that we can create select queries that are more than just 'select *'
+  /// </summary>
+  [Test]
+  public void CanCreateSelectQueryWithCriteria()
+  {
+    var def = new SchemaDefinition(new SqliteFlavor(), typeof(ExampleSchema));
+    var td = def.GetTableDef<SomeData>();
+
+
+    string select1 = td.GetSelectQuery<SomeData>(null, x=> x.Name == "dave" && x.Number == 10);
+
+    CheckSQL(nameof(CanCreateSelectQueryWithCriteria), select1);
+  }
 
   // --------------------------------------------------------------------------------------------------------------------------
   [Test]
@@ -276,7 +309,7 @@ public class SqliteSchemaTesters : TestBase
     var table = schema.GetTableDef("Kids");
     Assert.That(table, Is.Not.Null);
     Assert.That(table!.ParentTables.Count, Is.EqualTo(1));
-    Assert.That(table.ParentTables[0].Def.Name, Is.EqualTo( nameof(ExampleSchema.Parents)));
+    Assert.That(table.ParentTables[0].Def.Name, Is.EqualTo(nameof(ExampleSchema.Parents)));
 
     // NOTE: We don't really have a way to check + validate output SQL at this time.
     // It would be rad to have some kind of system that was able to save the current query in a

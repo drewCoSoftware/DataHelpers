@@ -956,6 +956,34 @@ public class TableDef
     return res;
 
   }
+
+  // ---------------------------------------------------------------------------------------------------
+  // NOTE: I think that the 'TableDef' type should be a generic.....
+  /// <summary>
+  /// Create a select query using the named properties.  If null, all properties (*) will be used.
+  /// </summary>
+  public string GetSelectQuery<T>(IEnumerable<Expression<Func<T, object>>>? toSelect = null, Expression<Func<T, bool>>? predicate = null)
+  {
+    var t = typeof(T);
+
+    var colNames = toSelect == null ? [] : (from x in toSelect
+        select ReflectionTools.GetPropertyName(x)).ToArray();
+
+    var sb = new StringBuilder();
+    string cols = colNames.Length == 0 ? "*" : string.Join(",", colNames);
+
+    sb.Append($"SELECT {cols} FROM {this.Name}");
+
+    if (predicate != null) {
+      string whereClause = WhereBuilder.ToSqlWhere(predicate);
+      sb.Append(" WHERE ");
+      sb.Append(whereClause);
+    }
+
+    string res = sb.ToString();
+    return res;
+  }
+
 }
 
 // ============================================================================================================================
