@@ -17,6 +17,75 @@ public class ChildRelationship : Attribute
 {
 }
 
+// ============================================================================================================================
+/// <summary>
+/// This allows us to have many sets of the same type that can have different names.
+/// </summary>
+[AttributeUsage(AttributeTargets.Property)]
+public class DataSetName : Attribute
+{
+
+  // ------------------------------------------------------------------------------------------------
+  public DataSetName(string name_)
+  {
+    this.Name = name_;
+  }
+
+  /// <summary>
+  /// The name of the data set.
+  /// </summary>
+  public string Name { get; private set; }
+
+}
+
+
+// ============================================================================================================================
+/// <summary>
+/// Describes a relationship to another set of data (table, list, etc.)
+/// </summary>
+[AttributeUsage(AttributeTargets.Property)]
+public class Relationship : Attribute
+{
+  // I want an easy way to indicate FK relations in a database, and even a way
+  // to indicate many->many type relations....
+  // In these cases, we need the name of a Set, or we can use the name of the datatype
+  // that this property is attached to.
+
+  // NOTE: I don't think that relationships need to be bi-directional.
+  /// <summary>
+  /// Name of the data set (TABLE) that this item is related to.
+  /// The target data set must have the 'IPrimary' interface.
+  /// If not speficied, we will use the name of the PropertyType that this is attached to.
+  /// </summary>
+  public string? DataSet { get; set; }
+
+  // List properties will be: 'ERelType.Many'
+  // Single instances will be: 'ERelType.One'
+  public ERelType RelationshipType { get; set; }
+
+
+  // NOTE: Maybe instead of attributes, we have an interface 'IHasRelationships' that
+  // has a function that returns a list of class instances that describe the relations?
+  // That seems a lot more straight forward and easy to resolve.....
+}
+
+// ============================================================================================================================
+public enum ERelType
+{
+  Invalid = 0,
+
+  /// <summary>
+  /// The entity is associated with one other entity.
+  /// </summary>
+  One,
+
+  /// <summary>
+  /// The entity is associated with many other entities.
+  /// </summary>
+  Many
+}
+
+// ============================================================================================================================
 /// <summary>
 /// Indicates that the member points to a parent table via FK relationship.
 /// </summary>
