@@ -25,4 +25,19 @@
     <ProjectReference Include="..\DataHelpersTools\DataHelpersTools.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="TestData\SQLOutput\CanCreateInsertQueryForTypeWithParentRelationship.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\SQLOutput\CanCreateUpdateQuery.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\SQLOutput\CanGenerateInsertQueryForParentAndChildren_Child0.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\SQLOutput\CanGenerateInsertQueryForParentAndChildren_Parent.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
