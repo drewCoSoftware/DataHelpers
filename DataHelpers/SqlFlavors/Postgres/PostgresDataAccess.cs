@@ -75,7 +75,7 @@ public class PostgresDataAccess : IDataAccess
     Dictionary<string, ColumnDef> columns = new Dictionary<string, ColumnDef>();
     Dictionary<string, PropertyInfo> props = new Dictionary<string, PropertyInfo>();
 
-    NamesAndValues namesAndValues = tableDef.GetNamesAndValues(false);
+    NamesAndValues namesAndValues = tableDef.GetNamesAndValues();
     List<string> valNamesBase = namesAndValues.ColValues;
     List<string> propNames = namesAndValues.ColNames;
 

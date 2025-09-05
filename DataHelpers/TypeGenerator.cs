@@ -78,32 +78,32 @@ public class Relationship : Attribute
   /// </summary>
   public string? TargetProperty { get; set; }
 
-  //// List properties will be: 'ERelType.Many'
-  //// Single instances will be: 'ERelType.One'
-  //public ERelType RelationshipType { get; set; }
+  // --------------------------------------------------------------------------------------------------------------------------
+  public Relationship() { }
 
-
-  // NOTE: Maybe instead of attributes, we have an interface 'IHasRelationships' that
-  // has a function that returns a list of class instances that describe the relations?
-  // That seems a lot more straight forward and easy to resolve.....
-  // .... except for the part where we need to map to an instance member....
+  // --------------------------------------------------------------------------------------------------------------------------
+  public Relationship(string dataSet_)
+  {
+    DataSet = dataSet_;
+  }
 }
 
 
 // ============================================================================================================================
-public class RelationshipDescription {
+public class RelationshipDescription
+{
 
-    /// <summary>
-    /// What kind of relationship are we describging?
-    /// </summary>
-    public ERelType RelationshipType { get; set; } = ERelType.Invalid;
+  /// <summary>
+  /// What kind of relationship are we describging?
+  /// </summary>
+  public ERelType RelationshipType { get; set; } = ERelType.Invalid;
 
-    /// <summary>
-    /// Name of the data set (i.e. TABLE) that this item is related to.
-    /// The target data set must have the 'IPrimary' interface.
-    /// If not speficied, we will use the name of the PropertyType that this is attached to.
-    /// </summary>
-    public string? DataSet { get; set; }
+  /// <summary>
+  /// Name of the data set (i.e. TABLE) that this item is related to.
+  /// The target data set must have the 'IPrimary' interface.
+  /// If not speficied, we will use the name of the PropertyType that this is attached to.
+  /// </summary>
+  public string? DataSet { get; set; }
 }
 
 // ============================================================================================================================

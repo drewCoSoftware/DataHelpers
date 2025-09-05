@@ -907,24 +907,23 @@ public class TableDef
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  internal NamesAndValues GetNamesAndValues(bool useFormattedNames = true)
+  internal NamesAndValues GetNamesAndValues()
   {
-    return GetNamesAndValues(this.Columns, useFormattedNames);
+    return GetNamesAndValues(this.Columns);
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  internal NamesAndValues GetNamesAndValues(IEnumerable<ColumnDef> columns, bool useFormattedNames = true)
+  internal NamesAndValues GetNamesAndValues(IEnumerable<ColumnDef> columns, IEnumerable<string>? useCols = null)
   {
     var colNames = new List<string>();
     var colVals = new List<string>();
     string? pkName = null;
-    foreach (var c in columns)
+
+    ICollection<ColumnDef> useDefs = useCols != null ? SelectColumns(useCols) : this.Columns;
+    foreach (var c in useDefs)
     {
-      string colName = c.Name;
-      if (useFormattedNames)
-      {
-        colName = SchemaDefinition.FormatName(c.Name);
-      }
+      string colName = SchemaDefinition.FormatName(c.Name);
+
       if (c.IsPrimary)
       {
         pkName = colName;
@@ -938,6 +937,25 @@ public class TableDef
     }
 
     return new NamesAndValues(colNames, colVals, pkName);
+  }
+
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private ICollection<ColumnDef> SelectColumns(IEnumerable<string> useCols)
+  {
+    // NOTE: This is not efficient, but will do for now.
+    var res = new List<ColumnDef>();
+    foreach (var c in useCols)
+    {
+      foreach (var colDef in this._Columns)
+      {
+        if (c == colDef.Name)
+        {
+          res.Add(colDef);
+        }
+      }
+    }
+    return res;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -973,9 +991,9 @@ public class TableDef
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public string GetInsertQuery()
+  public string GetInsertQuery(string[]? useCols = null)
   {
-    NamesAndValues namesAndVals = GetNamesAndValues(this.Columns);
+    NamesAndValues namesAndVals = GetNamesAndValues(this.Columns, useCols);
 
     StringBuilder sb = new StringBuilder(0x400);
     string insertPart = GetInsertPart(namesAndVals);
