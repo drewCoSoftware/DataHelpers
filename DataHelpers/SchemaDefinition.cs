@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Linq.Expressions;
 using System.Reflection.Emit;
 using System.ComponentModel;
+using drewCo.Tools.Logging;
 
 //using System.com
 
@@ -382,7 +383,7 @@ public class SchemaDefinition
   public SchemaDefinition(ISqlFlavor flavor_, Type schemaType)
     : this(flavor_)
   {
-    // We will add a table for each of the properties defined in 'schemaType'
+    // We will add a data set for each of the properties defined in 'schemaType'
     var props = ReflectionTools.GetProperties(schemaType);
     foreach (var prop in props)
     {
@@ -413,14 +414,33 @@ public class SchemaDefinition
       InitTableDef(prop.Name, useType);
     }
 
+    PopulateMembers();
+
+    PopulateRelationships();
+
+
+    ValidateSchema();
+
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private void PopulateRelationships()
+  {
+    foreach (var def in _TableDefs.Values)
+    {
+      // Now we can populate all of the members.
+      def.PopulateRelationships();
+    }
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private void PopulateMembers()
+  {
     foreach (var def in _TableDefs.Values)
     {
       // Now we can populate all of the members.
       def.PopulateMembers();
     }
-
-    ValidateSchema();
-
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -429,23 +449,23 @@ public class SchemaDefinition
     foreach (var t in _TableDefs.Values)
     {
       // Circular reference test.
-      foreach (var dep in t.ParentTables)
+      foreach (var dep in t.ParentSets)
       {
         if (dep.HasTableDependency(t))
         {
-          string msg = $"A circular reference from table: {t.Name} to: {dep.Def.Name} was detected!";
+          string msg = $"A circular reference from table: {t.Name} to: {dep.TargetSet.Name} was detected!";
           throw new InvalidOperationException(msg);
         }
       }
 
       // Primary test.
-      foreach (var pTable in t.ParentTables)
+      foreach (var pTable in t.ParentSets)
       {
         // The parent table MUST have a primary key!
-        bool hasPrimary = ReflectionTools.HasInterface<IHasPrimary>(pTable.Def.DataType);
+        bool hasPrimary = ReflectionTools.HasInterface<IHasPrimary>(pTable.TargetSet.DataType);
         if (!hasPrimary)
         {
-          string msg = $"The data type: {pTable.Def.DataType} is a parent of {t.DataType}, but does not implement interface: {nameof(IHasPrimary)}";
+          string msg = $"The data type: {pTable.TargetSet.DataType} is a parent of {t.DataType}, but does not implement interface: {nameof(IHasPrimary)}";
           throw new InvalidOperationException(msg);
         }
       }
@@ -492,36 +512,36 @@ public class SchemaDefinition
   }
 
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  [Obsolete("Do not use this at this time!")]
-  internal TableDef ResolveTableDef(string tableName, Type propertyType)
-  {
-    lock (ResolveLock)
-    {
-      if (_TableDefs.TryGetValue(tableName, out TableDef def))
-      {
-        if (def.DataType != propertyType)
-        {
-          throw new InvalidOperationException($"There is already a table named '{tableName}' with the data type '{def.DataType}'");
-        }
-        return def;
-      }
-      else
-      {
-        Type useType = propertyType;
-        bool isList = ReflectionTools.HasInterface<IList>(useType);
-        if (isList)
-        {
-          useType = useType.GetGenericArguments()[0];
-        }
-        var res = new TableDef(useType, tableName, this);
-        _TableDefs.Add(tableName, res);
-        res.PopulateMembers();
+  //// --------------------------------------------------------------------------------------------------------------------------
+  //[Obsolete("Do not use this at this time!")]
+  //internal TableDef ResolveTableDef(string tableName, Type propertyType)
+  //{
+  //  lock (ResolveLock)
+  //  {
+  //    if (_TableDefs.TryGetValue(tableName, out TableDef def))
+  //    {
+  //      if (def.DataType != propertyType)
+  //      {
+  //        throw new InvalidOperationException($"There is already a table named '{tableName}' with the data type '{def.DataType}'");
+  //      }
+  //      return def;
+  //    }
+  //    else
+  //    {
+  //      Type useType = propertyType;
+  //      bool isList = ReflectionTools.HasInterface<IList>(useType);
+  //      if (isList)
+  //      {
+  //        useType = useType.GetGenericArguments()[0];
+  //      }
+  //      var res = new TableDef(useType, tableName, this);
+  //      _TableDefs.Add(tableName, res);
+  //      res.PopulateMembers();
 
-        return res;
-      }
-    }
-  }
+  //      return res;
+  //    }
+  //  }
+  //}
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
@@ -569,7 +589,7 @@ public class SchemaDefinition
 
     // LOL, this probably won't work!
     // It would be nice if it was just a matter of counting.  This will suffice for now.
-    res.Sort((l, r) => l.ParentTables.Count.CompareTo(r.ParentTables.Count));
+    res.Sort((l, r) => l.ParentSets.Count.CompareTo(r.ParentSets.Count));
 
     return res;
   }
@@ -587,11 +607,11 @@ public class TableDef
   public string Name { get; private set; }
   public SchemaDefinition Schema { get; private set; }
 
-  public ReadOnlyCollection<DependentTable> ParentTables { get { return new ReadOnlyCollection<DependentTable>(_ParentTables); } }
-  private List<DependentTable> _ParentTables = new List<DependentTable>();
+  public ReadOnlyCollection<DependentTable> ParentSets { get { return new ReadOnlyCollection<DependentTable>(_ParentSets); } }
+  private List<DependentTable> _ParentSets = new List<DependentTable>();
 
-  public ReadOnlyCollection<DependentTable> ChildTables { get { return new ReadOnlyCollection<DependentTable>(_ChildTables); } }
-  private List<DependentTable> _ChildTables = new List<DependentTable>();
+  public ReadOnlyCollection<DependentTable> ChildSets { get { return new ReadOnlyCollection<DependentTable>(_ChildSets); } }
+  private List<DependentTable> _ChildSets = new List<DependentTable>();
 
   private List<ColumnDef> _Columns = new List<ColumnDef>();
   public ReadOnlyCollection<ColumnDef> Columns { get { return new ReadOnlyCollection<ColumnDef>(_Columns); } }
@@ -638,48 +658,51 @@ public class TableDef
 
       bool isPrimary = p.Name == nameof(IHasPrimary.ID) || ReflectionTools.HasAttribute<PrimaryKey>(p);
 
-      var childAttr = ReflectionTools.GetAttribute<ChildRelationship>(p);
-      if (childAttr != null)
+      var relAttr = ReflectionTools.GetAttribute<Relationship>(p);
+      if (relAttr != null)
       {
-        AddChildRelationship(p, isUnique, isNullable);
-      }
-      else
-      {
-        // Check for a parent realtionship.
-        var parentAttr = ReflectionTools.GetAttribute<ParentRelationship>(p);
-        if (parentAttr != null)
-        {
-          // This is where we want to add the parent relationship.....
-          AddParentRelationship(p, isUnique, isNullable);
+        string setName = relAttr.DataSet ?? p.Name;
+        var targetSet = Schema.GetTableDef(setName);
 
+        // We need to know if this property is a single instance, or points to a list.
+        // If it points to a list, we need to check the thing that it points to so we can
+        // setup the correct 'many to many' tables + ids.
+        // Note that the many-many tables only apply to SQL.  Other data stores can come up
+        // with a better way to handle this data.
+        if (ReflectionTools.HasInterface<IList>(p.PropertyType))
+        {
+          AddParentRelationship(p, isUnique, isNullable, targetSet);
         }
         else
         {
-          // This is a normal column.
-          // NOTE: Non-related lists can't be represented.... should we make it so that lists are always included?
-          _Columns.Add(new ColumnDef(p.Name,
-                                     p.PropertyType,
-                                     Schema.Flavor.TypeResolver.GetDataTypeName(p.PropertyType, isPrimary),
-                                     isPrimary,
-                                     isUnique,
-                                     isNullable,
-                                     null));
+          AddChildRelationship(p, isUnique, isNullable, targetSet);
         }
+      }
+      else
+      {
+        // This is a normal property.
+        // NOTE: Non-related lists can't be represented.... should we make it so that lists are always included?
+        _Columns.Add(new ColumnDef(p.Name,
+                                   p.PropertyType,
+                                   Schema.Flavor.TypeResolver.GetDataTypeName(p.PropertyType, isPrimary),
+                                   isPrimary,
+                                   isUnique,
+                                   isNullable,
+                                   null));
       }
     }
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  private void AddParentRelationship(PropertyInfo? p, bool isUnique, bool isNullable)
+  private void AddChildRelationship(PropertyInfo p, bool isUnique, bool isNullable, TableDef? targetSet)
   {
-    var parentDef = Schema.GetTableDef(p.PropertyType);
-    string propPath = $"{p.Name}.{nameof(IHasPrimary.ID)}";
-    var relationship = new TableRelationship(propPath,
-                                             parentDef.Name,
-                                             nameof(IHasPrimary.ID),
-                                             ERelationshipType.Parent);
+    // NOTE: This seems like overkill.....
+    var relationship = new TableRelationship(p.Name,
+                                     targetSet.Name,
+                                     nameof(IHasPrimary.ID),
+                                     ERelationshipType.Child);
 
-    var colDef = new ColumnDef(parentDef.Name + "_" + nameof(IHasPrimary.ID),
+    var colDef = new ColumnDef(p.Name + "_" + nameof(IHasPrimary.ID),
                                typeof(int),
                                Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false),
                                false,
@@ -687,67 +710,131 @@ public class TableDef
                                isNullable,
                                relationship);
 
-    _Columns.Add(colDef);
 
-    _ParentTables.Add(new DependentTable()
+    this._ChildSets.Add(new DependentTable()
     {
-      Def = parentDef,
-      Type = ERelationshipType.Parent
+      TargetSet = targetSet,
+      PropertyPath = p.Name,
+      Type = ERelationshipType.Child,
+      ColDef = colDef
     });
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  private void AddChildRelationship(PropertyInfo? p, bool isUnique, bool isNullable)
+  private void AddParentRelationship(PropertyInfo p, bool isUnique, bool isNullable, TableDef? targetSet)
   {
-    Type useType = p.PropertyType;
-    bool isList = ReflectionTools.HasInterface<IList>(useType);
-    if (isList)
-    {
-      useType = useType.GetGenericArguments()[0];
-    }
+    // NOTE: This seems like overkill.....
+    var relationship = new TableRelationship(p.Name,
+                                     targetSet.Name,
+                                     nameof(IHasPrimary.ID),
+                                     ERelationshipType.Parent);
 
-    // Get the related table...
-    var childDef = Schema.GetTableDef(useType);
-    if (childDef == null)
+    // This is the column that is going to be added to the parent table!
+    var colDef = new ColumnDef(p.Name + "_" + nameof(IHasPrimary.ID),
+                               typeof(int),
+                               Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false),
+                               false,
+                               isUnique,
+                               isNullable,
+                               relationship);
+
+    // Since we have a list of entites, we are the child in the relationship.
+    // We need to look to the parent to see what ids it has that match ours.
+    // TODO: In order to really do many-many, we would have to add some data to our 'relationship'
+    // attribute that could point to a specific property on the target data set....
+    // Unless there is a list of entities that matches the name of this data set and has a named relationship....  We don't really have
+    // a way to automatically resolve that at this time as not all properties have been populated.....
+    // We would have to make another pass, maybe after setting up the 
+    this._ParentSets.Add(new DependentTable()
     {
-      throw new InvalidOperationException($"Could not resolve a table def for type {useType}!  Please check the schema!");
-    }
-    this._ChildTables.Add(new DependentTable()
-    {
-      Type = ERelationshipType.Child,
-      Def = childDef,
-      PropertyPath = p.Name
+      TargetSet = targetSet,
+      PropertyPath = p.Name,
+      Type = ERelationshipType.Parent,
+      ColDef = colDef,
     });
-
-    // This is where we decide if we want a reference to a single item, or a list of them.
-    // string parentPKName = nameof(IHasPrimary.ID);
-
-    // string colName = $"{this.Name}_ID"; //.{parentPKName}";
-    // string fkTableName = this.Name;
-    // var fkTableDef = this;
-
-    // var fkType = ReflectionTools.IsNullable(p.PropertyType) ? typeof(int?) : typeof(int);
-
-    // childDef._ParentTables.Add(new DependentTable()
-    // {
-    //   Def = fkTableDef,
-    //   Type = ERelationshipType.Parent
-    // });
-
-
-    // childDef._Columns.Add(new ColumnDef(colName,
-    //                            fkType,
-    //                            Schema.Flavor.TypeResolver.GetDataTypeName(fkType),
-    //                            false,
-    //                            isUnique,
-    //                            isNullable,
-    //                            new TableRelationship(
-    //                             p.Name,
-    //                             fkTableName,
-    //                             nameof(IHasPrimary.ID),
-    //                             ERelationshipType.Child)
-    // ));
   }
+
+  //// --------------------------------------------------------------------------------------------------------------------------
+  //[Obsolete("This will be removed....")]
+  //private void AddParentRelationship(PropertyInfo? p, bool isUnique, bool isNullable)
+  //{
+  //  var parentDef = Schema.GetTableDef(p.PropertyType);
+  //  string propPath = $"{p.Name}.{nameof(IHasPrimary.ID)}";
+  //  var relationship = new TableRelationship(propPath,
+  //                                           parentDef.Name,
+  //                                           nameof(IHasPrimary.ID),
+  //                                           ERelationshipType.Parent);
+
+  //  var colDef = new ColumnDef(parentDef.Name + "_" + nameof(IHasPrimary.ID),
+  //                             typeof(int),
+  //                             Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false),
+  //                             false,
+  //                             isUnique,
+  //                             isNullable,
+  //                             relationship);
+
+  //  _Columns.Add(colDef);
+
+  //  _ParentSets.Add(new DependentTable()
+  //  {
+  //    Def = parentDef,
+  //    Type = ERelationshipType.Parent
+  //  });
+  //}
+
+  //// --------------------------------------------------------------------------------------------------------------------------
+  //[Obsolete("This will be removed....")]
+  //private void AddChildRelationship(PropertyInfo? p, bool isUnique, bool isNullable)
+  //{
+  //  Type useType = p.PropertyType;
+  //  bool isList = ReflectionTools.HasInterface<IList>(useType);
+  //  if (isList)
+  //  {
+  //    useType = useType.GetGenericArguments()[0];
+  //  }
+
+  //  // Get the related table...
+  //  var childDef = Schema.GetTableDef(useType);
+  //  if (childDef == null)
+  //  {
+  //    throw new InvalidOperationException($"Could not resolve a table def for type {useType}!  Please check the schema!");
+  //  }
+  //  this._ChildSets.Add(new DependentTable()
+  //  {
+  //    Type = ERelationshipType.Child,
+  //    Def = childDef,
+  //    PropertyPath = p.Name
+  //  });
+
+  //  // This is where we decide if we want a reference to a single item, or a list of them.
+  //  // string parentPKName = nameof(IHasPrimary.ID);
+
+  //  // string colName = $"{this.Name}_ID"; //.{parentPKName}";
+  //  // string fkTableName = this.Name;
+  //  // var fkTableDef = this;
+
+  //  // var fkType = ReflectionTools.IsNullable(p.PropertyType) ? typeof(int?) : typeof(int);
+
+  //  // childDef._ParentTables.Add(new DependentTable()
+  //  // {
+  //  //   Def = fkTableDef,
+  //  //   Type = ERelationshipType.Parent
+  //  // });
+
+
+  //  // childDef._Columns.Add(new ColumnDef(colName,
+  //  //                            fkType,
+  //  //                            Schema.Flavor.TypeResolver.GetDataTypeName(fkType),
+  //  //                            false,
+  //  //                            isUnique,
+  //  //                            isNullable,
+  //  //                            new TableRelationship(
+  //  //                             p.Name,
+  //  //                             fkTableName,
+  //  //                             nameof(IHasPrimary.ID),
+  //  //                             ERelationshipType.Child)
+  //  // ));
+  //}
 
   // --------------------------------------------------------------------------------------------------------------------------
   private Type ResolveMappingTableType(Type parentType, Type childType)
@@ -950,7 +1037,7 @@ public class TableDef
     sb.Append($"WHERE {names[0]} = @{names[0]}");
     for (int i = 0; i < len; i++)
     {
-       sb.Append($" AND {names[i]} = @{names[i]}");
+      sb.Append($" AND {names[i]} = @{names[i]}");
     }
 
     string res = sb.ToString();
@@ -968,14 +1055,15 @@ public class TableDef
     var t = typeof(T);
 
     var colNames = toSelect == null ? [] : (from x in toSelect
-        select ReflectionTools.GetPropertyName(x)).ToArray();
+                                            select ReflectionTools.GetPropertyName(x)).ToArray();
 
     var sb = new StringBuilder();
     string cols = colNames.Length == 0 ? "*" : string.Join(",", colNames);
 
     sb.Append($"SELECT {cols} FROM {this.Name}");
 
-    if (predicate != null) {
+    if (predicate != null)
+    {
       string whereClause = WhereBuilder.ToSqlWhere(predicate);
       sb.Append(" WHERE ");
       sb.Append(whereClause);
@@ -985,6 +1073,57 @@ public class TableDef
     return res;
   }
 
+  // ---------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Add any required members to the def based on its relationships.
+  /// </summary>
+  internal void PopulateRelationships()
+  {
+    foreach (var rel in this._ParentSets)
+    {
+      // NOTE: This is where we would detect + add any many-many tables.
+      var target = rel.TargetSet;
+      // Find a parent that points to this table.  If there is one, then we have a situation
+      // where we need to create a many-many table.  Don't care for now, so we will just blow up.
+      foreach (var pSet in target.ParentSets)
+      {
+        if (pSet.TargetSet == this)
+        {
+          throw new NotSupportedException("auto-mapping of many-many tables is not supported at this time!");
+        }
+      }
+
+      // If there is a single child relationship on the parent that points to this table,
+      // then we don't need to emit anything.  We can assume that it is a bi-directional relationship.
+      int matchCount = 0;
+      foreach (var cSet in target.ChildSets)
+      {
+        if (cSet.TargetSet == this)
+        {
+          ++matchCount;
+        }
+      }
+      if (matchCount == 1)
+      {
+        Log.Verbose("Found a single matching child relationship that matches this data set.  Bi-directional relationship assumed!");
+        continue;
+      }
+
+      // If there are zero or more matches, then we want to emit the FK column.
+      if (matchCount > 1)
+      {
+        Log.Verbose("There are multiple child relationships that match this set, no bi-directional relationship can be assumed.  Keys will be emitted for each!");
+      }
+
+      target._Columns.Add(rel.ColDef);
+    }
+
+    foreach (var rel in this._ChildSets)
+    {
+      this._Columns.Add(rel.ColDef);
+    }
+
+  }
 }
 
 // ============================================================================================================================
@@ -1022,7 +1161,7 @@ public enum ERelationshipType
 /// </summary>
 public class DependentTable
 {
-  public TableDef Def { get; set; }
+  public TableDef TargetSet { get; set; }
   public ERelationshipType Type { get; set; }
 
   /// <summary>
@@ -1032,15 +1171,18 @@ public class DependentTable
   /// <remarks>This only applies to child tables.</remarks>
   public string PropertyPath { get; set; } = string.Empty;
 
+  public ColumnDef ColDef { get; set; } = null!;
+
+
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// This tells us if we have a dependency on the given table, anywhere in the chain....
   /// </summary>
   internal bool HasTableDependency(TableDef t)
   {
-    foreach (var dep in this.Def.ParentTables)
+    foreach (var dep in this.TargetSet.ParentSets)
     {
-      if (dep.Def.DataType == t.DataType)
+      if (dep.TargetSet.DataType == t.DataType)
       {
         return true;
       }

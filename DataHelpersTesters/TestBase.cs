@@ -29,6 +29,9 @@ public class TestBase
     FileTools.CreateDirectory(sourceTestDataDir);
 
     string sqlFilePath = Path.Combine(sourceTestDataDir, $"{testName}.json");
+    string dir = Path.GetDirectoryName(sqlFilePath);
+    FileTools.CreateDirectory(dir);
+
     if (File.Exists(sqlFilePath))
     {
       var comp = TestSQLOutput.Load(sqlFilePath);

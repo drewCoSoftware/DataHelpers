@@ -12,6 +12,7 @@ public interface IHasPrimary
 /// <summary>
 /// This indicates that there are child tables that point back to this parent via FK relationship.
 /// </summary>
+[Obsolete("This will be removed in favor of 'Relationship' semantics")]
 [AttributeUsage(AttributeTargets.Property)]
 public class ChildRelationship : Attribute
 {
@@ -22,11 +23,11 @@ public class ChildRelationship : Attribute
 /// This allows us to have many sets of the same type that can have different names.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property)]
-public class DataSetName : Attribute
+public class DataSetAttribute : Attribute
 {
 
   // ------------------------------------------------------------------------------------------------
-  public DataSetName(string name_)
+  public DataSetAttribute(string name_)
   {
     this.Name = name_;
   }
@@ -59,14 +60,38 @@ public class Relationship : Attribute
   /// </summary>
   public string? DataSet { get; set; }
 
-  // List properties will be: 'ERelType.Many'
-  // Single instances will be: 'ERelType.One'
-  public ERelType RelationshipType { get; set; }
+  /// <summary>
+  /// Name of the target property (if any) in the relationship.
+  /// This is how we can explictly define a bi-directional relationship.
+  /// </summary>
+  public string? TargetProperty { get; set; }
+
+  //// List properties will be: 'ERelType.Many'
+  //// Single instances will be: 'ERelType.One'
+  //public ERelType RelationshipType { get; set; }
 
 
   // NOTE: Maybe instead of attributes, we have an interface 'IHasRelationships' that
   // has a function that returns a list of class instances that describe the relations?
   // That seems a lot more straight forward and easy to resolve.....
+  // .... except for the part where we need to map to an instance member....
+}
+
+
+// ============================================================================================================================
+public class RelationshipDescription {
+
+    /// <summary>
+    /// What kind of relationship are we describging?
+    /// </summary>
+    public ERelType RelationshipType { get; set; } = ERelType.Invalid;
+
+    /// <summary>
+    /// Name of the data set (i.e. TABLE) that this item is related to.
+    /// The target data set must have the 'IPrimary' interface.
+    /// If not speficied, we will use the name of the PropertyType that this is attached to.
+    /// </summary>
+    public string? DataSet { get; set; }
 }
 
 // ============================================================================================================================
@@ -89,6 +114,7 @@ public enum ERelType
 /// <summary>
 /// Indicates that the member points to a parent table via FK relationship.
 /// </summary>
+[Obsolete("This will be removed in favor of 'Relationship' semantics")]
 [AttributeUsage(AttributeTargets.Property)]
 public class ParentRelationship : Attribute
 {

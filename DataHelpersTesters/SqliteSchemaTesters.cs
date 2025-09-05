@@ -22,8 +22,68 @@ public class SqliteSchemaTesters : TestBase
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
+  /// This shows that properties with the 'Relation' attribute will automatically have FK relations setup in the schema / defs.
+  /// </summary>
+  [Test]
+  public void CanCreateForeignKeyFromRelation()
+  {
+
+    var schemaDef = new SchemaDefinition(new SqliteFlavor(), typeof(BusinessSchema));
+
+    // Show that the relationships are correctly modeled.
+    {
+      var td = schemaDef.GetTableDef<Person>();
+
+      // One child ref. to 'Addresses'
+      Assert.That(td.ChildSets.Count, Is.EqualTo(1));
+      Assert.That(td.ChildSets[0].TargetSet.Name == nameof(BusinessSchema.Addresses));
+    }
+
+    {
+      var td = schemaDef.GetTableDef<ClientAccount>();
+
+      // One child ref. to 'Account'
+      Assert.That(td.ChildSets.Count, Is.EqualTo(1));
+      Assert.That(td.ChildSets[0].TargetSet.Name == nameof(BusinessSchema.People));
+    }
+
+
+
+    // Now show that the FKs are properly added when the queries are created.
+    {
+      // This should have a single FK that points to a parent set 'Town'
+      var td = schemaDef.GetTableDef<Address>();
+      string createQuery = td.GetCreateQuery();
+
+      CheckSQL(nameof(CanCreateForeignKeyFromRelation) + "\\Address", createQuery);
+    }
+
+
+    {
+      var td = schemaDef.GetTableDef<Person>();
+      string createQuery = td.GetCreateQuery();
+
+      CheckSQL(nameof(CanCreateForeignKeyFromRelation) + "\\Person", createQuery);
+    }
+
+    {
+      // This should have two FKs.  one to the account manager (person), and one 
+      // so that we can associate multiple client accounts with a single 
+      var td = schemaDef.GetTableDef<ClientAccount>();
+      string createQuery = td.GetCreateQuery();
+
+      CheckSQL(nameof(CanCreateForeignKeyFromRelation) + "\\ClientAccount", createQuery);
+    }
+
+
+  }
+
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
   /// Show that we can create select queries that are more than just 'select *'
   /// </summary>
+  // NOTE: This test is probably flavor agnostic...
   [Test]
   public void CanCreateSelectQueryWithSubsetOfProperties()
   {
@@ -31,7 +91,7 @@ public class SqliteSchemaTesters : TestBase
     var td = def.GetTableDef<SomeData>();
 
 
-    string select1 = td.GetSelectQuery<SomeData>(new Expression<Func<SomeData, object>>[] { x=>x.ID, x=>x.Name });
+    string select1 = td.GetSelectQuery<SomeData>(new Expression<Func<SomeData, object>>[] { x => x.ID, x => x.Name });
 
     CheckSQL(nameof(CanCreateSelectQueryWithSubsetOfProperties), select1);
   }
@@ -40,6 +100,7 @@ public class SqliteSchemaTesters : TestBase
   /// <summary>
   /// Show that we can create select queries that are more than just 'select *'
   /// </summary>
+  // NOTE: This test is probably flavor agnostic...
   [Test]
   public void CanCreateSelectQueryWithCriteria()
   {
@@ -47,7 +108,7 @@ public class SqliteSchemaTesters : TestBase
     var td = def.GetTableDef<SomeData>();
 
 
-    string select1 = td.GetSelectQuery<SomeData>(null, x=> x.Name == "dave" && x.Number == 10);
+    string select1 = td.GetSelectQuery<SomeData>(null, x => x.Name == "dave" && x.Number == 10);
 
     CheckSQL(nameof(CanCreateSelectQueryWithCriteria), select1);
   }
@@ -308,8 +369,8 @@ public class SqliteSchemaTesters : TestBase
     // Make sure that this table def has a column that points to the parent table.
     var table = schema.GetTableDef("Kids");
     Assert.That(table, Is.Not.Null);
-    Assert.That(table!.ParentTables.Count, Is.EqualTo(1));
-    Assert.That(table.ParentTables[0].Def.Name, Is.EqualTo(nameof(ExampleSchema.Parents)));
+    Assert.That(table!.ParentSets.Count, Is.EqualTo(1));
+    Assert.That(table.ParentSets[0].TargetSet.Name, Is.EqualTo(nameof(ExampleSchema.Parents)));
 
     // NOTE: We don't really have a way to check + validate output SQL at this time.
     // It would be rad to have some kind of system that was able to save the current query in a

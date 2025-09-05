@@ -1,0 +1,4 @@
+{
+  "IsApproved": true,
+  "SQL": "CREATE TABLE IF NOT EXISTS People (\r\nid INTEGER PRIMARY KEY NOT NULL, \r\nname TEXT NOT NULL, \r\nnumber INTEGER NOT NULL, \r\naddress_id INTEGER NOT NULL,\r\nFOREIGN KEY(address_id) REFERENCES Addresses(ID)\r\n);\r\n"
+}
