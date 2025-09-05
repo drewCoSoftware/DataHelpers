@@ -232,7 +232,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess
     /// <remarks>
     /// If the query returns more than one result, and exception will be thrown.
     /// </remarks>
-    public T? RunSingleQuery<T>(string query, object? parameters)
+    public T? RunSingleQuery<T>(string query, object? parameters = null)
     {
         IEnumerable<T> qr = RunQuery<T>(query, parameters);
         T? res = qr.SingleOrDefault();
@@ -240,7 +240,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess
     }
 
     // --------------------------------------------------------------------------------------------------------------------------
-    public int RunExecute(string query, object? qParams)
+    public int RunExecute(string query, object? qParams = null)
     {
         using (var conn = new SqliteConnection(ConnectionString))
         {
@@ -251,7 +251,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess
     }
 
     // --------------------------------------------------------------------------------------------------------------------------
-    protected int RunExecute(SqliteConnection conn, string query, object? qParams)
+    protected int RunExecute(SqliteConnection conn, string query, object? qParams = null)
     {
         int res = conn.Execute(query, qParams);
         return res;

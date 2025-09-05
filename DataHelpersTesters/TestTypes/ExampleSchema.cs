@@ -41,6 +41,8 @@ public class Person : IHasPrimary
   [Relationship(DataSet = nameof(BusinessSchema.Addresses))]
   public Address Address { get; set; }
 
+//  public int Address_ID { get; set; }
+
   /// <summary>
   /// This will automatically use the data set name 'ClientAccounts'
   /// Note that this relationship, as far as a database is concerned, will require an FK on

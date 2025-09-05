@@ -756,97 +756,6 @@ public class TableDef
     });
   }
 
-  //// --------------------------------------------------------------------------------------------------------------------------
-  //[Obsolete("This will be removed....")]
-  //private void AddParentRelationship(PropertyInfo? p, bool isUnique, bool isNullable)
-  //{
-  //  var parentDef = Schema.GetTableDef(p.PropertyType);
-  //  string propPath = $"{p.Name}.{nameof(IHasPrimary.ID)}";
-  //  var relationship = new TableRelationship(propPath,
-  //                                           parentDef.Name,
-  //                                           nameof(IHasPrimary.ID),
-  //                                           ERelationshipType.Parent);
-
-  //  var colDef = new ColumnDef(parentDef.Name + "_" + nameof(IHasPrimary.ID),
-  //                             typeof(int),
-  //                             Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false),
-  //                             false,
-  //                             isUnique,
-  //                             isNullable,
-  //                             relationship);
-
-  //  _Columns.Add(colDef);
-
-  //  _ParentSets.Add(new DependentTable()
-  //  {
-  //    Def = parentDef,
-  //    Type = ERelationshipType.Parent
-  //  });
-  //}
-
-  //// --------------------------------------------------------------------------------------------------------------------------
-  //[Obsolete("This will be removed....")]
-  //private void AddChildRelationship(PropertyInfo? p, bool isUnique, bool isNullable)
-  //{
-  //  Type useType = p.PropertyType;
-  //  bool isList = ReflectionTools.HasInterface<IList>(useType);
-  //  if (isList)
-  //  {
-  //    useType = useType.GetGenericArguments()[0];
-  //  }
-
-  //  // Get the related table...
-  //  var childDef = Schema.GetTableDef(useType);
-  //  if (childDef == null)
-  //  {
-  //    throw new InvalidOperationException($"Could not resolve a table def for type {useType}!  Please check the schema!");
-  //  }
-  //  this._ChildSets.Add(new DependentTable()
-  //  {
-  //    Type = ERelationshipType.Child,
-  //    Def = childDef,
-  //    PropertyPath = p.Name
-  //  });
-
-  //  // This is where we decide if we want a reference to a single item, or a list of them.
-  //  // string parentPKName = nameof(IHasPrimary.ID);
-
-  //  // string colName = $"{this.Name}_ID"; //.{parentPKName}";
-  //  // string fkTableName = this.Name;
-  //  // var fkTableDef = this;
-
-  //  // var fkType = ReflectionTools.IsNullable(p.PropertyType) ? typeof(int?) : typeof(int);
-
-  //  // childDef._ParentTables.Add(new DependentTable()
-  //  // {
-  //  //   Def = fkTableDef,
-  //  //   Type = ERelationshipType.Parent
-  //  // });
-
-
-  //  // childDef._Columns.Add(new ColumnDef(colName,
-  //  //                            fkType,
-  //  //                            Schema.Flavor.TypeResolver.GetDataTypeName(fkType),
-  //  //                            false,
-  //  //                            isUnique,
-  //  //                            isNullable,
-  //  //                            new TableRelationship(
-  //  //                             p.Name,
-  //  //                             fkTableName,
-  //  //                             nameof(IHasPrimary.ID),
-  //  //                             ERelationshipType.Child)
-  //  // ));
-  //}
-
-  //// --------------------------------------------------------------------------------------------------------------------------
-  //private Type ResolveMappingTableType(Type parentType, Type childType)
-  //{
-  //  // HACK: We won't always want a new instance of this....
-  //  TypeGenerator gen = new TypeGenerator();
-  //  Type res = gen.ResolveMappingTableType(parentType, childType);
-  //  return res;
-  //}
-
   // --------------------------------------------------------------------------------------------------------------------------
   public string GetCreateQuery()
   {
@@ -1135,14 +1044,35 @@ public class TableDef
         Log.Verbose("There are multiple child relationships that match this set, no bi-directional relationship can be assumed.  Keys will be emitted for each!");
       }
 
-      target._Columns.Add(rel.ColDef);
+      target.AddColumn(rel.ColDef);
     }
 
     foreach (var rel in this._ChildSets)
     {
-      this._Columns.Add(rel.ColDef);
+      AddColumn(rel.ColDef);
+      // this._Columns.Add(rel.ColDef);
     }
 
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private void AddColumn(ColumnDef colDef)
+  {
+    // Only add the def if it doesn't already have 
+    var match = (from x in _Columns where x.Name == colDef.Name select x).FirstOrDefault();
+    if (match != null)
+    {
+      if (ColumnDef.AreSame(colDef, match))
+      {
+        Log.Verbose("A duplicate column def named: {colDef.Name} already exists, and will be overwritten!");
+        _Columns.Remove(match);
+      }
+    }
+
+    // We can also check the attributes that might indicate the associated column (later)?
+
+
+    _Columns.Add(colDef);
   }
 }
 
@@ -1154,8 +1084,19 @@ public record ColumnDef(
   bool IsPrimary,
   bool IsUnique,
   bool IsNullable,
-  TableRelationship? Relationship
-);
+  TableRelationship? Relationship)
+{
+  // --------------------------------------------------------------------------------------------------------------------------
+  internal static bool AreSame(ColumnDef colDef, ColumnDef match)
+  {
+    bool res = (colDef.Name == match.Name &&
+    colDef.IsPrimary == match.IsPrimary &&
+    colDef.DataType == match.DataType &&
+    colDef.IsUnique == match.IsUnique);
+
+    return res;
+  }
+}
 
 // ==========================================================================
 public record TableRelationship

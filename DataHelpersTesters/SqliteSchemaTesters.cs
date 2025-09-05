@@ -20,6 +20,19 @@ namespace DataHelpersTesters;
 public class SqliteSchemaTesters : TestBase
 {
 
+  //// --------------------------------------------------------------------------------------------------------------------------
+  ///// <summary>
+  ///// This test case was provided to solve a bug where it was possible to have a relation member + the
+  ///// associated ID column in a single type, but this would cause the create queries to emit an extra
+  ///// column def, which then caused queries to fail.
+  ///// </summary>
+  //[Test]
+  //public void UsingIDMemberInTableDefWontAddDuplicateColumnDef()
+  //{
+  //  // var schemaDef = new SchemaDefinition(new SqliteFlavor(), typeof(BusinessSchema));
+  //}
+
+
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// This shows that properties with the 'Relation' attribute will automatically have FK relations setup in the schema / defs.
