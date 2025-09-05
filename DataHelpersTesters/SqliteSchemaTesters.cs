@@ -328,7 +328,7 @@ public class SqliteSchemaTesters : TestBase
     // BONK!
     Assert.Throws<InvalidOperationException>(() =>
     {
-      var schema = new SchemaDefinition(new SqliteFlavor(), typeof(SchemaWithNonPrimaryParentType));
+      var schema = new SchemaDefinition(new SqliteFlavor(), typeof(SchemaWithNonPrimaryType));
     });
   }
 
@@ -369,8 +369,8 @@ public class SqliteSchemaTesters : TestBase
     // Make sure that this table def has a column that points to the parent table.
     var table = schema.GetTableDef("Kids");
     Assert.That(table, Is.Not.Null);
-    Assert.That(table!.ParentSets.Count, Is.EqualTo(1));
-    Assert.That(table.ParentSets[0].TargetSet.Name, Is.EqualTo(nameof(ExampleSchema.Parents)));
+    Assert.That(table!.ChildSets.Count, Is.EqualTo(1));
+    Assert.That(table.ChildSets[0].TargetSet.Name, Is.EqualTo(nameof(ExampleSchema.Parents)));
 
     // NOTE: We don't really have a way to check + validate output SQL at this time.
     // It would be rad to have some kind of system that was able to save the current query in a
@@ -428,20 +428,29 @@ public class SqliteSchemaTesters : TestBase
 
 
 // ==========================================================================
-public class SchemaWithNonPrimaryParentType
+public class SchemaWithNonPrimaryType
 {
-  public NonPrimaryParent Parent { get; set; }
-  public ExampleChild Child { get; set; }
+  public TypeWithoutPrimary DataSet1 { get; set; }
+  public TypewithRelationToNonPrimary DataSet2 { get; set; }
+}
+
+// ==========================================================================
+public class TypewithRelationToNonPrimary : IHasPrimary
+{
+  public int ID { get; set; }
+  public int Number { get; set; }
+
+  [Relationship(DataSet = nameof(SchemaWithNonPrimaryType.DataSet1))]
+  public TypeWithoutPrimary Relation { get; set; }
 }
 
 // ==========================================================================
 /// <summary>
 /// A data type without a primary key.  This can't be used in child relationships.
 /// </summary>
-public class NonPrimaryParent
+public class TypeWithoutPrimary
 {
-  [Relationship]
-  public ExampleChild SomeKid { get; set; }
+  public string Name { get; set; }
 }
 
 

@@ -95,6 +95,8 @@ public class SchemaDefinition
   // --------------------------------------------------------------------------------------------------------------------------
   public object GetParamatersObject<T>(T child)
   {
+    throw new InvalidOperationException("This function is currently not working and breaking some tests.  review its use + write some standalone test cases, please");
+
     var tableDef = GetTableDef<T>(false)!;
     object res = GetProxyObjectInstance(tableDef);
     PopulateProxyObject(res, child);
