@@ -836,14 +836,14 @@ public class TableDef
   //  // ));
   //}
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  private Type ResolveMappingTableType(Type parentType, Type childType)
-  {
-    // HACK: We won't always want a new instance of this....
-    TypeGenerator gen = new TypeGenerator();
-    Type res = gen.ResolveMappingTableType(parentType, childType);
-    return res;
-  }
+  //// --------------------------------------------------------------------------------------------------------------------------
+  //private Type ResolveMappingTableType(Type parentType, Type childType)
+  //{
+  //  // HACK: We won't always want a new instance of this....
+  //  TypeGenerator gen = new TypeGenerator();
+  //  Type res = gen.ResolveMappingTableType(parentType, childType);
+  //  return res;
+  //}
 
   // --------------------------------------------------------------------------------------------------------------------------
   public string GetCreateQuery()

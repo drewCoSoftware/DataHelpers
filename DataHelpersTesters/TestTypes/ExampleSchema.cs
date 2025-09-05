@@ -5,6 +5,7 @@ using DataHelpers.Data;
 
 namespace DataHelpersTesters;
 
+// ==========================================================================
 class ExampleSchema
 {
   // NOTE: In the schema, these lists represent tables of data.
@@ -108,7 +109,7 @@ public class ExampleParent : IHasPrimary
   // This parent has many different children.
   // That means that each child will have an FK that refers back to this specific parent.
   // The parent table does NOT point to its children directly.
-  [ChildRelationship]
+  [Relationship(DataSet = nameof(ExampleSchema.Kids))]
   public List<ExampleChild> Children { get; set; } = new List<ExampleChild>();
 }
 
@@ -118,8 +119,6 @@ public class ExampleChild : IHasPrimary
   public int ID { get; set; }
   public string? Label { get; set; }
 
-  // NOTE: This MUST be enforced if the parent has a child relationship.
-  // NOT sure how we will go about doing that.....
-  [ParentRelationship]
+  [Relationship(DataSet = nameof(ExampleSchema.Parents))]
   public ExampleParent Parent { get; set; }
 }

@@ -1,4 +1,4 @@
 {
   "IsApproved": true,
-  "SQL": "INSERT INTO Kids (label,parents_id) VALUES (@Label,@Parents_ID) RETURNING id"
+  "SQL": "INSERT INTO Kids (label,parent_id) VALUES (@Label,@Parent_ID) RETURNING id"
 }

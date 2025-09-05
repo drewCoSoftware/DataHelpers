@@ -440,7 +440,7 @@ public class SchemaWithNonPrimaryParentType
 /// </summary>
 public class NonPrimaryParent
 {
-  [ChildRelationship]
+  [Relationship]
   public ExampleChild SomeKid { get; set; }
 }
 
@@ -457,7 +457,7 @@ public class Parent2 : IHasPrimary
 {
   public int ID { get; set; }
 
-  [ChildRelationship]
+  [Relationship]
   public TypeWithInvalidChildRelationship Child { get; set; }
 }
 
@@ -471,7 +471,7 @@ public class TypeWithInvalidChildRelationship : IHasPrimary
   // We already have this type 'InvalidChild' listed as a child of parent.
   // By attempting to also list 'InvalidParent' as a child, we would create
   // a circular dependency.
-  [ChildRelationship]
+  [Relationship]
   public Parent2 InvalidParent { get; set; }
 }
 
