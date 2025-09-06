@@ -698,6 +698,12 @@ public class TableDef
   // --------------------------------------------------------------------------------------------------------------------------
   private void AddChildRelationship(PropertyInfo p, bool isUnique, bool isNullable, TableDef? targetSet)
   {
+    // Make sure that the target table has the correct interface.
+    if (!ReflectionTools.HasInterface<IHasPrimary>(p.PropertyType))
+    {
+      throw new InvalidOperationException($"Child data set type must implement the '{nameof(IHasPrimary)}' interface!");
+    }
+
     // NOTE: This seems like overkill.....
     var relationship = new TableRelationship(p.Name,
                                      targetSet.Name,
@@ -725,6 +731,14 @@ public class TableDef
   // --------------------------------------------------------------------------------------------------------------------------
   private void AddParentRelationship(PropertyInfo p, bool isUnique, bool isNullable, TableDef? targetSet)
   {
+
+    // Make sure that the target table has the correct interface.
+    if (!ReflectionTools.HasInterface<IHasPrimary>(targetSet.DataType))
+    {
+      throw new InvalidOperationException($"Parent data set type must implement the '{nameof(IHasPrimary)}' interface!");
+    }
+
+
     // NOTE: This seems like overkill.....
     var relationship = new TableRelationship(p.Name,
                                      targetSet.Name,
