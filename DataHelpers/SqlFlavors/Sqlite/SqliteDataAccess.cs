@@ -34,14 +34,14 @@ public class SqliteDataAccess<TSchema> : IDataAccess
 
     Connection = new SqliteConnection(ConnectionString);
     Connection.Open();
-    Transaction = Connection.BeginTransaction();
+    // Transaction = Connection.BeginTransaction();
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
   public void Dispose()
   {
-    Transaction.Commit();
-    Transaction.Dispose();
+    Transaction?.Commit();
+    Transaction?.Dispose();
     Connection.Dispose();
   }
 

@@ -5,7 +5,7 @@ namespace DataHelpers.Data;
 // ========================================================================== 
 public interface IDataFactory
 {
-  IDataAccess Transaction();
+  IDataAccess Data();
   void SetupDatabase();
   SchemaDefinition Schema { get; }
 }
@@ -27,6 +27,6 @@ public abstract class DataFactory<TSchema, TFlavor> : IDataFactory
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public abstract IDataAccess Transaction();
+  public abstract IDataAccess Data();
   public abstract void SetupDatabase();
 }

@@ -25,9 +25,15 @@ public class SqliteDataFactory<TSchema> : DataFactory<TSchema, SqliteFlavor>
     ConnectionString = $"Data Source={DBFilePath};Mode=ReadWriteCreate";
   }
 
+  private IDataAccess? InUse = null!;
+
   // --------------------------------------------------------------------------------------------------------------------------
-  public override IDataAccess Transaction()
+  public override IDataAccess Data()
   {
+    // I am trying to check for mulitple open transactions.....
+    //if (InUse != null) { 
+    //  InUse.
+    //}
     var res = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory);
     return res;
   }
