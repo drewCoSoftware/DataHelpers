@@ -1,5 +1,6 @@
 using Dapper;
 using drewCo.Tools;
+using drewCo.Tools.Logging;
 using Microsoft.Data.Sqlite;
 
 namespace DataHelpers.Data;
@@ -27,13 +28,40 @@ public class SqliteDataFactory<TSchema> : DataFactory<TSchema, SqliteFlavor>
 
   private IDataAccess? InUse = null!;
 
+  private SqliteTransaction? DBTransaction = null;
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public void Transaction(Action<IDataAccess> action)
+  {
+    if (DBTransaction != null)
+    {
+      throw new InvalidOperationException("A transactions is already in progress!");
+    }
+
+    using (var dataAccess = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory))
+    {
+      DBTransaction = dataAccess.BeginTransaction();
+      try
+      {
+        action(dataAccess);
+      }
+      catch (Exception ex)
+      {
+        Log.Exception(ex);
+        Log.Warning("The transaction will be rolled back!");
+
+        DBTransaction.Rollback();
+      }
+      finally
+      {
+        DBTransaction = null;
+      }
+    }
+  }
+
   // --------------------------------------------------------------------------------------------------------------------------
   public override IDataAccess Data()
   {
-    // I am trying to check for mulitple open transactions.....
-    //if (InUse != null) { 
-    //  InUse.
-    //}
     var res = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory);
     return res;
   }

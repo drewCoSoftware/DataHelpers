@@ -34,7 +34,6 @@ public class SqliteDataAccess<TSchema> : IDataAccess
 
     Connection = new SqliteConnection(ConnectionString);
     Connection.Open();
-    // Transaction = Connection.BeginTransaction();
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -43,6 +42,17 @@ public class SqliteDataAccess<TSchema> : IDataAccess
     Transaction?.Commit();
     Transaction?.Dispose();
     Connection.Dispose();
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public SqliteTransaction BeginTransaction()
+  {
+    if (Transaction != null)
+    {
+      throw new InvalidOperationException("The transaction has already been started!");
+    }
+    Transaction = Connection.BeginTransaction();
+    return Transaction;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
