@@ -247,17 +247,26 @@ public class SqliteSchemaTesters : TestBase
   protected SqliteDataAccess<T> CreateSqliteDatabase<T>(string dbName, out SchemaDefinition schema)
   {
     string dataDir = Path.Combine("./TestData", "Databases");
-    FileTools.CreateDirectory(dataDir);
+//    FileTools.CreateDirectory(dataDir);
 
     string dbFilePath = Path.GetFullPath(Path.Combine(dataDir, dbName + ".sqlite"));
-    FileTools.DeleteExistingFile(dbFilePath);
+  //  FileTools.DeleteExistingFile(dbFilePath);
 
-    schema = CreateSqliteSchema<T>();
-    var dal = new SqliteDataAccess<T>(dataDir, dbName);
-    dal.SetupDatabase();
+    var factory = new SqliteDataFactory<T>(dataDir, dbFilePath);
+    FileTools.DeleteExistingFile(factory.DBFilePath); 
+    factory.SetupDatabase();
 
-    return dal;
+    schema = factory.Schema;
+
+    var res = factory.Transaction() as SqliteDataAccess<T>;
+    return res;
+    ////schema = CreateSqliteSchema<T>();
+    ////var dal = new SqliteDataAccess<T>(;
+    ////dal.SetupDatabase();
+
+    //return dal;
   }
+
 
   // --------------------------------------------------------------------------------------------------------------------------
   private static SchemaDefinition CreateSqliteSchema<T>()

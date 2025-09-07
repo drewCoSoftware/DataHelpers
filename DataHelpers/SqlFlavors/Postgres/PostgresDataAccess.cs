@@ -49,6 +49,13 @@ public class PostgresDataAccess : IDataAccess
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
+  public void Dispose()
+  {
+    // Complete transactions + connections here!
+    Debug.WriteLine("Complete the implementation please!");
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
   private NpgsqlDataSource CreateDataSource()
   {
     var dataSourceBuilder = new NpgsqlDataSourceBuilder(ConnectionString);

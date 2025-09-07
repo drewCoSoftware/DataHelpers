@@ -15,48 +15,50 @@ public class MigrationTesters : TestBase
 {
 
 
-    // --------------------------------------------------------------------------------------------------------------------------
-    /// <summary>
-    /// Show that we can generate a migration that will 'CREATE' tables
-    /// when no previous migration exists.
-    /// </summary>
-    [Test]
-    public void CanCreateMigrationForNewSchema()
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Show that we can generate a migration that will 'CREATE' tables
+  /// when no previous migration exists.
+  /// </summary>
+  [Test]
+  public void CanCreateMigrationForNewSchema()
+  {
+    var def = new SchemaDefinition(new SqliteFlavor(), typeof(ExampleSchema));
+    Assert.That(3, Is.EqualTo(def.TableDefs.Count));
+
+    const string MIGRATION_OUTPUT_DIR = "./Migrations";
+    string outputDir = Path.GetFullPath(MIGRATION_OUTPUT_DIR);
+
+    var mh = new MigrationHelper();
+    var migration = mh.CreateMigration(null, new DataSchema()
     {
-        var def = new SchemaDefinition(new SqliteFlavor(), typeof(ExampleSchema));
-        Assert.That(3, Is.EqualTo(def.TableDefs.Count));
+      Flavor = "SQLite",
+      Version = 1,
+      SchemaDef = def
+    }, outputDir);
 
-        const string MIGRATION_OUTPUT_DIR = "./Migrations";
-        string outputDir = Path.GetFullPath(MIGRATION_OUTPUT_DIR);
+    CheckSQL(nameof(CanCreateMigrationForNewSchema), migration.Script.SQL);
 
-        var mh = new MigrationHelper();
-        var migration = mh.CreateMigration(null, new DataSchema()
-        {
-            Flavor = "SQLite",
-            Version = 1,
-            SchemaDef = def
-        }, outputDir);
+    const string DB_NAME = nameof(CanCreateMigrationForNewSchema);
+    string dataDir = Path.Combine(FileTools.GetAppDir(), "TestData", nameof(CanCreateMigrationForNewSchema));
+    FileTools.CreateDirectory(dataDir);
 
-        CheckSQL(nameof(CanCreateMigrationForNewSchema), migration.Script.SQL);
+    string path = Path.Combine(dataDir, DB_NAME + ".sqlite");
+    FileTools.DeleteExistingFile(path);
 
-        const string DB_NAME = nameof(CanCreateMigrationForNewSchema);
-        string dataDir = Path.Combine(FileTools.GetAppDir(), "TestData", nameof(CanCreateMigrationForNewSchema));
-        FileTools.CreateDirectory(dataDir);
+    Assert.That(!File.Exists(path));
 
-        string path = Path.Combine(dataDir, DB_NAME + ".sqlite");
-        FileTools.DeleteExistingFile(path);
-
-        Assert.That(!File.Exists(path));
-
-        var dal = new SqliteDataAccess<ExampleSchema>(dataDir, DB_NAME);
-        mh.ApplyMigration(migration, dal);
-
-        // Does the new DB file exist?
-        // TODO: We need a real way to validate that it has the correct schema.
-        Assert.That(File.Exists(path));
-
-        // Make sure that we also have migration data available...
-        Assert.That(File.Exists(migration.SchemaFilePath));
+    //  new SqliteDataAccess<ExampleSchema>(dataDir, DB_NAME);
+    using (var dal = GetDataAccess<ExampleSchema>(dataDir, DB_NAME))
+    {
+      mh.ApplyMigration(migration, dal);
     }
+    // Does the new DB file exist?
+    // TODO: We need a real way to validate that it has the correct schema.
+    Assert.That(File.Exists(path));
+
+    // Make sure that we also have migration data available...
+    Assert.That(File.Exists(migration.SchemaFilePath));
+  }
 
 }

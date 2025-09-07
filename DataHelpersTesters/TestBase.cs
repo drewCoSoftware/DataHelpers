@@ -3,6 +3,7 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using DataHelpers.Data;
 using drewCo.Tools;
 using NUnit.Framework;
 
@@ -73,6 +74,13 @@ public class TestBase
     }
   }
 
+  // --------------------------------------------------------------------------------------------------------------------------
+  protected SqliteDataAccess<T> GetDataAccess<T>(string dataDir, string dbFilePath)
+  {
+    var factory = new SqliteDataFactory<T>(dataDir, dbFilePath);
+    var res = factory.Transaction() as SqliteDataAccess<T>;
+    return res;
+  }
 }
 
 
