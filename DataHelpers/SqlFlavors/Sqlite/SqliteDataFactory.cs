@@ -26,21 +26,20 @@ public class SqliteDataFactory<TSchema> : DataFactory<TSchema, SqliteFlavor>
     ConnectionString = $"Data Source={DBFilePath};Mode=ReadWriteCreate";
   }
 
-  private IDataAccess? InUse = null!;
-
-  private SqliteTransaction? DBTransaction = null;
+  // private SqliteTransaction? ActiveTransaction = null;
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public void Transaction(Action<IDataAccess> action)
+  public override void Transaction(Action<IDataAccess> action)
   {
-    if (DBTransaction != null)
-    {
-      throw new InvalidOperationException("A transactions is already in progress!");
-    }
+    // NOTE: SqliteConnection.BeginTransaction() is blocking, so we don't need to do this extra check!
+    //if (ActiveTransaction != null)
+    //{
+    //  throw new InvalidOperationException("A transactions is already in progress!");
+    //}
 
     using (var dataAccess = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory))
     {
-      DBTransaction = dataAccess.BeginTransaction();
+      var tx = dataAccess.BeginTransaction();
       try
       {
         action(dataAccess);
@@ -50,20 +49,20 @@ public class SqliteDataFactory<TSchema> : DataFactory<TSchema, SqliteFlavor>
         Log.Exception(ex);
         Log.Warning("The transaction will be rolled back!");
 
-        DBTransaction.Rollback();
+        tx.Rollback();
       }
-      finally
-      {
-        DBTransaction = null;
-      }
+      //finally
+      //{
+      //  ActiveTransaction = null;
+      //}
     }
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public override IDataAccess Data()
+  public override void Action(Action<IDataAccess> action)
   {
     var res = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory);
-    return res;
+    action(res);
   }
 
 

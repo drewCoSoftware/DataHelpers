@@ -6,7 +6,7 @@ using DataHelpers.Data;
 namespace DataHelpersTesters;
 
 // ==========================================================================
-class ExampleSchema
+public class ExampleSchema
 {
   // NOTE: In the schema, these lists represent tables of data.
   // Could a schema have a single entry table represented as well?
@@ -17,6 +17,7 @@ class ExampleSchema
   public List<ExampleParent> Parents { get; set; } = new List<ExampleParent>();
   public List<ExampleChild> Kids { get; set; } = new List<ExampleChild>();
   public List<SomeData> SomeData { get; set; } = new List<SomeData>();
+  public List<OneMember> Onesies { get; set; } = new List<OneMember>();
 }
 
 // ==========================================================================
@@ -99,6 +100,12 @@ public class SomeData : IHasPrimary
   public string Name { get; set; }
   public int Number { get; set; }
   public DateTimeOffset Date { get; set; }
+}
+
+// ==========================================================================   
+public class OneMember : IHasPrimary {
+  public int ID { get; set; }
+  public string Name { get; set; }
 }
 
 // ==========================================================================   

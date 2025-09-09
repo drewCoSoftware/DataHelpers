@@ -47,10 +47,11 @@ public class SqliteDataAccess<TSchema> : IDataAccess
   // --------------------------------------------------------------------------------------------------------------------------
   public SqliteTransaction BeginTransaction()
   {
-    if (Transaction != null)
-    {
-      throw new InvalidOperationException("The transaction has already been started!");
-    }
+    // NOTE: Removing this b/c Connection.BeginTransaction is blocking anyway....
+    //if (Transaction != null)
+    //{
+    //  throw new InvalidOperationException("The transaction has already been started!");
+    //}
     Transaction = Connection.BeginTransaction();
     return Transaction;
   }

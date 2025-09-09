@@ -200,6 +200,7 @@ public class SqliteSchemaTesters : TestBase
   [Test]
   public void CanInsertChildRecordsWithParentID()
   {
+    // TODO: this should be converted to using a data factory!
     var dal = CreateSqliteDatabase<ExampleSchema>(nameof(CanInsertChildRecordsWithParentID), out SchemaDefinition schema);
 
     var parent = new ExampleParent()
@@ -258,13 +259,12 @@ public class SqliteSchemaTesters : TestBase
 
     schema = factory.Schema;
 
-    var res = factory.Data() as SqliteDataAccess<T>;
+    SqliteDataAccess<T> res = null!;
+    factory.Action(x=>{
+      res = x as SqliteDataAccess<T>;
+    });
     return res;
-    ////schema = CreateSqliteSchema<T>();
-    ////var dal = new SqliteDataAccess<T>(;
-    ////dal.SetupDatabase();
 
-    //return dal;
   }
 
 
@@ -378,7 +378,7 @@ public class SqliteSchemaTesters : TestBase
   public void CanGetCreateTableQueryWithForeignKey()
   {
     var schema = new SchemaDefinition(new SqliteFlavor(), typeof(ExampleSchema));
-    Assert.That(3, Is.EqualTo(schema.TableDefs.Count));
+    Assert.That(4, Is.EqualTo(schema.TableDefs.Count));
 
     // Make sure that we have the correct table names!
     var tables = new[] { "Parents", "Kids" };

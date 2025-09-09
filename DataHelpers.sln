@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30114.105
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35931.197 d17.13
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataHelpers", "DataHelpers\DataHelpers.csproj", "{3CD188F1-5035-42CD-B75F-2545F8E1C060}"
 EndProject
@@ -13,9 +13,6 @@ Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{3CD188F1-5035-42CD-B75F-2545F8E1C060}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -30,5 +27,11 @@ Global
 		{2C388BBA-F12F-4449-A470-B8DEB64D818B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2C388BBA-F12F-4449-A470-B8DEB64D818B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2C388BBA-F12F-4449-A470-B8DEB64D818B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {00AF5D1E-18FF-4095-842F-0F2DA118D084}
 	EndGlobalSection
 EndGlobal
