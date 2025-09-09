@@ -5,7 +5,7 @@ namespace DataHelpers.Data;
 // ========================================================================== 
 public interface IDataFactory
 {
-  void Action(Action<IDataAccess> action);
+  IDataAccess Action();
   void Transaction(Action<IDataAccess> action);
   void SetupDatabase();
 
@@ -33,7 +33,7 @@ public abstract class DataFactory<TSchema, TFlavor> : IDataFactory
   /// Run an action against the IDataAccess instance.  Useful for reads or things that don't need
   /// to be in a transactions.
   /// </summary>
-  public abstract void Action(Action<IDataAccess> action);
+  public abstract IDataAccess Action();
 
   /// <summary>
   /// Run an action against the IDataAccess instance inside of a transaction.  Useful

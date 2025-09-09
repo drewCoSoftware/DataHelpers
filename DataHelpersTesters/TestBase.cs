@@ -78,11 +78,7 @@ public class TestBase
   protected SqliteDataAccess<T> GetDataAccess<T>(string dataDir, string dbFilePath)
   {
     var factory = new SqliteDataFactory<T>(dataDir, dbFilePath);
-    SqliteDataAccess<T> res = null!;
-    factory.Action(x =>
-    {
-      res = x as SqliteDataAccess<T>;
-    });
+    SqliteDataAccess<T> res = factory.Action() as SqliteDataAccess<T>;
     return res;
   }
 }

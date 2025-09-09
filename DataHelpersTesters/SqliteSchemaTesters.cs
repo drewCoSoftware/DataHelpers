@@ -200,7 +200,6 @@ public class SqliteSchemaTesters : TestBase
   [Test]
   public void CanInsertChildRecordsWithParentID()
   {
-    // TODO: this should be converted to using a data factory!
     var dal = CreateSqliteDatabase<ExampleSchema>(nameof(CanInsertChildRecordsWithParentID), out SchemaDefinition schema);
 
     var parent = new ExampleParent()
@@ -259,12 +258,8 @@ public class SqliteSchemaTesters : TestBase
 
     schema = factory.Schema;
 
-    SqliteDataAccess<T> res = null!;
-    factory.Action(x=>{
-      res = x as SqliteDataAccess<T>;
-    });
+    var res = factory.Action() as SqliteDataAccess<T>;
     return res;
-
   }
 
 

@@ -59,10 +59,10 @@ public class SqliteDataFactory<TSchema> : DataFactory<TSchema, SqliteFlavor>
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public override void Action(Action<IDataAccess> action)
+  public override IDataAccess Action()
   {
     var res = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory);
-    action(res);
+    return res;
   }
 
 
