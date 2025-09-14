@@ -1,7 +1,7 @@
 namespace DataHelpers.Data;
 
 // ==========================================================================
-public interface IDataAccess : IDisposable
+public interface IDataAccess<TSchema> : IDisposable
 {
   SchemaDefinition SchemaDef { get; }
   IEnumerable<T> RunQuery<T>(string query, object? qParams = null);
@@ -12,4 +12,8 @@ public interface IDataAccess : IDisposable
   /// If more than one result exists, this will throw an exception.
   /// </summary>
   T? RunSingleQuery<T>(string query, object? qParams = null);
+
+
+  TableAccess<TSchema> Table(string name);
+
 }

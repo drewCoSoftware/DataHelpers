@@ -6,7 +6,7 @@ using Microsoft.Data.Sqlite;
 namespace DataHelpers.Data;
 
 // ==============================================================================================================================
-public class SqliteDataFactory<TSchema> : DataFactory<TSchema, SqliteFlavor>
+public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
 {
   public string DataDirectory { get; private set; }
   public string DBFilePath { get; private set; }
@@ -26,16 +26,29 @@ public class SqliteDataFactory<TSchema> : DataFactory<TSchema, SqliteFlavor>
     ConnectionString = $"Data Source={DBFilePath};Mode=ReadWriteCreate";
   }
 
-  // private SqliteTransaction? ActiveTransaction = null;
+  // --------------------------------------------------------------------------------------------------------------------------
+  public override void Action(Action<IDataAccess<TSchema>> action)
+  {
+    using(var dal = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory))
+    {
+      action(dal);
+    }
+  }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public override void Transaction(Action<IDataAccess> action)
+  public override TData Action<TData>(Func<IDataAccess<TSchema>, TData> action)
   {
-    // NOTE: SqliteConnection.BeginTransaction() is blocking, so we don't need to do this extra check!
-    //if (ActiveTransaction != null)
-    //{
-    //  throw new InvalidOperationException("A transactions is already in progress!");
-    //}
+    using (var dal = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory))
+    {
+      TData res = action(dal);
+      return res;
+    }
+  }
+
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public override void Transaction(Action<IDataAccess<TSchema>> action)
+  {
 
     using (var dataAccess = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory))
     {
@@ -51,15 +64,12 @@ public class SqliteDataFactory<TSchema> : DataFactory<TSchema, SqliteFlavor>
 
         tx.Rollback();
       }
-      //finally
-      //{
-      //  ActiveTransaction = null;
-      //}
     }
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public override IDataAccess Action()
+  [Obsolete("This will be removed in a future iteration!")]
+  public override IDataAccess<TSchema> Action()
   {
     var res = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory);
     return res;

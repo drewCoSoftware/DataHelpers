@@ -64,7 +64,7 @@ public class MigrationScript
 public record class Migration(DataSchema? From, DataSchema To, MigrationScript Script, string SchemaFilePath);
 
 // ==========================================================================
-public class MigrationHelper
+public class MigrationHelper<TSchema>
 {
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
@@ -114,7 +114,7 @@ public class MigrationHelper
   /// <summary>
   /// Apply the given migration against a target database.
   /// </summary>
-  public void ApplyMigration(Migration migration, IDataAccess dataAccess)
+  public void ApplyMigration(Migration migration, IDataAccess<TSchema> dataAccess)
   {
       if (migration?.Script?.SQL == null)
       { 

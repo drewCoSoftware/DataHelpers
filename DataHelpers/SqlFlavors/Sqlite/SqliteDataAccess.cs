@@ -9,7 +9,7 @@ namespace DataHelpers.Data;
 
 // ========================================================================== 
 // NOTE: Always put this class in a 'using' block.
-public class SqliteDataAccess<TSchema> : IDataAccess
+public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
 {
   // This is the ISO8601 format mentioned in:
   // https://www.sqlite.org/datatype3.html
@@ -47,11 +47,6 @@ public class SqliteDataAccess<TSchema> : IDataAccess
   // --------------------------------------------------------------------------------------------------------------------------
   public SqliteTransaction BeginTransaction()
   {
-    // NOTE: Removing this b/c Connection.BeginTransaction is blocking anyway....
-    //if (Transaction != null)
-    //{
-    //  throw new InvalidOperationException("The transaction has already been started!");
-    //}
     Transaction = Connection.BeginTransaction();
     return Transaction;
   }

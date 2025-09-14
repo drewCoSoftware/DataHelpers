@@ -9,7 +9,7 @@ using System.Diagnostics;
 
 
 // ========================================================================== 
-public class PostgresDataAccess : IDataAccess
+public class PostgresDataAccess<TSchema> : IDataAccess<TSchema>
 {
   public SchemaDefinition SchemaDef => throw new NotImplementedException();
 
@@ -261,6 +261,11 @@ public class PostgresDataAccess : IDataAccess
     return res;
   }
 
+  public TableAccess<TSchema> Table(string name)
+  {
+    throw new NotImplementedException();
+  }
+
 
   // public T? RunSingleQuery<T>(string query, object? parameters)
   // {
@@ -268,122 +273,122 @@ public class PostgresDataAccess : IDataAccess
   // }
 }
 
-// ========================================================================== 
-public class PostgresDataAccess<TSchema> : PostgresDataAccess
-{
-  // This is the ISO8601 format mentioned in:
-  // https://www.sqlite.org/datatype3.html
-  public const string SQLITE_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss.fffffff";
+//// ========================================================================== 
+//public class PostgresDataAccess<TSchema> : PostgresDataAccess<TSchema>
+//{
+//  // This is the ISO8601 format mentioned in:
+//  // https://www.sqlite.org/datatype3.html
+//  public const string SQLITE_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss.fffffff";
 
 
-  private SchemaDefinition _Schema;
-  public SchemaDefinition SchemaDef { get { return _Schema; } }
+//  private SchemaDefinition _Schema;
+//  public SchemaDefinition SchemaDef { get { return _Schema; } }
 
 
-  // -----------------------------------------------------------------------------------------------
-  public PostgresDataAccess(string connectionString_)
-    : base(connectionString_)
-  {
-    //    ConnectionString = connectionString_;
+//  // -----------------------------------------------------------------------------------------------
+//  public PostgresDataAccess(string connectionString_)
+//    : base(connectionString_)
+//  {
+//    //    ConnectionString = connectionString_;
 
 
-    // // TODO: Add data type mapping as needed:
-    // SqlMapper.RemoveTypeMap(typeof(DateTimeOffset));
-    // SqlMapper.AddTypeHandler<DateTimeOffset>(new DateTimeOffsetHandler());
+//    // // TODO: Add data type mapping as needed:
+//    // SqlMapper.RemoveTypeMap(typeof(DateTimeOffset));
+//    // SqlMapper.AddTypeHandler<DateTimeOffset>(new DateTimeOffsetHandler());
 
-    _Schema = new SchemaDefinition(new PostgresFlavor(), typeof(TSchema));
-  }
-
-
-  // // -----------------------------------------------------------------------------------------------
-  // public int RunExecute(string query, object? qParams)
-  // {
-  //   using (var conn = CreateConnection())
-  //   {
-  //     conn.Open();
-  //     int res = RunExecute(conn, query, qParams);
-  //     return res;
-  //   }
-  // }
-
-  // // --------------------------------------------------------------------------------------------------------------------------
-  // protected int RunExecute(NpgsqlConnection conn, string query, object? qParams)
-  // {
-  //   int res = conn.Execute(query, qParams);
-  //   return res;
-  // }
+//    _Schema = new SchemaDefinition(new PostgresFlavor(), typeof(TSchema));
+//  }
 
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  /// <summary>
-  /// This makes sure that we have a database, and the schema is correct.
-  /// </summary>
-  public void SetupDatabase()
-  {
-    // Look at the current schema, and make sure that it is up to date....
-    bool hasCorrectSchema = ValidateSchemaExists();
-    if (!hasCorrectSchema)
-    {
-      CreateDatabase();
-    }
-  }
+//  // // -----------------------------------------------------------------------------------------------
+//  // public int RunExecute(string query, object? qParams)
+//  // {
+//  //   using (var conn = CreateConnection())
+//  //   {
+//  //     conn.Open();
+//  //     int res = RunExecute(conn, query, qParams);
+//  //     return res;
+//  //   }
+//  // }
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  private void CreateDatabase()
-  {
-    string query = SchemaDef.GetCreateSQL();
-
-    using (var conn = OpenConnection())
-    {
-      using (var tx = conn.BeginTransaction())
-      {
-        conn.Execute(query);
-        tx.Commit();
-      }
-      conn.Close();
-    }
-  }
+//  // // --------------------------------------------------------------------------------------------------------------------------
+//  // protected int RunExecute(NpgsqlConnection conn, string query, object? qParams)
+//  // {
+//  //   int res = conn.Execute(query, qParams);
+//  //   return res;
+//  // }
 
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  private bool ValidateSchemaExists()
-  {
-    return false;
+//  // --------------------------------------------------------------------------------------------------------------------------
+//  /// <summary>
+//  /// This makes sure that we have a database, and the schema is correct.
+//  /// </summary>
+//  public void SetupDatabase()
+//  {
+//    // Look at the current schema, and make sure that it is up to date....
+//    bool hasCorrectSchema = ValidateSchemaExists();
+//    if (!hasCorrectSchema)
+//    {
+//      CreateDatabase();
+//    }
+//  }
+
+//  // --------------------------------------------------------------------------------------------------------------------------
+//  private void CreateDatabase()
+//  {
+//    string query = SchemaDef.GetCreateSQL();
+
+//    using (var conn = OpenConnection())
+//    {
+//      using (var tx = conn.BeginTransaction())
+//      {
+//        conn.Execute(query);
+//        tx.Commit();
+//      }
+//      conn.Close();
+//    }
+//  }
 
 
-    // NOTE: I am not really sure how ask postgres what databases it may or may not have.....
-    // We can worry about this later as we don't need it right now.
-    using (var conn = OpenConnection())
-    {
-    }
-
-    return true;
-    //   // Make sure that the file exists!
-    //   var parts = ConnectionString.Split(";");
-    //   foreach (var p in parts)
-    //   {
-    //     if (p.StartsWith("Data Source"))
-    //     {
-    //       string filePath = p.Split("=")[1].Trim();
-    //       if (!File.Exists(filePath))
-    //       {
-    //         Debug.WriteLine($"The database file at: {filePath} does not exist!");
-    //         return false;
-    //       }
-    //     }
-    //   }
-
-    //   var props = ReflectionTools.GetProperties<TSchema>();
-    //   foreach (var p in props)
-    //   {
-    //     if (!HasTable(p.Name)) { return false; }
-    //   }
-
-    //   return true;
-    //   // NOTE: This is simple.  In the future we could come up with a more robust verison of this.
-    //   // bool res = HasTable(nameof(TimeManSchema.Sessions));
-    //   // return res;
-  }
+//  // --------------------------------------------------------------------------------------------------------------------------
+//  private bool ValidateSchemaExists()
+//  {
+//    return false;
 
 
-}
+//    // NOTE: I am not really sure how ask postgres what databases it may or may not have.....
+//    // We can worry about this later as we don't need it right now.
+//    using (var conn = OpenConnection())
+//    {
+//    }
+
+//    return true;
+//    //   // Make sure that the file exists!
+//    //   var parts = ConnectionString.Split(";");
+//    //   foreach (var p in parts)
+//    //   {
+//    //     if (p.StartsWith("Data Source"))
+//    //     {
+//    //       string filePath = p.Split("=")[1].Trim();
+//    //       if (!File.Exists(filePath))
+//    //       {
+//    //         Debug.WriteLine($"The database file at: {filePath} does not exist!");
+//    //         return false;
+//    //       }
+//    //     }
+//    //   }
+
+//    //   var props = ReflectionTools.GetProperties<TSchema>();
+//    //   foreach (var p in props)
+//    //   {
+//    //     if (!HasTable(p.Name)) { return false; }
+//    //   }
+
+//    //   return true;
+//    //   // NOTE: This is simple.  In the future we could come up with a more robust verison of this.
+//    //   // bool res = HasTable(nameof(TimeManSchema.Sessions));
+//    //   // return res;
+//  }
+
+
+// }

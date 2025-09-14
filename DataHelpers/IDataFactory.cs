@@ -1,31 +1,34 @@
 using Dapper;
+using DataHelpers.Data;
 
-namespace DataHelpers.Data;
+namespace DataHelpers;
 
 // ========================================================================== 
-public interface IDataFactory
+public interface IDataFactory<TSchema>
 {
-  IDataAccess Action();
-  void Transaction(Action<IDataAccess> action);
+  [Obsolete("This will be removed.  Use other 'Action' override instead!")]
+  IDataAccess<TSchema> Action();
+  void Action(Action<IDataAccess<TSchema>> action);
+  void Transaction(Action<IDataAccess<TSchema>> action);
   void SetupDatabase();
 
   SchemaDefinition Schema { get; }
 }
 
 // ========================================================================== 
-public abstract class DataFactory<TSchema, TFlavor> : IDataFactory
+public abstract class IDataFactory<TSchema, TFlavor> : IDataFactory<TSchema>
   where TFlavor : ISqlFlavor, new()
 {
 
   public SchemaDefinition Schema { get; private set; }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public DataFactory()
+  public IDataFactory()
   {
     Schema = new SchemaDefinition(new TFlavor(), typeof(TSchema));
 
     SqlMapper.RemoveTypeMap(typeof(DateTimeOffset));
-    SqlMapper.AddTypeHandler<DateTimeOffset>(new DateTimeOffsetHandler());
+    SqlMapper.AddTypeHandler(new DateTimeOffsetHandler());
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -33,13 +36,17 @@ public abstract class DataFactory<TSchema, TFlavor> : IDataFactory
   /// Run an action against the IDataAccess instance.  Useful for reads or things that don't need
   /// to be in a transactions.
   /// </summary>
-  public abstract IDataAccess Action();
+  [Obsolete("This will be removed.  Use other 'Action' override instead!")]
+  public abstract IDataAccess<TSchema> Action();
 
   /// <summary>
   /// Run an action against the IDataAccess instance inside of a transaction.  Useful
   /// for state-sensitive operations.
   /// </summary>
-  public abstract void Transaction(Action<IDataAccess> action);
+  public abstract void Transaction(Action<IDataAccess<TSchema>> action);
+
+  public abstract void Action(Action<IDataAccess<TSchema>> action);
+  public abstract TData Action<TData>(Func<IDataAccess<TSchema>, TData> action);
 
   public abstract void SetupDatabase();
 }

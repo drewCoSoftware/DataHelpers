@@ -914,7 +914,7 @@ public class TableDef
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public string GetInsertQuery(string[]? useCols = null)
+  public string GetInsertQuery(string[]? useCols = null, bool returnId = true)
   {
     NamesAndValues namesAndVals = GetNamesAndValues(this.Columns, useCols);
 
@@ -929,9 +929,9 @@ public class TableDef
 
     // OPTIONS:
     const bool RETURN_ID = true;
-    if (RETURN_ID && namesAndVals.PrimaryKeyName != null)
+    if (RETURN_ID && namesAndVals.PrimaryKeyName != null || returnId)
     {
-      sb.Append($" RETURNING {namesAndVals.PrimaryKeyName}");
+      sb.Append($" RETURNING {namesAndVals.PrimaryKeyName ?? nameof(IHasPrimary.ID)}");
     }
 
     string res = sb.ToString();
@@ -1007,6 +1007,7 @@ public class TableDef
 
     if (predicate != null)
     {
+      throw new InvalidOperationException("the where generator is bad code!");
       string whereClause = WhereBuilder.ToSqlWhere(predicate);
       sb.Append(" WHERE ");
       sb.Append(whereClause);
