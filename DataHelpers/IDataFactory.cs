@@ -6,9 +6,13 @@ namespace DataHelpers;
 // ========================================================================== 
 public interface IDataFactory<TSchema>
 {
-  [Obsolete("This will be removed.  Use other 'Action' override instead!")]
-  IDataAccess<TSchema> Action();
+  /// <remarks>Make sure to DISPOSE the returned instance!  Put it in a using block!</remarks>
+  IDataAccess<TSchema> GetDataAccess();
+  // T Action<T>(Func<IDataAccess<TSchema>, T> action);
   void Action(Action<IDataAccess<TSchema>> action);
+
+  TData Action<TData>(Func<IDataAccess<TSchema>, TData> action);
+
   void Transaction(Action<IDataAccess<TSchema>> action);
   void SetupDatabase();
 
@@ -37,7 +41,7 @@ public abstract class IDataFactory<TSchema, TFlavor> : IDataFactory<TSchema>
   /// to be in a transactions.
   /// </summary>
   [Obsolete("This will be removed.  Use other 'Action' override instead!")]
-  public abstract IDataAccess<TSchema> Action();
+  public abstract IDataAccess<TSchema> GetDataAccess();
 
   /// <summary>
   /// Run an action against the IDataAccess instance inside of a transaction.  Useful

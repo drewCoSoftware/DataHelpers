@@ -104,7 +104,7 @@ namespace DataHelpers.SqlFlavors.Postgres
 
     // --------------------------------------------------------------------------------------------------------------------------
     [Obsolete("This will be removed in a future iteration!")]
-    public override IDataAccess<TSchema> Action()
+    public override IDataAccess<TSchema> GetDataAccess()
     {
       var res = new PostgresDataAccess<TSchema>(ConnectionString);
       return res;

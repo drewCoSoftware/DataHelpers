@@ -16,7 +16,7 @@ public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
   public SqliteDataFactory(string dataDir, string dbFileName)
   {
     DataDirectory = NormalizePathSeparators(dataDir);
-
+    
     if (!dbFileName.EndsWith(".sqlite"))
     {
       dbFileName += ".sqlite";
@@ -69,7 +69,7 @@ public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
 
   // --------------------------------------------------------------------------------------------------------------------------
   [Obsolete("This will be removed in a future iteration!")]
-  public override IDataAccess<TSchema> Action()
+  public override IDataAccess<TSchema> GetDataAccess()
   {
     var res = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory);
     return res;
