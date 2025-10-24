@@ -615,6 +615,7 @@ public class TableDef
   public ReadOnlyCollection<DependentTable> ChildSets { get { return new ReadOnlyCollection<DependentTable>(_ChildSets); } }
   private List<DependentTable> _ChildSets = new List<DependentTable>();
 
+  // NOTE: This should probably be a dictionary.....
   private List<ColumnDef> _Columns = new List<ColumnDef>();
   public ReadOnlyCollection<ColumnDef> Columns { get { return new ReadOnlyCollection<ColumnDef>(_Columns); } }
 
@@ -625,6 +626,19 @@ public class TableDef
     DataType = type_;
     Name = name_;
     Schema = schema_;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  // TODO: An indexer for the column name would be more better.
+  /// <summary>
+  /// Return the ColumnDef with the corresponding name, or null if it doesn't exist.
+  /// </summary>
+  public ColumnDef? GetColumn(string name) 
+  {
+    var res = (from x in _Columns
+    where x.Name == name
+    select x).FirstOrDefault();
+    return res;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -771,6 +785,7 @@ public class TableDef
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
+  // NOTE: This is technically flavor specific as it is a query.  We will have to move the code at some point.....
   public string GetCreateQuery()
   {
     var sb = new StringBuilder(0x400);
