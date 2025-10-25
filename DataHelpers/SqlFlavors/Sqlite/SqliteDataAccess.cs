@@ -23,7 +23,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
 
 
   private SqliteConnection Connection = null!;
-  private SqliteTransaction Transaction = null!;
+  private SqliteTransaction? Transaction = null!;
 
   // --------------------------------------------------------------------------------------------------------------------------
   public SqliteDataAccess(string connectionString, SchemaDefinition schema_, string dataDir_)
@@ -126,6 +126,18 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
 
     var res = new TableAccess<TSchema>(td, this);
     return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public void Rollback()
+  {
+    if (Transaction == null)
+    { 
+      throw new InvalidOperationException("There is no transaction to roll back!");
+    }
+    Transaction.Rollback();
+    Transaction.Dispose();
+    Transaction = null;
   }
 }
 

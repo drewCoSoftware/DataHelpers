@@ -62,7 +62,7 @@ public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
         Log.Exception(ex);
         Log.Warning("The transaction will be rolled back!");
 
-        tx.Rollback();
+        dataAccess.Rollback();
       }
     }
   }

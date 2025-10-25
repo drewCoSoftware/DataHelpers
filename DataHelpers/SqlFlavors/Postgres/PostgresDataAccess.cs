@@ -49,6 +49,12 @@ public class PostgresDataAccess<TSchema> : IDataAccess<TSchema>
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
+  public void Rollback()
+  {
+    throw new NotImplementedException("Please complete this code...");
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
   public void Dispose()
   {
     // Complete transactions + connections here!
