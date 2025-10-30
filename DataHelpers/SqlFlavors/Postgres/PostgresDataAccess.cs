@@ -77,6 +77,7 @@ public class PostgresDataAccess<TSchema> : IDataAccess<TSchema>
   }
 
   // -----------------------------------------------------------------------------------------------
+  // TODO: This should be a first-class member on IDataAccess<T>!!
   public int BulkInsert<T>(TableDef tableDef, IEnumerable<T> toInsert)
   {
     int count = toInsert.Count();

@@ -1,13 +1,8 @@
-
-
-
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using DataHelpers.Data;
+using DataHelpers.SqlFlavors.Postgres;
 using DataHelpersTesters;
 using drewCo.Tools;
 using NUnit.Framework;
@@ -34,7 +29,8 @@ public class PostgresSchemaTesters
   public void CanBulkInsertItems()
   {
     string connectionString = GetConnectionString();
-    var dal = new PostgresDataAccess(connectionString);
+    PostgresDataFactory<ExampleSchema> factory = new PostgresDataFactory<ExampleSchema>(connectionString);
+    var dal =  (PostgresDataAccess<ExampleSchema>)factory.GetDataAccess(); /// GetPostgresDataAccess()  new PostgresDataAccess(connectionString);
 
     var schema = CreatePostgresSchema<ExampleSchema>();
     TableDef tableDef = schema.GetTableDef<SomeData>()!;
@@ -81,7 +77,8 @@ public class PostgresSchemaTesters
     string connectionString = GetConnectionString();
 
     // NOTE: We don't have a way to create schema definitions for single tables!
-    var dal = new PostgresDataAccess(connectionString);
+    var factory = new PostgresDataFactory<ExampleSchema>(connectionString);
+    var dal = factory.GetDataAccess();
 
     // string selectQr =  dal.SchemaDef.GetSelectQuery<TestTable>(null);
     // int x = 10;
@@ -183,15 +180,17 @@ public class PostgresSchemaTesters
 
 
   // --------------------------------------------------------------------------------------------------------------------------
-  protected PostgresDataAccess<T> CreatePostgresDatabase<T>(string dbName, out SchemaDefinition schema)
+  protected IDataAccess<T> CreatePostgresDatabase<T>(string dbName, out SchemaDefinition schema)
   {
     string connectionString = GetConnectionString();
 
-    schema = CreatePostgresSchema<T>();
-    var dal = new PostgresDataAccess<T>(connectionString);
-    dal.SetupDatabase();
+    var factory = new PostgresDataFactory<T>(connectionString);
+    factory.SetupDatabase();
 
-    return dal;
+    schema = CreatePostgresSchema<T>();
+    //var dal = new PostgresDataAccess<T>(connectionString);
+    //dal.SetupDatabase();
+    return factory.GetDataAccess();
   }
 
   // --------------------------------------------------------------------------------------------------------------------------

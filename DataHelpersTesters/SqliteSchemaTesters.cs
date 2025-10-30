@@ -258,7 +258,7 @@ public class SqliteSchemaTesters : TestBase
 
     schema = factory.Schema;
 
-    var res = factory.Action() as SqliteDataAccess<T>;
+    var res = factory.GetDataAccess() as SqliteDataAccess<T>;
     return res;
   }
 

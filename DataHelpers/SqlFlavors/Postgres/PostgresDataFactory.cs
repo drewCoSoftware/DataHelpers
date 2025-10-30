@@ -30,6 +30,12 @@ namespace DataHelpers.SqlFlavors.Postgres
 
 
     // --------------------------------------------------------------------------------------------------------------------------
+    public PostgresDataFactory(string connectionString_)
+    {
+      ConnectionString = connectionString_;
+    }
+
+    // --------------------------------------------------------------------------------------------------------------------------
     public PostgresDataFactory(string host_, string dbName_, string username_, string password_, int port_)
     {
       Host = host_;
@@ -82,7 +88,7 @@ namespace DataHelpers.SqlFlavors.Postgres
 
     // --------------------------------------------------------------------------------------------------------------------------
     public override void Transaction(Action<IDataAccess<TSchema>> action)
-    {   
+    {
       throw new NotImplementedException();
 
       //using (var dataAccess = new PostgresDataAccess<TSchema>(ConnectionString))
