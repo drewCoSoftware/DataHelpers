@@ -10,6 +10,8 @@ using System.Diagnostics;
 
 using IgnoreTest = NUnit.Framework.IgnoreAttribute;
 using System.Linq.Expressions;
+using System.Xml.Schema;
+using System.Collections.Immutable;
 
 namespace DataHelpersTesters;
 
@@ -20,17 +22,71 @@ namespace DataHelpersTesters;
 public class SqliteSchemaTesters : TestBase
 {
 
-  //// --------------------------------------------------------------------------------------------------------------------------
-  ///// <summary>
-  ///// This test case was provided to solve a bug where it was possible to have a relation member + the
-  ///// associated ID column in a single type, but this would cause the create queries to emit an extra
-  ///// column def, which then caused queries to fail.
-  ///// </summary>
-  //[Test]
-  //public void UsingIDMemberInTableDefWontAddDuplicateColumnDef()
-  //{
-  //  // var schemaDef = new SchemaDefinition(new SqliteFlavor(), typeof(BusinessSchema));
-  //}
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// This test case was provided to show that we can do a many->many mapping from our schema defs.
+  /// Of especial importance is that the system is able to auto-generate a mapping table for our use.
+  /// </summary>
+  [Test]
+  public void CanHaveManytoManyRelationship()
+  {
+    // var schemaDef = new SchemaDefinition(new SqliteFlavor(), typeof(VacationSchema));
+
+    string dir = FileTools.GetLocalDir("test-db");
+    var factory = new SqliteDataFactory<VacationSchema>(dir, nameof(CanHaveManytoManyRelationship));
+    
+    FileTools.DeleteExistingFile(factory.DBFilePath);
+
+    factory.SetupDatabase();
+    var schema = factory.Schema;
+
+    // Map sure that the mapping table schema is defined correctly!
+    var td = schema.GetTableDef<PeopletoPlaces>();
+
+    // Ensure that the column defs point to the correct places.
+    {
+    var peopleId = td.GetColumn(nameof(PeopletoPlaces.People_ID));
+    Assert.That(peopleId, Is.Not.Null);
+
+    var rel = peopleId.Relationship;
+    Assert.That(rel, Is.Not.Null, "There should a defined relationship!");
+    Assert.That(rel.RelatedTableColumn, Is.EqualTo(nameof(IHasPrimary.ID)));
+    }
+
+    {
+      var placeId = td.GetColumn(nameof(PeopletoPlaces.Place_ID));
+      Assert.That(placeId, Is.Not.Null);
+
+      var rel = placeId.Relationship;
+      Assert.That(rel, Is.Not.Null, "There should a defined relationship!");
+      Assert.That(rel.RelatedTableColumn, Is.EqualTo(nameof(IHasPrimary.ID));
+    }
+
+    // Make sure that no new extra columns were defined!
+    Assert.That(td.Columns.Count, Is.EqualTo(2), "There should only be two columns defined!");
+
+    // Finally, show that we can generate a many->many query to select all people that visited a place, or whatever....
+
+    Assert.Fail("Please finish this test!");
+    // Make sure that there are three tables!
+
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// This test case shows that we can use the 'Relation' class on our data types to represent
+  /// FKs vs. having to define a seperate *_ID and *_Entity explicitly.  The goal is to make
+  /// defining our types + selects, etc. easier to deal with....
+  /// </summary>
+  [Test]
+  public void CanUseRelationFeature()
+  {
+
+    Assert.Inconclusive("This feature is currently under consideration.");
+    //var schemaDef = new SchemaDefinition(new SqliteFlavor(), typeof(TestSchema2));
+    //Assert.Fail("Please finish this test!");
+
+  }
 
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -247,13 +303,13 @@ public class SqliteSchemaTesters : TestBase
   protected SqliteDataAccess<T> CreateSqliteDatabase<T>(string dbName, out SchemaDefinition schema)
   {
     string dataDir = Path.Combine("./TestData", "Databases");
-//    FileTools.CreateDirectory(dataDir);
+    //    FileTools.CreateDirectory(dataDir);
 
     string dbFilePath = Path.GetFullPath(Path.Combine(dataDir, dbName + ".sqlite"));
-  //  FileTools.DeleteExistingFile(dbFilePath);
+    //  FileTools.DeleteExistingFile(dbFilePath);
 
     var factory = new SqliteDataFactory<T>(dataDir, dbFilePath);
-    FileTools.DeleteExistingFile(factory.DBFilePath); 
+    FileTools.DeleteExistingFile(factory.DBFilePath);
     factory.SetupDatabase();
 
     schema = factory.Schema;

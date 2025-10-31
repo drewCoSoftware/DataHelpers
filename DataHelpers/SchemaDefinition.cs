@@ -8,6 +8,8 @@ using System.Linq.Expressions;
 using System.Reflection.Emit;
 using System.ComponentModel;
 using drewCo.Tools.Logging;
+using System.Runtime.CompilerServices;
+using System.Diagnostics;
 
 //using System.com
 
@@ -467,8 +469,13 @@ public class SchemaDefinition
         bool hasPrimary = ReflectionTools.HasInterface<IHasPrimary>(pTable.TargetSet.DataType);
         if (!hasPrimary)
         {
-          string msg = $"The data type: {pTable.TargetSet.DataType} is a parent of {t.DataType}, but does not implement interface: {nameof(IHasPrimary)}";
-          throw new InvalidOperationException(msg);
+          // This might be a mapping table.  If it is we can consider it valid as type + member checks would have already happened!
+          if (!ReflectionTools.HasAttribute<MappingTableAttribute>(pTable.TargetSet.DataType))
+          {
+            string msg = $"The data type: {pTable.TargetSet.DataType} is a parent of {t.DataType}, but does not implement interface: {nameof(IHasPrimary)} or have the '{nameof(MappingTableAttribute)}' set!";
+            throw new InvalidOperationException(msg);
+          }
+
         }
       }
       // if (t.DependentTables.Count > 0 && !ReflectionTools.HasInterface<IHasPrimary>(t.DataType))
@@ -633,11 +640,11 @@ public class TableDef
   /// <summary>
   /// Return the ColumnDef with the corresponding name, or null if it doesn't exist.
   /// </summary>
-  public ColumnDef? GetColumn(string name) 
+  public ColumnDef? GetColumn(string name)
   {
     var res = (from x in _Columns
-    where x.Name == name
-    select x).FirstOrDefault();
+               where x.Name == name
+               select x).FirstOrDefault();
     return res;
   }
 
@@ -677,6 +684,7 @@ public class TableDef
       var relAttr = ReflectionTools.GetAttribute<Relationship>(p);
       if (relAttr != null)
       {
+        // We need to mark the columns as having some kind of relationship so we can finalize it later...?
         string setName = relAttr.DataSet ?? p.Name;
         var targetSet = Schema.GetTableDef(setName);
 
@@ -687,7 +695,7 @@ public class TableDef
         // with a better way to handle this data.
         if (ReflectionTools.HasInterface<IList>(p.PropertyType))
         {
-          AddParentRelationship(p, isUnique, isNullable, targetSet);
+          AddParentRelationship(p, isUnique, isNullable, targetSet, relAttr);
         }
         else
         {
@@ -713,6 +721,7 @@ public class TableDef
   private void AddChildRelationship(PropertyInfo p, bool isUnique, bool isNullable, TableDef? targetSet)
   {
     // Make sure that the target table has the correct interface.
+    // TODO: This is where we would detect that we are using 'Relation<T>' and do something about it....
     if (!ReflectionTools.HasInterface<IHasPrimary>(p.PropertyType))
     {
       throw new InvalidOperationException($"Child data set type must implement the '{nameof(IHasPrimary)}' interface!");
@@ -722,7 +731,8 @@ public class TableDef
     var relationship = new TableRelationship(p.Name,
                                      targetSet.Name,
                                      nameof(IHasPrimary.ID),
-                                     ERelationshipType.Child);
+                                     ERelationshipType.Child,
+                                     null);
 
     var colDef = new ColumnDef(p.Name + "_" + nameof(IHasPrimary.ID),
                                typeof(int),
@@ -743,13 +753,50 @@ public class TableDef
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  private void AddParentRelationship(PropertyInfo p, bool isUnique, bool isNullable, TableDef? targetSet)
+  private void AddParentRelationship(PropertyInfo p, bool isUnique, bool isNullable, TableDef? targetSet, Relationship relAttr)
   {
+
+    MappingTableAttribute? mtAttr = null;
+
+    //if (ReflectionTools.HasInterface<IHasPrimary>(targetSet.DataType)) {
+    //}
 
     // Make sure that the target table has the correct interface.
     if (!ReflectionTools.HasInterface<IHasPrimary>(targetSet.DataType))
     {
-      throw new InvalidOperationException($"Parent data set type must implement the '{nameof(IHasPrimary)}' interface!");
+      // Check to see if the parent is some kind of mapping table:
+      mtAttr = ReflectionTools.GetAttribute<MappingTableAttribute>(targetSet.DataType);
+      if (mtAttr != null)
+      {
+        // Make sure that the data type is supported, and that the member name is set correctly.
+        var requiredType = p.PropertyType;
+        if (ReflectionTools.HasInterface(p.PropertyType, typeof(IList)))
+        {
+          requiredType = p.PropertyType.GetGenericArguments()[0];
+        }
+        // TODO: Require that list types are used?
+        // This is where we might go about doing that....
+        //else {
+        //  throw new InvalidOperationException("
+        //}
+
+        bool hasType = mtAttr.DataSet1Type == requiredType || mtAttr.DataSet2Type == requiredType;
+        if (!hasType)
+        {
+          throw new InvalidOperationException($"Mapping table does not have type: {p.PropertyType}!");
+        }
+
+        var targetProps = targetSet.DataType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        bool attrDefinesMembers = targetProps.Any(x => x.Name == mtAttr.DataSet1ID) && targetProps.Any(x => x.Name == mtAttr.DataSet2ID);
+        if (!attrDefinesMembers)
+        {
+          throw new InvalidOperationException($"Mapping table must define: {mtAttr.DataSet1ID} and {mtAttr.DataSet2ID} properties!");
+        }
+      }
+      else
+      {
+        throw new InvalidOperationException($"Parent data set type must implement the '{nameof(IHasPrimary)}' interface, or have the '{nameof(MappingTableAttribute)}' attribute!");
+      }
     }
 
 
@@ -757,16 +804,41 @@ public class TableDef
     var relationship = new TableRelationship(p.Name,
                                      targetSet.Name,
                                      nameof(IHasPrimary.ID),
-                                     ERelationshipType.Parent);
+                                     ERelationshipType.Parent,
+                                     mtAttr);
 
     // This is the column that is going to be added to the parent table!
-    var colDef = new ColumnDef(p.Name + "_" + nameof(IHasPrimary.ID),
-                               typeof(int),
-                               Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false),
-                               false,
-                               isUnique,
-                               isNullable,
-                               relationship);
+    // We want to be sure that it already exists!
+    ColumnDef? colDef = null;
+    if (relAttr.TargetProperty != null)
+    {
+      // If the column exists, we can mark it up.  If not, we will add a new one.
+      // If TargetProperty is set, then the column MUST exist!
+      // var def = this.Schema.GetTableDef(targetSet);
+      bool exists = HasProperty(targetSet.DataType, relAttr.TargetProperty, typeof(int));
+      if (!exists)
+      {
+        throw new InvalidOperationException($"The target dataset: {targetSet.DataType} does not have a property named: {relAttr.TargetProperty}!");
+      }
+      //var existing = targetSet.GetColumn(relAttr.TargetProperty);
+      ////if !@
+      ////if (existing == null)
+      ////{
+      ////  // We can just add it....
+      ////  throw new InvalidOperationException($"The column def for property: {relAttr.TargetProperty} does not exist!");
+      ////}
+    }
+    else
+    {
+      string useColName = p.Name + "_" + nameof(IHasPrimary.ID);
+      colDef = new ColumnDef(useColName,
+                                 typeof(int),
+                                 Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false),
+                                 false,
+                                 isUnique,
+                                 isNullable,
+                                 relationship);
+    }
 
     // Since we have a list of entites, we are the child in the relationship.
     // We need to look to the parent to see what ids it has that match ours.
@@ -775,13 +847,37 @@ public class TableDef
     // Unless there is a list of entities that matches the name of this data set and has a named relationship....  We don't really have
     // a way to automatically resolve that at this time as not all properties have been populated.....
     // We would have to make another pass, maybe after setting up the 
-    this._ParentSets.Add(new DependentTable()
+    //if (mtAttr != null) { 
+    //  // There will be one or more dependent tables.
+    //  // We will resolve the property def for this mapping....
+    //  int x = 10;
+    //}
+    //else {
+    // Add a single dependent table.
+    DependentTable dt = new()
     {
       TargetSet = targetSet,
-      PropertyPath = p.Name,
+      PropertyPath = relAttr.TargetProperty ?? p.Name,
       Type = ERelationshipType.Parent,
       ColDef = colDef,
-    });
+    };
+    this._ParentSets.Add(dt);
+    // }
+
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  // TODO: This should be moved to ReflectionTools ASAP.
+  [Obsolete("Use version from drewco.tools.reflectiontools > 1.4.1.0")]
+  public static bool HasProperty(Type dataType, string propName, Type propType)
+  {
+    var props = ReflectionTools.GetProperties(dataType);
+    var match = from x in props
+                where x.Name == propName && x.PropertyType == propType
+                select x;
+
+    bool res = match.Count() == 1;
+    return res;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -1040,48 +1136,79 @@ public class TableDef
   {
     foreach (var rel in this._ParentSets)
     {
-      // NOTE: This is where we would detect + add any many-many tables.
-      var target = rel.TargetSet;
-      // Find a parent that points to this table.  If there is one, then we have a situation
-      // where we need to create a many-many table.  Don't care for now, so we will just blow up.
-      foreach (var pSet in target.ParentSets)
+      if (rel.ColDef == null || rel.PropertyPath != null)
       {
-        if (pSet.TargetSet == this)
+        // We need to resolve this column def.  This can be null in cases where the relationship
+        // was created as part of a mapping-table (many-many) type relationship.
+        // NOTE: Yes, the way that we are resolving and representing the schemas as we go along
+        // is real sloppy and could use an overhaul.  I'd rather work on getting a lot of test
+        // cases and working functinoality before I go doing that tho.
+
+        // If we can't resolve the def, something is messed up!
+        var match = rel.TargetSet.GetColumn(rel.PropertyPath);
+        if (match == null)
         {
-          throw new NotSupportedException("auto-mapping of many-many tables is not supported at this time!");
+          throw new InvalidOperationException("Could not resolve a column def for this relationship!");
         }
-      }
+        
+        var tableRel = new TableRelationship(match.Name, rel.TargetSet.Name, rel.PropertyPath, ERelationshipType.Parent, null);
+        match.Relationship = tableRel;        
+        // match.Relationship = rel;
+        
+        rel.ColDef = match;
 
-      // If there is a single child relationship on the parent that points to this table,
-      // then we don't need to emit anything.  We can assume that it is a bi-directional relationship.
-      int matchCount = 0;
-      foreach (var cSet in target.ChildSets)
-      {
-        if (cSet.TargetSet == this)
+      }
+      else {
+        // Create a new column def for the relationship.
+
+        // NOTE: This is where we would detect + add any many-many tables.
+        var target = rel.TargetSet;
+        // Find a parent that points to this table.  If there is one, then we have a situation
+        // where we need to create a many-many table.  Don't care for now, so we will just blow up.
+        foreach (var pSet in target.ParentSets)
         {
-          ++matchCount;
+          if (pSet.TargetSet == this)
+          {
+            throw new NotSupportedException("auto-mapping of many-many tables is not supported at this time!");
+          }
         }
-      }
-      if (matchCount == 1)
-      {
-        Log.Verbose("Found a single matching child relationship that matches this data set.  Bi-directional relationship assumed!");
-        continue;
+
+        // If there is a single child relationship on the parent that points to this table,
+        // then we don't need to emit anything.  We can assume that it is a bi-directional relationship.
+        int matchCount = 0;
+        foreach (var cSet in target.ChildSets)
+        {
+          if (cSet.TargetSet == this)
+          {
+            ++matchCount;
+          }
+        }
+        if (matchCount == 1)
+        {
+          Log.Verbose("Found a single matching child relationship that matches this data set.  Bi-directional relationship assumed!");
+          continue;
+        }
+
+        // If there are zero or more matches, then we want to emit the FK column.
+        if (matchCount > 1)
+        {
+          Log.Verbose("There are multiple child relationships that match this set, no bi-directional relationship can be assumed.  Keys will be emitted for each!");
+        }
+
+        target.AddColumn(rel.ColDef);
+
       }
 
-      // If there are zero or more matches, then we want to emit the FK column.
-      if (matchCount > 1)
-      {
-        Log.Verbose("There are multiple child relationships that match this set, no bi-directional relationship can be assumed.  Keys will be emitted for each!");
-      }
 
-      target.AddColumn(rel.ColDef);
     }
+
 
     foreach (var rel in this._ChildSets)
     {
       AddColumn(rel.ColDef);
       // this._Columns.Add(rel.ColDef);
     }
+
 
   }
 
@@ -1106,23 +1233,63 @@ public class TableDef
   }
 }
 
+//// ============================================================================================================================
+//public record ColumnDef(
+//  string Name,              // This is the same name as the property that this def comes from.
+//  Type RuntimeType,
+//  string DataType,
+//  bool IsPrimary,
+//  bool IsUnique,
+//  bool IsNullable,
+//  TableRelationship? Relationship)
+//{
+//  // --------------------------------------------------------------------------------------------------------------------------
+//  internal static bool AreSame(ColumnDef colDef, ColumnDef match)
+//  {
+//    bool res = (colDef.Name == match.Name &&
+//    colDef.IsPrimary == match.IsPrimary &&
+//    colDef.DataType == match.DataType &&
+//    colDef.IsUnique == match.IsUnique);
+
+//    return res;
+//  }
+//}
+
 // ============================================================================================================================
-public record ColumnDef(
-  string Name,              // This is the same name as the property that this def comes from.
-  Type RuntimeType,
-  string DataType,
-  bool IsPrimary,
-  bool IsUnique,
-  bool IsNullable,
-  TableRelationship? Relationship)
+public class ColumnDef
 {
   // --------------------------------------------------------------------------------------------------------------------------
-  internal static bool AreSame(ColumnDef colDef, ColumnDef match)
+  public string Name { get; private set; }                 // This is the same name as the property that this def comes from.
+  public Type RuntimeType { get; private set; }
+  public string DataType { get; private set; }
+  public bool IsPrimary { get; private set; }
+  public bool IsUnique { get; private set; }
+  public bool IsNullable { get; private set; }
+
+  // NOTE: This has a non-private setter b/c we have to update them sometimes, after the fact,
+  // because of the sloppy way that we are currently creating the table defs.
+  // we should have it so that the columns are added to the def BEFORE we attempt resolve the relationships.
+  public TableRelationship? Relationship { get; internal set; }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public ColumnDef(string name, Type runtimeType, string dataType, bool isPrimary, bool isUnique, bool isNullable, TableRelationship? relationship)
+  {
+    Name = name;
+    RuntimeType = runtimeType;
+    DataType = dataType;
+    IsPrimary = isPrimary;
+    IsUnique = isUnique;
+    IsNullable = isNullable;
+    Relationship = relationship;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public static bool AreSame(ColumnDef colDef, ColumnDef match)
   {
     bool res = (colDef.Name == match.Name &&
-    colDef.IsPrimary == match.IsPrimary &&
-    colDef.DataType == match.DataType &&
-    colDef.IsUnique == match.IsUnique);
+                colDef.IsPrimary == match.IsPrimary &&
+                colDef.DataType == match.DataType &&
+                colDef.IsUnique == match.IsUnique);
 
     return res;
   }
@@ -1131,10 +1298,11 @@ public record ColumnDef(
 // ==========================================================================
 public record TableRelationship
 (
-    string PropertyName,              // The name of the property on the type which this is defined.
+    string PropertyName,                // The name of the property on the type which this is defined.
     string RelatedTableName,
     string RelatedTableColumn,
-    ERelationshipType RelationType
+    ERelationshipType RelationType,
+    MappingTableAttribute? MappedTable   // This relationship points to a mapping table (many->many relation)!
 );
 
 // ==========================================================================

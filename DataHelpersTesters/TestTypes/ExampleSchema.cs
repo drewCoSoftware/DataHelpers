@@ -1,9 +1,89 @@
 // ==========================================================================   
 using System;
 using System.Collections.Generic;
+using DataHelpers;
 using DataHelpers.Data;
 
 namespace DataHelpersTesters;
+
+
+
+// ==============================================================================================================================
+/// <summary>
+/// This shows that schema generation will auto-create a mapping table that links people
+/// to places that they have visited.
+/// </summary>
+public class VacationSchema
+{
+  public List<Traveler> People { get; set; } = new List<Traveler>();
+  public List<Place> Places { get; set; } = new List<Place>();
+
+  // This is a mapping table for people-places.
+  public List<PeopletoPlaces> PeopleToPlaces { get; set; }
+}
+
+
+// ==============================================================================================================================
+// TODO: This needs to be updated to expicitly point to datasets on 'VacationSchema', not just a single data type!
+[MappingTable(typeof(Traveler), typeof(Place), nameof(People_ID), nameof(Place_ID))]
+public class PeopletoPlaces
+{
+  public int People_ID { get; set; }
+  public int Place_ID { get; set; }
+}
+
+// ==============================================================================================================================
+public class Traveler : IHasPrimary
+{
+  public int ID { get; set; }
+  public string Name { get; set; }
+
+  /// <summary>
+  /// All of the places that this person has visited.
+  /// </summary>
+  [Relationship(DataSet = nameof(PeopletoPlaces), TargetProperty = nameof(PeopletoPlaces.Place_ID))]
+  public List<Place> PlacesVisited { get; set; }
+}
+
+// ==============================================================================================================================
+public class Place : IHasPrimary
+{
+  public int ID { get; set; }
+  public string Name { get; set; }
+  public string Country { get; set; }
+
+  /// <summary>
+  /// All of the people that have visited this place.
+  /// </summary>
+  [Relationship(DataSet = nameof(PeopletoPlaces), TargetProperty = nameof(PeopletoPlaces.People_ID))]
+  public List<Traveler> Visitors { get; set; }
+}
+
+
+// ==============================================================================================================================
+public class TestSchema2
+{
+  public List<TestPerson2> People { get; set; }
+  public List<House> Domiciles { get; set; }
+}
+
+// ==============================================================================================================================
+public class House : IHasPrimary
+{
+  public int ID { get; set; }
+  public string Address { get; set; }
+}
+
+// ==============================================================================================================================
+public class TestPerson2
+{
+  public int ID { get; set; }
+  public string Name { get; set; }
+
+  [Relationship(DataSet = nameof(TestSchema2.Domiciles))]
+  public Relation<House> Home { get; set; }
+}
+
 
 // ==========================================================================
 public class ExampleSchema
@@ -42,7 +122,7 @@ public class Person : IHasPrimary
   [Relationship(DataSet = nameof(BusinessSchema.Addresses))]
   public Address Address { get; set; }
 
-//  public int Address_ID { get; set; }
+  //  public int Address_ID { get; set; }
 
   /// <summary>
   /// This will automatically use the data set name 'ClientAccounts'
@@ -103,7 +183,8 @@ public class SomeData : IHasPrimary
 }
 
 // ==========================================================================   
-public class OneMember : IHasPrimary {
+public class OneMember : IHasPrimary
+{
   public int ID { get; set; }
   public string Name { get; set; }
 }
