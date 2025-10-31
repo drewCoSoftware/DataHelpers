@@ -59,7 +59,7 @@ public class SqliteSchemaTesters : TestBase
 
       var rel = placeId.Relationship;
       Assert.That(rel, Is.Not.Null, "There should a defined relationship!");
-      Assert.That(rel.RelatedTableColumn, Is.EqualTo(nameof(IHasPrimary.ID));
+      Assert.That(rel.RelatedTableColumn, Is.EqualTo(nameof(IHasPrimary.ID)));
     }
 
     // Make sure that no new extra columns were defined!

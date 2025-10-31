@@ -1,6 +1,7 @@
 // ==========================================================================   
 using System;
 using System.Collections.Generic;
+using System.Security.Principal;
 using DataHelpers;
 using DataHelpers.Data;
 
@@ -25,7 +26,7 @@ public class VacationSchema
 
 // ==============================================================================================================================
 // TODO: This needs to be updated to expicitly point to datasets on 'VacationSchema', not just a single data type!
-[MappingTable(typeof(Traveler), typeof(Place), nameof(People_ID), nameof(Place_ID))]
+[MappingTable(nameof(VacationSchema.People), nameof(VacationSchema.Places), nameof(People_ID), nameof(Place_ID))]
 public class PeopletoPlaces
 {
   public int People_ID { get; set; }
@@ -43,6 +44,9 @@ public class Traveler : IHasPrimary
   /// </summary>
   [Relationship(DataSet = nameof(PeopletoPlaces), TargetProperty = nameof(PeopletoPlaces.Place_ID))]
   public List<Place> PlacesVisited { get; set; }
+
+  [Relationship(DataSet = nameof(VacationSchema.People))]
+  public Traveler MyProperty { get; set; }
 }
 
 // ==============================================================================================================================
@@ -55,8 +59,8 @@ public class Place : IHasPrimary
   /// <summary>
   /// All of the people that have visited this place.
   /// </summary>
-  [Relationship(DataSet = nameof(PeopletoPlaces), TargetProperty = nameof(PeopletoPlaces.People_ID))]
-  public List<Traveler> Visitors { get; set; }
+  //[Relationship(DataSet = nameof(PeopletoPlaces), TargetProperty = nameof(PeopletoPlaces.People_ID))]
+  //public List<Traveler> Visitors { get; set; }
 }
 
 

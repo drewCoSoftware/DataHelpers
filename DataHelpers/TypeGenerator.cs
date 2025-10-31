@@ -20,16 +20,20 @@ public interface IHasPrimary
 [AttributeUsage(AttributeTargets.Class)]
 public class MappingTableAttribute : Attribute
 {
-  public readonly Type DataSet1Type = null;
-  public readonly Type DataSet2Type = null;
+  //public readonly Type DataSet1Type = null;
+  //public readonly Type DataSet2Type = null;
+  public readonly string DataSet1 = null!;
+  public readonly string DataSet2 = null!;
   public readonly string DataSet1ID = null!;
   public readonly string DataSet2ID = null!;
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public MappingTableAttribute(Type dataSet1Type_, Type dataSet2Type_, string idName1_, string idName2_)
+  public MappingTableAttribute(string dataSet1_, string dataSet2_, string idName1_, string idName2_)
   {
-    DataSet1Type = dataSet1Type_;
-    DataSet2Type = dataSet2Type_;
+    //DataSet1Type = dataSet1Type_;
+    //DataSet2Type = dataSet2Type_;
+    DataSet1 = dataSet1_;
+    DataSet2 = dataSet2_;
     DataSet1ID = idName1_;
     DataSet2ID = idName2_;
   }

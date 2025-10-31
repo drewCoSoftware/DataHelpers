@@ -758,9 +758,6 @@ public class TableDef
 
     MappingTableAttribute? mtAttr = null;
 
-    //if (ReflectionTools.HasInterface<IHasPrimary>(targetSet.DataType)) {
-    //}
-
     // Make sure that the target table has the correct interface.
     if (!ReflectionTools.HasInterface<IHasPrimary>(targetSet.DataType))
     {
@@ -780,11 +777,13 @@ public class TableDef
         //  throw new InvalidOperationException("
         //}
 
-        bool hasType = mtAttr.DataSet1Type == requiredType || mtAttr.DataSet2Type == requiredType;
-        if (!hasType)
-        {
-          throw new InvalidOperationException($"Mapping table does not have type: {p.PropertyType}!");
-        }
+        // NOTE: Since we are using named sets, we can't really do a type check without extra work.
+        // I am going to leave this out for now, and see how it goes.
+        //bool hasType = mtAttr.DataSet1Type == requiredType || mtAttr.DataSet2Type == requiredType;
+        //if (!hasType)
+        //{
+        //  throw new InvalidOperationException($"Mapping table does not have type: {p.PropertyType}!");
+        //}
 
         var targetProps = targetSet.DataType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
         bool attrDefinesMembers = targetProps.Any(x => x.Name == mtAttr.DataSet1ID) && targetProps.Any(x => x.Name == mtAttr.DataSet2ID);
@@ -860,6 +859,7 @@ public class TableDef
       PropertyPath = relAttr.TargetProperty ?? p.Name,
       Type = ERelationshipType.Parent,
       ColDef = colDef,
+      MappingTableData = mtAttr
     };
     this._ParentSets.Add(dt);
     // }
@@ -1136,7 +1136,7 @@ public class TableDef
   {
     foreach (var rel in this._ParentSets)
     {
-      if (rel.ColDef == null || rel.PropertyPath != null)
+      if (rel.ColDef == null)
       {
         // We need to resolve this column def.  This can be null in cases where the relationship
         // was created as part of a mapping-table (many-many) type relationship.
@@ -1150,8 +1150,25 @@ public class TableDef
         {
           throw new InvalidOperationException("Could not resolve a column def for this relationship!");
         }
-        
-        var tableRel = new TableRelationship(match.Name, rel.TargetSet.Name, rel.PropertyPath, ERelationshipType.Parent, null);
+
+        // We also need to have the mapping table data..
+        if (rel.MappingTableData == null) {
+          throw new InvalidOperationException("Mapping table data is required!");
+        }
+
+        // Decide what maps to what...
+        string useDataSet = null!;
+        if (rel.PropertyPath == rel.MappingTableData.DataSet1ID) { 
+          useDataSet = rel.MappingTableData.DataSet1ID;
+        }
+        else if (rel.PropertyPath == rel.MappingTableData.DataSet2ID) {
+          useDataSet = rel.MappingTableData.DataSet2ID;
+        }
+        else {
+          throw new InvalidOperationException("Invalid mapping data!");  
+        }
+
+        var tableRel = new TableRelationship(match.Name, useDataSet, nameof(IHasPrimary.ID), ERelationshipType.Parent, null);
         match.Relationship = tableRel;        
         // match.Relationship = rel;
         
@@ -1332,6 +1349,7 @@ public class DependentTable
 
   public ColumnDef ColDef { get; set; } = null!;
 
+  public MappingTableAttribute? MappingTableData { get; set; } = null;
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
