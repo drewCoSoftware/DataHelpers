@@ -85,7 +85,7 @@ public class TestPerson2
   public string Name { get; set; }
 
   [Relationship(DataSet = nameof(TestSchema2.Domiciles))]
-  public Relation<House> Home { get; set; }
+  public SingleRelation<House> Home { get; set; }
 }
 
 
@@ -109,8 +109,8 @@ public class BusinessSchema
 {
   public List<Person> People { get; set; } = new List<Person>();
   public List<Address> Addresses { get; set; } = new List<Address>();
-  public List<ClientAccount> ClientAccounts { get; set; } = new List<ClientAccount>();
-  public List<Town> Towns { get; set; } = new List<Town>();
+  //public List<ClientAccount> ClientAccounts { get; set; } = new List<ClientAccount>();
+  //public List<Town> Towns { get; set; } = new List<Town>();
 }
 
 // ==========================================================================
@@ -121,20 +121,26 @@ public class Person : IHasPrimary
   public int Number { get; set; }
 
   /// <summary>
-  /// Shows that we can use an explicit name for the data set that this is related to.
+  /// This data comes from the 'People' dataset of the schema.
   /// </summary>
-  [Relationship(DataSet = nameof(BusinessSchema.Addresses))]
-  public Address Address { get; set; }
+  [Relationship(nameof(BusinessSchema.People))]
+  public SingleRelation<Address> Address { get; set; }
 
-  //  public int Address_ID { get; set; }
+  ///// <summary>
+  ///// Shows that we can use an explicit name for the data set that this is related to.
+  ///// </summary>
+  //[Relationship(DataSet = nameof(BusinessSchema.Addresses))]
+  //public Address Address { get; set; }
 
-  /// <summary>
-  /// This will automatically use the data set name 'ClientAccounts'
-  /// Note that this relationship, as far as a database is concerned, will require an FK on
-  /// the associated data set, and this FK will be created automatically.
-  /// </summary>
-  [Relationship]
-  public List<ClientAccount> ClientAccounts { get; set; } = null;
+  ////  public int Address_ID { get; set; }
+
+  ///// <summary>
+  ///// This will automatically use the data set name 'ClientAccounts'
+  ///// Note that this relationship, as far as a database is concerned, will require an FK on
+  ///// the associated data set, and this FK will be created automatically.
+  ///// </summary>
+  //[Relationship]
+  //public List<ClientAccount> ClientAccounts { get; set; } = null;
 }
 
 // ==========================================================================

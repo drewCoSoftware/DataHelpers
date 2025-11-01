@@ -12,6 +12,7 @@ using IgnoreTest = NUnit.Framework.IgnoreAttribute;
 using System.Linq.Expressions;
 using System.Xml.Schema;
 using System.Collections.Immutable;
+using DataHelpers;
 
 namespace DataHelpersTesters;
 
@@ -22,6 +23,66 @@ namespace DataHelpersTesters;
 public class SqliteSchemaTesters : TestBase
 {
 
+
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Shows that we can model a relationship where one data set gets its data by another (ie: Foreign Key)
+  /// </summary>
+  [Test]
+  public void CanModelSingleRelationship()
+  {
+
+    string dir = FileTools.GetLocalDir("test-db");
+    var factory = new SqliteDataFactory<BusinessSchema>(dir, nameof(CanModelSingleRelationship));
+    FileTools.DeleteExistingFile(factory.DBFilePath);
+
+    factory.SetupDatabase();
+    var schema = factory.Schema;
+
+    // Show that we have a relation from people to addresses:
+    var td = schema.GetTableDef<Person>();
+    var fkCol = td.GetColumn($"{nameof(Person.Address)}_ID");
+    var rel = fkCol.Relationship;
+    Assert.That(rel, Is.Not.Null, "There should be a relationship to a different data set!");
+
+
+    // Add some data, and show that we can pull it back out....
+    var testAddr = new Address()
+    {
+      City = "Town",
+      Street = "123 Steet Lane",
+      State = "VA"
+    };
+    factory.Action(dal =>
+    {
+      var td = dal.SchemaDef.GetTableDef<Address>();
+      string query = td.GetInsertQuery();
+      int newId = dal.RunSingleQuery<int>(query, testAddr);
+      testAddr.ID = newId;
+
+      Assert.That(newId, Is.Not.EqualTo(0));
+    });
+
+    // Add a new person that has the given address:
+    var testPerson = new Person()
+    {
+      Address = testAddr,
+      Name = "Test Testington",
+      Number = 123
+    };
+    factory.Action(dal =>
+    {
+      var td = dal.SchemaDef.GetTableDef<Person>();
+      string query = td.GetInsertQuery();
+
+      int newId = dal.RunSingleQuery<int>(query, testPerson);
+      testPerson.ID = newId;
+      Assert.That(newId, Is.Not.EqualTo(0));
+    });
+
+  }
+
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// This test case was provided to show that we can do a many->many mapping from our schema defs.
@@ -30,11 +91,9 @@ public class SqliteSchemaTesters : TestBase
   [Test]
   public void CanHaveManytoManyRelationship()
   {
-    // var schemaDef = new SchemaDefinition(new SqliteFlavor(), typeof(VacationSchema));
 
     string dir = FileTools.GetLocalDir("test-db");
     var factory = new SqliteDataFactory<VacationSchema>(dir, nameof(CanHaveManytoManyRelationship));
-    
     FileTools.DeleteExistingFile(factory.DBFilePath);
 
     factory.SetupDatabase();
@@ -45,12 +104,12 @@ public class SqliteSchemaTesters : TestBase
 
     // Ensure that the column defs point to the correct places.
     {
-    var peopleId = td.GetColumn(nameof(PeopletoPlaces.People_ID));
-    Assert.That(peopleId, Is.Not.Null);
+      var peopleId = td.GetColumn(nameof(PeopletoPlaces.People_ID));
+      Assert.That(peopleId, Is.Not.Null);
 
-    var rel = peopleId.Relationship;
-    Assert.That(rel, Is.Not.Null, "There should a defined relationship!");
-    Assert.That(rel.RelatedTableColumn, Is.EqualTo(nameof(IHasPrimary.ID)));
+      var rel = peopleId.Relationship;
+      Assert.That(rel, Is.Not.Null, "There should a defined relationship!");
+      Assert.That(rel.RelatedTableColumn, Is.EqualTo(nameof(IHasPrimary.ID)));
     }
 
     {

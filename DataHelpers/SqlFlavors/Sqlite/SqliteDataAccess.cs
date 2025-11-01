@@ -75,35 +75,56 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   // --------------------------------------------------------------------------------------------------------------------------
   public IEnumerable<T> RunQuery<T>(string query, object? qParams)
   {
-    var res = RunQuery<T>(Connection, query, qParams);
+    Dictionary<string,object>? dParams = null;
+    if (qParams != null && !(qParams is QueryParams)) {
+      dParams = Helpers.CreateParams(qParams);
+    }
+    var res = RunQuery<T>(Connection, query, dParams);
     return res;
   }
 
+  //// --------------------------------------------------------------------------------------------------------------------------
+  //public T? RunSingleQuery<T>(string query, QueryParams? qParams)
+  //{
+  //  var items = RunQuery<T>(query, qParams);
+  //  var res = items.SingleOrDefault();
+  //  return res;
+  //}
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  protected IEnumerable<T> RunQuery<T>(SqliteConnection conn, string query, object? parameters)
-  {
-    var res = conn.Query<T>(query, parameters);
-
-    // TODO: Open the connection here?
-
-    return res;
-  }
-
-
-  // --------------------------------------------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// Run a query where a single, or no result is expected.
   /// </summary>
   /// <remarks>
   /// If the query returns more than one result, and exception will be thrown.
   /// </remarks>
-  public T? RunSingleQuery<T>(string query, object? parameters = null)
+  public T? RunSingleQuery<T>(string query, object? qParams = null)
   {
-    IEnumerable<T> qr = RunQuery<T>(query, parameters);
+    IEnumerable<T> qr = RunQuery<T>(query, qParams);
     T? res = qr.SingleOrDefault();
     return res;
   }
+
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  protected IEnumerable<T> RunQuery<T>(SqliteConnection conn, string query, Dictionary<string, object>? dParams)
+  {
+    DynamicParameters? useParams = null;
+    if (dParams != null)
+    {
+      useParams = new DynamicParameters();
+      foreach (var item in dParams)
+      {
+        useParams.Add(item.Key, item.Value);
+      }
+    }
+
+    var res = conn.Query<T>(query, useParams);
+
+    return res;
+  }
+
+
 
   // --------------------------------------------------------------------------------------------------------------------------
   public int RunExecute(string query, object? qParams = null)
@@ -132,13 +153,14 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   public void Rollback()
   {
     if (Transaction == null)
-    { 
+    {
       throw new InvalidOperationException("There is no transaction to roll back!");
     }
     Transaction.Rollback();
     Transaction.Dispose();
     Transaction = null;
   }
+
 }
 
 
