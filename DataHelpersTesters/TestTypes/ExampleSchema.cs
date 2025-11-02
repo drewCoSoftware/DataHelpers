@@ -42,10 +42,10 @@ public class Traveler : IHasPrimary
   /// <summary>
   /// All of the places that this person has visited.
   /// </summary>
-  [Relationship(DataSet = nameof(PeopletoPlaces), TargetProperty = nameof(PeopletoPlaces.Place_ID))]
+  [RelationAttribute(DataSet = nameof(PeopletoPlaces), LocalPropertyName = nameof(PeopletoPlaces.Place_ID))]
   public List<Place> PlacesVisited { get; set; }
 
-  [Relationship(DataSet = nameof(VacationSchema.People))]
+  [RelationAttribute(DataSet = nameof(VacationSchema.People))]
   public Traveler MyProperty { get; set; }
 }
 
@@ -84,7 +84,7 @@ public class TestPerson2
   public int ID { get; set; }
   public string Name { get; set; }
 
-  [Relationship(DataSet = nameof(TestSchema2.Domiciles))]
+  [RelationAttribute(DataSet = nameof(TestSchema2.Domiciles))]
   public SingleRelation<House> Home { get; set; }
 }
 
@@ -109,8 +109,8 @@ public class BusinessSchema
 {
   public List<Person> People { get; set; } = new List<Person>();
   public List<Address> Addresses { get; set; } = new List<Address>();
+  public List<Town> Towns { get; set; } = new List<Town>();
   //public List<ClientAccount> ClientAccounts { get; set; } = new List<ClientAccount>();
-  //public List<Town> Towns { get; set; } = new List<Town>();
 }
 
 // ==========================================================================
@@ -123,7 +123,7 @@ public class Person : IHasPrimary
   /// <summary>
   /// This data comes from the 'People' dataset of the schema.
   /// </summary>
-  [Relationship(nameof(BusinessSchema.People))]
+  [RelationAttribute(nameof(BusinessSchema.Addresses))]
   public SingleRelation<Address> Address { get; set; }
 
   ///// <summary>
@@ -150,6 +150,25 @@ public class Address : IHasPrimary
   public string Street { get; set; }
   public string City { get; set; }
   public string State { get; set; }
+
+  // NOTE: Even tho 'Town' is related to many addresses, we don't represent
+  // that relationship on purpose.  The point is to show that our generated
+  // schemas can add members to the defs as needed to support the model.
+}
+
+// ==========================================================================
+public class Town : IHasPrimary
+{
+  public int ID { get; set; }
+  public string Name { get; set; }
+
+  ///// <summary>
+  ///// This shows that we can associate many addresses with a single 'town'
+  ///// but there doesn't need to be a bi-directional relationship.
+  ///// An FK to this will be created on the 'Address' table.
+  ///// </summary>
+  //[RelationAttribute(DataSet = nameof(BusinessSchema.Addresses))]
+  //public ManyRelation<Address> Addresses { get; set; }
 }
 
 // ==========================================================================
@@ -160,24 +179,10 @@ public class ClientAccount : IHasPrimary
 
   // NOTE: This should resolve to the 'ClientAccounts' property on 'Person'
   // This is how we can model a 'bi-directional relationship.
-  [Relationship(DataSet = nameof(BusinessSchema.People))]
+  [RelationAttribute(DataSet = nameof(BusinessSchema.People))]
   public Person AccountManager { get; set; }
 }
 
-// ==========================================================================
-public class Town : IHasPrimary
-{
-  public int ID { get; set; }
-  public string Name { get; set; }
-
-  /// <summary>
-  /// This shows that we can associate many addresses with a single 'town'
-  /// but there doesn't need to be a bi-directional relationship.
-  /// An FK to this will be created on the 'Address' table.
-  /// </summary>
-  [Relationship(DataSet = nameof(BusinessSchema.Addresses))]
-  public List<Address> Addresses { get; set; }
-}
 
 
 // ==========================================================================
@@ -209,7 +214,7 @@ public class ExampleParent : IHasPrimary
   // This parent has many different children.
   // That means that each child will have an FK that refers back to this specific parent.
   // The parent table does NOT point to its children directly.
-  [Relationship(DataSet = nameof(ExampleSchema.Kids))]
+  [RelationAttribute(DataSet = nameof(ExampleSchema.Kids))]
   public List<ExampleChild> Children { get; set; } = new List<ExampleChild>();
 }
 
@@ -219,6 +224,6 @@ public class ExampleChild : IHasPrimary
   public int ID { get; set; }
   public string? Label { get; set; }
 
-  [Relationship(DataSet = nameof(ExampleSchema.Parents))]
+  [RelationAttribute(DataSet = nameof(ExampleSchema.Parents))]
   public ExampleParent Parent { get; set; }
 }

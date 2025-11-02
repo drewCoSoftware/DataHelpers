@@ -23,7 +23,47 @@ namespace DataHelpersTesters;
 public class SqliteSchemaTesters : TestBase
 {
 
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// This test case shows that we can relate a single entity to many.
+  /// In this case, we use the BusinessSchema type to show that a single Town can have many Addresses.
+  /// </summary>
+  [Test]
+  public void CanModelSingleToManyRelationship()
+  {
+    var factory = CreateTestDataBaseFor<BusinessSchema>(nameof(CanHaveManytoManyRelationship));
+    var schema = factory.Schema;
 
+    // TODO: Check to see that the table defs are correct....
+    var td = schema.GetTableDef<Address>();
+    Assert.That(td.Columns.Count, Is.EqualTo(5));    // One extra property for the FK.
+
+    var col = td.GetColumn("town_id");
+    Assert.That(col, Is.Not.Null, "There should be a column for the town relation!");
+    var rel = col.RelatedDataSet;
+    Assert.That(rel, Is.Not.Null, "The column should have a relation!");
+    // Assert.That(rel.data
+
+    var t = new Town()
+    {
+      Name = "My Town"
+    };
+    factory.Action(dal =>
+    {
+      string insert = dal.SchemaDef.GetTableDef<Town>().GetInsertQuery();
+      int newId = dal.RunSingleQuery<int>(insert, t);
+      t.ID = newId;
+    });
+
+    // Let's add some data....
+    const int MAX_ADDR = 3;
+    for (int i = 0; i < MAX_ADDR; i++)
+    {
+
+    }
+
+    Assert.Fail("please finish this test!");
+  }
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
@@ -42,15 +82,17 @@ public class SqliteSchemaTesters : TestBase
 
     // Show that we have a relation from people to addresses:
     var td = schema.GetTableDef<Person>();
-    var fkCol = td.GetColumn($"{nameof(Person.Address)}_ID");
-    var rel = fkCol.Relationship;
-    Assert.That(rel, Is.Not.Null, "There should be a relationship to a different data set!");
+    var fkCol = td.GetColumn($"{nameof(BusinessSchema.Addresses)}_ID");
+    Assert.That(fkCol, Is.Not.Null);
+
+    var relatedSet = fkCol.RelatedDataSet;
+    Assert.That(relatedSet, Is.Not.Null, "There should be a relationship to a different data set!");
 
 
     // Add some data, and show that we can pull it back out....
     var testAddr = new Address()
     {
-      City = "Town",
+      City = "Metropolis",
       Street = "123 Steet Lane",
       State = "VA"
     };
@@ -91,12 +133,7 @@ public class SqliteSchemaTesters : TestBase
   [Test]
   public void CanHaveManytoManyRelationship()
   {
-
-    string dir = FileTools.GetLocalDir("test-db");
-    var factory = new SqliteDataFactory<VacationSchema>(dir, nameof(CanHaveManytoManyRelationship));
-    FileTools.DeleteExistingFile(factory.DBFilePath);
-
-    factory.SetupDatabase();
+    var factory = CreateTestDataBaseFor<VacationSchema>(nameof(CanHaveManytoManyRelationship));
     var schema = factory.Schema;
 
     // Map sure that the mapping table schema is defined correctly!
@@ -107,18 +144,18 @@ public class SqliteSchemaTesters : TestBase
       var peopleId = td.GetColumn(nameof(PeopletoPlaces.People_ID));
       Assert.That(peopleId, Is.Not.Null);
 
-      var rel = peopleId.Relationship;
+      var rel = peopleId.RelatedDataSet;
       Assert.That(rel, Is.Not.Null, "There should a defined relationship!");
-      Assert.That(rel.RelatedTableColumn, Is.EqualTo(nameof(IHasPrimary.ID)));
+      Assert.That(rel.PropertyPath, Is.EqualTo(nameof(IHasPrimary.ID)));
     }
 
     {
       var placeId = td.GetColumn(nameof(PeopletoPlaces.Place_ID));
       Assert.That(placeId, Is.Not.Null);
 
-      var rel = placeId.Relationship;
+      var rel = placeId.RelatedDataSet;
       Assert.That(rel, Is.Not.Null, "There should a defined relationship!");
-      Assert.That(rel.RelatedTableColumn, Is.EqualTo(nameof(IHasPrimary.ID)));
+      Assert.That(rel.PropertyPath, Is.EqualTo(nameof(IHasPrimary.ID)));
     }
 
     // Make sure that no new extra columns were defined!
@@ -130,6 +167,20 @@ public class SqliteSchemaTesters : TestBase
     // Make sure that there are three tables!
 
   }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  protected static IDataFactory<TSchema> CreateTestDataBaseFor<TSchema>(string dbName)
+  {
+    string dir = FileTools.GetLocalDir("test-db");
+    var factory = new SqliteDataFactory<TSchema>(dir, dbName);
+    FileTools.DeleteExistingFile(factory.DBFilePath);
+    factory.SetupDatabase();
+    return factory;
+  }
+
+
+
+
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
@@ -163,16 +214,16 @@ public class SqliteSchemaTesters : TestBase
       var td = schemaDef.GetTableDef<Person>();
 
       // One child ref. to 'Addresses'
-      Assert.That(td.ChildSets.Count, Is.EqualTo(1));
-      Assert.That(td.ChildSets[0].TargetSet.Name == nameof(BusinessSchema.Addresses));
+      Assert.That(td.RelatedDataSets.Count, Is.EqualTo(1));
+      Assert.That(td.RelatedDataSets[0].TargetSet.Name == nameof(BusinessSchema.Addresses));
     }
 
     {
       var td = schemaDef.GetTableDef<ClientAccount>();
 
       // One child ref. to 'Account'
-      Assert.That(td.ChildSets.Count, Is.EqualTo(1));
-      Assert.That(td.ChildSets[0].TargetSet.Name == nameof(BusinessSchema.People));
+      Assert.That(td.RelatedDataSets.Count, Is.EqualTo(1));
+      Assert.That(td.RelatedDataSets[0].TargetSet.Name == nameof(BusinessSchema.People));
     }
 
 
@@ -501,8 +552,8 @@ public class SqliteSchemaTesters : TestBase
     // Make sure that this table def has a column that points to the parent table.
     var table = schema.GetTableDef("Kids");
     Assert.That(table, Is.Not.Null);
-    Assert.That(table!.ChildSets.Count, Is.EqualTo(1));
-    Assert.That(table.ChildSets[0].TargetSet.Name, Is.EqualTo(nameof(ExampleSchema.Parents)));
+    Assert.That(table!.RelatedDataSets.Count, Is.EqualTo(1));
+    Assert.That(table.RelatedDataSets[0].TargetSet.Name, Is.EqualTo(nameof(ExampleSchema.Parents)));
 
     // NOTE: We don't really have a way to check + validate output SQL at this time.
     // It would be rad to have some kind of system that was able to save the current query in a
@@ -572,7 +623,7 @@ public class TypewithRelationToNonPrimary : IHasPrimary
   public int ID { get; set; }
   public int Number { get; set; }
 
-  [Relationship(DataSet = nameof(SchemaWithNonPrimaryType.DataSet1))]
+  [RelationAttribute(DataSet = nameof(SchemaWithNonPrimaryType.DataSet1))]
   public TypeWithoutPrimary Relation { get; set; }
 }
 
@@ -598,7 +649,7 @@ public class Parent2 : IHasPrimary
 {
   public int ID { get; set; }
 
-  [Relationship]
+  [RelationAttribute]
   public TypeWithInvalidChildRelationship Child { get; set; }
 }
 
@@ -612,7 +663,7 @@ public class TypeWithInvalidChildRelationship : IHasPrimary
   // We already have this type 'InvalidChild' listed as a child of parent.
   // By attempting to also list 'InvalidParent' as a child, we would create
   // a circular dependency.
-  [Relationship]
+  [RelationAttribute]
   public Parent2 InvalidParent { get; set; }
 }
 

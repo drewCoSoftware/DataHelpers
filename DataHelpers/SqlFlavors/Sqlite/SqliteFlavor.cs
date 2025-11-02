@@ -29,6 +29,11 @@ public class SqliteDataTypeResolver : IDataTypeResolver
   // --------------------------------------------------------------------------------------------------------------------------
   public string GetDataTypeName(Type t, bool isPrimaryCol)
   {
+    if (ReflectionTools.HasInterface<IRelation>(t)) { 
+      // Annotated type.  The corresponding column def will be replaced or removed, depending.
+      return "_RELATION";
+    }
+
     string res = "";
 
     if (t == typeof(Int32) || t == typeof(Int64) || t == typeof(Int32?))

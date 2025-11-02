@@ -107,13 +107,13 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
 
 
   // --------------------------------------------------------------------------------------------------------------------------
-  protected IEnumerable<T> RunQuery<T>(SqliteConnection conn, string query, Dictionary<string, object>? dParams)
+  protected IEnumerable<T> RunQuery<T>(SqliteConnection conn, string query, QueryParams? qParams)
   {
     DynamicParameters? useParams = null;
-    if (dParams != null)
+    if (qParams != null)
     {
       useParams = new DynamicParameters();
-      foreach (var item in dParams)
+      foreach (var item in qParams)
       {
         useParams.Add(item.Key, item.Value);
       }

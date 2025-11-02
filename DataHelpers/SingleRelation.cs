@@ -3,11 +3,51 @@ using System.Runtime.InteropServices;
 
 namespace DataHelpers;
 
+
+// ==========================================================================
+public enum ERelationType
+{
+  Invalid = 0,
+  Single,
+  Many
+}
+
 // ==========================================================================
 // Used for easy type detection.
-public interface ISingleRelation
+public interface IRelation
+{
+  // Not required.  If we don't nedd this, then we can nuke 'IRelation' too!
+  [Obsolete]
+  ERelationType RelationType { get; }
+}
+
+// ==========================================================================
+// Used for easy type detection.
+public interface ISingleRelation : IRelation
 {
   int ID { get; }
+}
+
+// ==========================================================================
+// Used for easy type detection.
+public interface IManyRelation : IRelation {
+}
+
+//// ==========================================================================
+//// Used for easy type detection.
+//public interface IManyRelation : IRelation { }
+
+/// <summary>
+/// Represents an FK relation to different data set where there can be one or more
+/// matches.  The ID property is set on the related table, and may be bi-directional
+/// through the use of a 'SingleRelation' instance.
+/// </summary>
+public class ManyRelation<T> : IRelation
+{
+  public ERelationType RelationType { get { return ERelationType.Many; } }
+
+  private List<T>? _Data = null!;
+  public List<T> Data { get { return _Data; } internal set { _Data = value; } }
 }
 
 // ==========================================================================
@@ -17,6 +57,8 @@ public interface ISingleRelation
 public class SingleRelation<T> : IHasPrimary, ISingleRelation
 where T : class, IHasPrimary
 {
+  public ERelationType RelationType { get { return ERelationType.Single; } }
+
   /// <summary>
   /// The ID of the associated entity.
   /// This is the same ID that 'Data' uses!  If the two are out of sync, something is WRONG!

@@ -88,7 +88,7 @@ public class DataSetAttribute : Attribute
 /// Describes a relationship to another set of data (table, list, etc.)
 /// </summary>
 [AttributeUsage(AttributeTargets.Property)]
-public class Relationship : Attribute
+public class RelationAttribute : Attribute
 {
   // I want an easy way to indicate FK relations in a database, and even a way
   // to indicate many->many type relations....
@@ -101,19 +101,37 @@ public class Relationship : Attribute
   /// The target data set must have the 'IPrimary' interface.
   /// If not speficied, we will use the name of the PropertyType that this is attached to.
   /// </summary>
-  public string? DataSet { get; set; }
+  public string DataSet { get; set; }
 
   /// <summary>
-  /// Name of the target property (if any) in the relationship.
-  /// This is how we can explictly define a bi-directional relationship.
+  /// The name of the property on the defining type that represents the relation.
+  /// If null, a default value will be used.
   /// </summary>
-  public string? TargetProperty { get; set; }
+  public string? LocalPropertyName { get; set; }
+
+  /// <summary>
+  /// The name of the property on the target data set that represents the relation.
+  /// If null, a default value will be used.
+  /// </summary>
+  public string? TargetPropertyName { get; set; }
+
+
+  /// <summary>
+  /// This is set internally, during schema computation.
+  /// </summary>
+  internal ERelationType RelationType { get; set; }
+
+  ///// <summary>
+  ///// Name of the target property (if any) in the relationship.
+  ///// This is how we can explictly define a bi-directional relationship.
+  ///// </summary>
+  //public string? TargetProperty { get; set; }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public Relationship() { }
+  public RelationAttribute() { }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public Relationship(string dataSet_)
+  public RelationAttribute(string dataSet_)
   {
     DataSet = dataSet_;
   }
