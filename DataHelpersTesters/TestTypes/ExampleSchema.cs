@@ -162,13 +162,13 @@ public class Town : IHasPrimary
   public int ID { get; set; }
   public string Name { get; set; }
 
-  ///// <summary>
-  ///// This shows that we can associate many addresses with a single 'town'
-  ///// but there doesn't need to be a bi-directional relationship.
-  ///// An FK to this will be created on the 'Address' table.
-  ///// </summary>
-  //[RelationAttribute(DataSet = nameof(BusinessSchema.Addresses))]
-  //public ManyRelation<Address> Addresses { get; set; }
+  /// <summary>
+  /// This shows that we can associate many addresses with a single 'town'
+  /// but there doesn't need to be a bi-directional relationship.
+  /// An FK to this will be created on the 'Address' table.
+  /// </summary>
+  [RelationAttribute(DataSet = nameof(BusinessSchema.Addresses))]
+  public ManyRelation<Address> Addresses { get; set; }
 }
 
 // ==========================================================================

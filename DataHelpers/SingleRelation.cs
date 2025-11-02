@@ -15,11 +15,7 @@ public enum ERelationType
 // ==========================================================================
 // Used for easy type detection.
 public interface IRelation
-{
-  // Not required.  If we don't nedd this, then we can nuke 'IRelation' too!
-  [Obsolete]
-  ERelationType RelationType { get; }
-}
+{ }
 
 // ==========================================================================
 // Used for easy type detection.
@@ -42,9 +38,8 @@ public interface IManyRelation : IRelation {
 /// matches.  The ID property is set on the related table, and may be bi-directional
 /// through the use of a 'SingleRelation' instance.
 /// </summary>
-public class ManyRelation<T> : IRelation
+public class ManyRelation<T> : IManyRelation
 {
-  public ERelationType RelationType { get { return ERelationType.Many; } }
 
   private List<T>? _Data = null!;
   public List<T> Data { get { return _Data; } internal set { _Data = value; } }
@@ -57,7 +52,6 @@ public class ManyRelation<T> : IRelation
 public class SingleRelation<T> : IHasPrimary, ISingleRelation
 where T : class, IHasPrimary
 {
-  public ERelationType RelationType { get { return ERelationType.Single; } }
 
   /// <summary>
   /// The ID of the associated entity.

@@ -83,14 +83,6 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
     return res;
   }
 
-  //// --------------------------------------------------------------------------------------------------------------------------
-  //public T? RunSingleQuery<T>(string query, QueryParams? qParams)
-  //{
-  //  var items = RunQuery<T>(query, qParams);
-  //  var res = items.SingleOrDefault();
-  //  return res;
-  //}
-
     // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// Run a query where a single, or no result is expected.
