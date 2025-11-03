@@ -123,7 +123,7 @@ public class Person : IHasPrimary
   /// <summary>
   /// This data comes from the 'People' dataset of the schema.
   /// </summary>
-  [RelationAttribute(nameof(BusinessSchema.Addresses))]
+  [Relation(nameof(BusinessSchema.Addresses))]
   public SingleRelation<Address> Address { get; set; }
 
   ///// <summary>
@@ -154,6 +154,12 @@ public class Address : IHasPrimary
   // NOTE: Even tho 'Town' is related to many addresses, we don't represent
   // that relationship on purpose.  The point is to show that our generated
   // schemas can add members to the defs as needed to support the model.
+  // NOTE: I think that if this column isn't explicitly defined it can be nullable...
+  // of course, if it isn't defined, then there is really no good way to set the data,
+  // so we should make it required instead?
+  // NOTE: What can we do about setting this as a 'SingleRelation'?
+  // Should that be required?
+  public int Towns_ID { get; set; }
 }
 
 // ==========================================================================
@@ -167,7 +173,7 @@ public class Town : IHasPrimary
   /// but there doesn't need to be a bi-directional relationship.
   /// An FK to this will be created on the 'Address' table.
   /// </summary>
-  [RelationAttribute(DataSet = nameof(BusinessSchema.Addresses))]
+  [Relation(DataSet = nameof(BusinessSchema.Addresses))]
   public ManyRelation<Address> Addresses { get; set; }
 }
 

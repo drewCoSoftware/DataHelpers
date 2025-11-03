@@ -40,7 +40,6 @@ public interface IManyRelation : IRelation {
 /// </summary>
 public class ManyRelation<T> : IManyRelation
 {
-
   private List<T>? _Data = null!;
   public List<T> Data { get { return _Data; } internal set { _Data = value; } }
 }

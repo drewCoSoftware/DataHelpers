@@ -29,7 +29,7 @@ public class SqliteSchemaTesters : TestBase
   /// In this case, we use the BusinessSchema type to show that a single Town can have many Addresses.
   /// </summary>
   [Test]
-  public void CanModelSingleToManyRelationship()
+  public void CanModelOneToManyRelationship()
   {
     var factory = CreateTestDataBaseFor<BusinessSchema>(nameof(CanHaveManytoManyRelationship));
     var schema = factory.Schema;
@@ -89,12 +89,25 @@ public class SqliteSchemaTesters : TestBase
     Assert.That(relatedSet, Is.Not.Null, "There should be a relationship to a different data set!");
 
 
+    var testTown = new Town()
+    {
+      Name = "My Town",
+    };
+    factory.Action(dal =>
+    {
+      var td = dal.SchemaDef.GetTableDef<Town>();
+      string query = td.GetInsertQuery();
+      int newId = dal.RunSingleQuery<int>(query, testTown);
+      testTown.ID = newId;
+    });
+
     // Add some data, and show that we can pull it back out....
     var testAddr = new Address()
     {
       City = "Metropolis",
       Street = "123 Steet Lane",
-      State = "VA"
+      State = "VA",
+      Towns_ID = testTown.ID
     };
     factory.Action(dal =>
     {

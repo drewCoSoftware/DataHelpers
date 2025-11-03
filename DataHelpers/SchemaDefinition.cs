@@ -338,11 +338,11 @@ public class SchemaDefinition
     foreach (var t in _TableDefs.Values)
     {
       // Circular reference test.
-      foreach (var dep in t.RelatedDataSets)
+      foreach (var rel in t.RelatedDataSets)
       {
-        if (dep.HasTableDependency(t))
+        if (rel.HasTableDependency(t))
         {
-          string msg = $"A circular reference from table: {t.Name} to: {dep.TargetSet.Name} was detected!";
+          string msg = $"A circular reference from table: {t.Name} to: {rel.TargetSet.Name} was detected!";
           throw new InvalidOperationException(msg);
         }
       }
@@ -901,7 +901,22 @@ public class TableDef
         }
         else if (ReflectionTools.HasInterface<IManyRelation>(col.RuntimeType))
         {
-          throw new Exception("complete this branch!");
+          // This columnd def gets added to the target dataset, NOT this one....
+          string useName = rd.TargetPropertyName ?? $"{this.Name}_{nameof(IHasPrimary.ID)}";
+
+          string dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
+
+          var useRelation = new RelationAttribute(this.Name);
+          useRelation.TargetPropertyName = nameof(IHasPrimary.ID);
+          useRelation.RelationType = ERelationType.Many;
+
+          var colDef = new ColumnDef(useName, typeof(int), dbTypeName, false, false, false, useRelation);
+
+          targetSet.AddColumn(colDef);
+
+          //var targetSet = Schema.GetTableDef(rd.DataSet);
+
+          // throw new Exception("complete this branch!");
         }
         else
         {
@@ -1005,10 +1020,10 @@ public class RelatedDatasetInfo
       {
         return true;
       }
-      if (dep.HasTableDependency(t))
-      {
-        return true;
-      }
+      //if (dep.HasTableDependency(t))
+      //{
+      //  return true;
+      //}
     }
 
     return false;
