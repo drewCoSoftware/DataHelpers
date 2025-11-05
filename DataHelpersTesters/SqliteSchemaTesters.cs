@@ -13,6 +13,7 @@ using System.Linq.Expressions;
 using System.Xml.Schema;
 using System.Collections.Immutable;
 using DataHelpers;
+using System.Linq;
 
 namespace DataHelpersTesters;
 
@@ -38,7 +39,7 @@ public class SqliteSchemaTesters : TestBase
     var td = schema.GetTableDef<Address>();
     Assert.That(td.Columns.Count, Is.EqualTo(5));    // One extra property for the FK.
 
-    var col = td.GetColumn("town_id");
+    var col = td.GetColumn("Towns_ID");
     Assert.That(col, Is.Not.Null, "There should be a column for the town relation!");
     var rel = col.RelatedDataSet;
     Assert.That(rel, Is.Not.Null, "The column should have a relation!");
@@ -59,10 +60,27 @@ public class SqliteSchemaTesters : TestBase
     const int MAX_ADDR = 3;
     for (int i = 0; i < MAX_ADDR; i++)
     {
+      var addr = new Address() { 
+        City = "SomeCity",
+        State = "NB",
+        Street = (123 * (i+1)) + " Main Street",
+        Towns_ID = t.ID,
+      };
 
+      factory.Action(dal => {
+        string insert = dal.SchemaDef.GetTableDef<Address>().GetInsertQuery();
+        dal.RunSingleQuery<int>(insert, addr);
+      });
     }
 
-    Assert.Fail("please finish this test!");
+    // Now we will get the town with the included addresses back out from the DB:
+    string query = "SELECT * FROM Addresses WHERE Towns_ID = @townId";
+    factory.Action(dal => {
+      var addrs = dal.RunQuery<Address>(query, new { townId = t.ID }).ToList();
+      Assert.That(addrs.Count, Is.EqualTo(MAX_ADDR));
+    });
+
+    // Assert.Fail("please finish this test!");
   }
 
   // --------------------------------------------------------------------------------------------------------------------------

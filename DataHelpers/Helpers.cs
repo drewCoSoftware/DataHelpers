@@ -1,9 +1,11 @@
 using drewCo.Tools;
+using drewCo.Tools.Logging;
 
 namespace DataHelpers.Data;
 
 // ==============================================================================================================================
-public static class Helpers {
+public static class Helpers
+{
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
@@ -26,26 +28,49 @@ public static class Helpers {
       var rel = ReflectionTools.GetAttribute<RelationAttribute>(item);
       if (rel != null)
       {
-        if (!ReflectionTools.HasInterface<ISingleRelation>(item.PropertyType))
+        // We need to support only those 
+        if (ReflectionTools.HasInterface<ISingleRelation>(item.PropertyType))
         {
-          throw new InvalidOperationException($"All relations should be represented with a {nameof(ISingleRelation)} instance!");
-        }
+          var relType = item.PropertyType.GetGenericArguments()[0];
+          var relVal = item.GetValue(fromInstance);
+          if (relVal == null || (relVal as ISingleRelation).ID == 0)
+          {
+            // This is null, or unset:
+            // We will ignore it.  See notes below about constraint enforcements + leaving out values.
+            continue;
+          }
 
-        var relType = item.PropertyType.GetGenericArguments()[0];
-        var relVal = item.GetValue(fromInstance);
-        if (relVal == null || (relVal as ISingleRelation).ID == 0)
+
+          string setName = rel.DataSet;
+          string useName = setName + "_" + nameof(IHasPrimary.ID);
+          int useId = (relVal as ISingleRelation).ID;
+
+          res.Add(useName, useId);
+        }
+        else if (ReflectionTools.HasInterface<IManyRelation>(item.PropertyType))
         {
-          // This is null, or unset:
-          // We will ignore it.  See notes below about constraint enforcements + leaving out values.
+          // TODO: Decide what to do about this.  In this case, there could be many related instances
+          // each with their own ID, etc.....
+
+          // Scenario one:
+          // A one -> many relationship just means that some other Dataset has an FK to this one.
+          // In that case, there is nothing for us to include, esp. if this is an INSERT query.
+          // TODO: We don't have any indication as to what type of query we are creating params for,
+          // so we should look into it at some point.
+          var manyVal = item.GetValue(fromInstance);
+          if (manyVal == null)
+          {
+            // There is no data anyway, so we can skip.
+            continue;
+          }
+          Log.Warning("There is currently no support for many relations!");
           continue;
         }
+        else
+        {
+          throw new InvalidOperationException($"All relations should be represented with a {nameof(ISingleRelation)} OR {nameof(IManyRelation)} instance!");
+        }
 
-
-        string setName = rel.DataSet;
-        string useName = setName + "_" + nameof(IHasPrimary.ID);
-        int useId = (relVal as ISingleRelation).ID;
-
-        res.Add(useName, useId);
       }
       else
       {
