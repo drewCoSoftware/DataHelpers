@@ -29,9 +29,6 @@ public interface ISingleRelation : IRelation
 public interface IManyRelation : IRelation {
 }
 
-//// ==========================================================================
-//// Used for easy type detection.
-//public interface IManyRelation : IRelation { }
 
 /// <summary>
 /// Represents an FK relation to different data set where there can be one or more

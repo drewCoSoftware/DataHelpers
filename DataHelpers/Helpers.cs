@@ -12,7 +12,7 @@ public static class Helpers
   /// Create a set of dynamic query parameters from the given object.
   /// This allows us to use some of our conventions for mapping relationships to types.
   /// </summary>
-  public static QueryParams CreateParams(object fromInstance, bool includeID = false)
+  public static QueryParams CreateParams(string queryType, object fromInstance, bool includeID = false)
   {
     if (fromInstance == null) { throw new ArgumentNullException($"Please provide an instance for {nameof(fromInstance)}"); }
 

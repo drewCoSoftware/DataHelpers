@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Net.Http.Headers;
 using Dapper;
+using drewCo.Tools;
 using Microsoft.Data.Sqlite;
 
 namespace DataHelpers.Data;
@@ -75,15 +76,30 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   // --------------------------------------------------------------------------------------------------------------------------
   public IEnumerable<T> RunQuery<T>(string query, object? qParams)
   {
+    string queryType = GetFirstWord(query).ToLower();
+
     Dictionary<string,object>? dParams = null;
     if (qParams != null && !(qParams is QueryParams)) {
-      dParams = Helpers.CreateParams(qParams);
+      dParams = Helpers.CreateParams(queryType, qParams);
     }
     var res = RunQuery<T>(Connection, query, dParams);
     return res;
   }
 
-    // --------------------------------------------------------------------------------------------------------------------------
+  // --------------------------------------------------------------------------------------------------------------------------
+  [Obsolete("Use version from drewCo.Tools > 1.4.1.0")]
+  private static string GetFirstWord(string query)
+  {
+    string res = query;
+    int firstSpace= query.IndexOf(' ');
+    if (firstSpace != -1) { 
+      res = query.Substring(0, firstSpace);
+    }
+
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// Run a query where a single, or no result is expected.
   /// </summary>
