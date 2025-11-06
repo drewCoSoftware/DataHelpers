@@ -16,28 +16,28 @@ public interface IHasPrimary
 //  public 
 //}
 
-// ==============================================================================================================================
-[AttributeUsage(AttributeTargets.Class)]
-public class MappingTableAttribute : Attribute
-{
-  //public readonly Type DataSet1Type = null;
-  //public readonly Type DataSet2Type = null;
-  public readonly string DataSet1 = null!;
-  public readonly string DataSet2 = null!;
-  public readonly string DataSet1ID = null!;
-  public readonly string DataSet2ID = null!;
+//// ==============================================================================================================================
+//[AttributeUsage(AttributeTargets.Class)]
+//public class MappingTableAttribute : Attribute
+//{
+//  //public readonly Type DataSet1Type = null;
+//  //public readonly Type DataSet2Type = null;
+//  public readonly string DataSet1 = null!;
+//  public readonly string DataSet2 = null!;
+//  public readonly string DataSet1ID = null!;
+//  public readonly string DataSet2ID = null!;
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  public MappingTableAttribute(string dataSet1_, string dataSet2_, string idName1_, string idName2_)
-  {
-    //DataSet1Type = dataSet1Type_;
-    //DataSet2Type = dataSet2Type_;
-    DataSet1 = dataSet1_;
-    DataSet2 = dataSet2_;
-    DataSet1ID = idName1_;
-    DataSet2ID = idName2_;
-  }
-}
+//  // --------------------------------------------------------------------------------------------------------------------------
+//  public MappingTableAttribute(string dataSet1_, string dataSet2_, string idName1_, string idName2_)
+//  {
+//    //DataSet1Type = dataSet1Type_;
+//    //DataSet2Type = dataSet2Type_;
+//    DataSet1 = dataSet1_;
+//    DataSet2 = dataSet2_;
+//    DataSet1ID = idName1_;
+//    DataSet2ID = idName2_;
+//  }
+//}
 
 //// ============================================================================================================================
 ///// <summary>
@@ -101,7 +101,7 @@ public class RelationAttribute : Attribute
   /// The target data set must have the 'IPrimary' interface.
   /// If not speficied, we will use the name of the PropertyType that this is attached to.
   /// </summary>
-  public string DataSet { get; set; }
+  public string DataSetName { get; set; }
 
   /// <summary>
   /// The name of the property on the defining type that represents the relation.
@@ -133,7 +133,7 @@ public class RelationAttribute : Attribute
   // --------------------------------------------------------------------------------------------------------------------------
   public RelationAttribute(string dataSet_)
   {
-    DataSet = dataSet_;
+    DataSetName = dataSet_;
   }
 }
 

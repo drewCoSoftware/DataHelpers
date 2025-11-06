@@ -41,7 +41,7 @@ public static class Helpers
           }
 
 
-          string setName = rel.DataSet;
+          string setName = rel.DataSetName;
           string useName = setName + "_" + nameof(IHasPrimary.ID);
           int useId = (relVal as ISingleRelation).ID;
 

@@ -354,12 +354,12 @@ public class SchemaDefinition
         bool hasPrimary = ReflectionTools.HasInterface<IHasPrimary>(pTable.TargetSet.DataType);
         if (!hasPrimary)
         {
-          // This might be a mapping table.  If it is we can consider it valid as type + member checks would have already happened!
-          if (!ReflectionTools.HasAttribute<MappingTableAttribute>(pTable.TargetSet.DataType))
-          {
-            string msg = $"The data type: {pTable.TargetSet.DataType} is a parent of {t.DataType}, but does not implement interface: {nameof(IHasPrimary)} or have the '{nameof(MappingTableAttribute)}' set!";
-            throw new InvalidOperationException(msg);
-          }
+          //// This might be a mapping table.  If it is we can consider it valid as type + member checks would have already happened!
+          //if (!ReflectionTools.HasAttribute<MappingTableAttribute>(pTable.TargetSet.DataType))
+          //{
+          //  string msg = $"The data type: {pTable.TargetSet.DataType} is a parent of {t.DataType}, but does not implement interface: {nameof(IHasPrimary)} or have the '{nameof(MappingTableAttribute)}' set!";
+          //  throw new InvalidOperationException(msg);
+          //}
 
         }
       }
@@ -513,7 +513,12 @@ public class TableDef
 
       bool isPrimary = p.Name == nameof(IHasPrimary.ID) || ReflectionTools.HasAttribute<PrimaryKey>(p);
 
+      // NOTE: TODO: We should be assigning the relation type here!
       var relAttr = ReflectionTools.GetAttribute<RelationAttribute>(p);
+      if (relAttr != null)
+      {
+        relAttr.RelationType = GetRelationType(p.PropertyType);
+      }
 
       // This is a normal property.
       // NOTE: Non-related lists can't be represented.... should we make it so that lists are always included?
@@ -803,7 +808,7 @@ public class TableDef
     {
       if (col.RelationDef != null)
       {
-        var targetSet = Schema.GetTableDef(col.RelationDef.DataSet);
+        var targetSet = Schema.GetTableDef(col.RelationDef.DataSetName);
 
         RelatedDatasetInfo ddsInfo = new()
         {
@@ -819,19 +824,19 @@ public class TableDef
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  private ERelationType GetRelationType(ColumnDef col)
+  private ERelationType GetRelationType(Type t)
   {
-    if (ReflectionTools.HasInterface<ISingleRelation>(col.RuntimeType))
+    if (ReflectionTools.HasInterface<ISingleRelation>(t))
     {
       return ERelationType.Single;
     }
 
-    if (ReflectionTools.HasInterface<IManyRelation>(col.RuntimeType))
+    if (ReflectionTools.HasInterface<IManyRelation>(t))
     {
       return ERelationType.Many;
     }
 
-    throw new InvalidOperationException($"The type: {col.RuntimeType} is not a valid relation type!");
+    throw new InvalidOperationException($"The type: {t} is not a valid relation type!");
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -871,8 +876,11 @@ public class TableDef
       var rd = col.RelationDef;
       if (rd != null)
       {
+        // OBSOLETE:??
+        // rd.RelationType = GetRelationType(col.RuntimeType);
+
         // Get the matching data set....
-        var targetSet = this.Schema.GetTableDef(col.RelationDef.DataSet);
+        var targetSet = this.Schema.GetTableDef(col.RelationDef.DataSetName);
         if (targetSet == null)
         {
           throw new InvalidOperationException($"There is no data set named: {targetSet}");
@@ -882,12 +890,11 @@ public class TableDef
         // Depends on the type of relation, of course.
         if (ReflectionTools.HasInterface<ISingleRelation>(col.RuntimeType))
         {
-
           // In single relations we use a column from this type.
           // Because we are using one of our special data types, that defined column is mapped to it. <-- review this, does it make sense?
-          string useName = rd.LocalPropertyName ?? $"{rd.DataSet}_{nameof(IHasPrimary.ID)}";
+          string useName = rd.LocalPropertyName ?? $"{rd.DataSetName}_{nameof(IHasPrimary.ID)}";
           rd.LocalPropertyName = useName;
-          rd.RelationType = GetRelationType(col);
+          // rd.RelationType = GetRelationType(col);
           var match = this.GetColumn(useName);
           if (match == null) { match = (from x in toAdd where x.Name == useName select x).SingleOrDefault(); }
 
@@ -901,6 +908,26 @@ public class TableDef
         }
         else if (ReflectionTools.HasInterface<IManyRelation>(col.RuntimeType))
         {
+          // If the target dataset also has a many relationship that points back to this one, then
+          // we probably need to create some kind of mapping table!
+          var relSet = this.Schema.GetTableDef(col.RelationDef.DataSetName);
+          if (relSet == null)
+          {
+            throw new InvalidOperationException($"Related data set does not exist in the schema!");
+          }
+
+          // Find a ref to this dataset in the def?
+          var mutualRelation = relSet.GetRelation(this);
+          // if (mutualRelation.RelationType == ERelationType.Invalid) { throw new Exception("fail!"); }
+
+          if (mutualRelation != null && mutualRelation.RelationType == ERelationType.Many && mutualRelation.DataSetName == this.Name)
+          {
+            // This is a many-many relationship!
+            throw new InvalidOperationException("create / check for the mapping table!");
+            int xagag = 10;
+          }
+
+
           // This columnd def gets added to the target dataset, NOT this one....
           string useName = rd.TargetPropertyName ?? $"{this.Name}_{nameof(IHasPrimary.ID)}";
 
@@ -910,8 +937,20 @@ public class TableDef
           useRelation.TargetPropertyName = nameof(IHasPrimary.ID);
           useRelation.RelationType = ERelationType.Many;
 
-          var colDef = new ColumnDef(useName, typeof(int), dbTypeName, false, false, false, useRelation);
+          // TODO: This is where we would check to make sure that there is already a column with the correct
+          // name that corresponds to a SingleRelation or ManyRelation member....
+          var match = targetSet.GetColumn(useName);
+          if (match != null)
+          {
+            // There should be a relation, and it should point to this set!
+            if (match.RelationDef == null || match.RelationDef.DataSetName != this.Name)
+            {
+              throw new InvalidOperationException($"There should be a relation on column: {useName} that points to this Dataset ({this.Name})!");
+            }
+            int x = 10;
+          }
 
+          var colDef = new ColumnDef(useName, typeof(int), dbTypeName, false, false, false, useRelation);
           targetSet.AddColumn(colDef);
 
           //var targetSet = Schema.GetTableDef(rd.DataSet);
@@ -920,7 +959,7 @@ public class TableDef
         }
         else
         {
-          throw new InvalidOperationException($"The relation type: {col.RuntimeType} is not supported!");
+          throw new InvalidOperationException($"The column type: {col.RuntimeType} is not supported!");
         }
 
         // This column is a placeholder, so we can remove it now (probably).
@@ -939,6 +978,31 @@ public class TableDef
     }
 
   }
+
+  // ------------------------------------------------------------------------------------------------
+  private RelationAttribute? GetRelation(TableDef dataset)
+  {
+
+    foreach (var item in this.Columns)
+    {
+      if (item.RelationDef != null && item.RelationDef.DataSetName == dataset.Name)
+      {
+        return item.RelationDef;
+      }
+    }
+    return null;
+  }
+
+  // ------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Tells us if any of the members of this dataset have a relation to the given set.
+  /// </summary>
+  private bool HasRelationTo(TableDef dataset)
+  {
+    RelationAttribute? relAttr = GetRelation(dataset);
+    return relAttr != null;
+  }
+
 }
 
 // ============================================================================================================================
@@ -1006,7 +1070,7 @@ public class RelatedDatasetInfo
 
   public ColumnDef TargetIDColumn { get; set; } = null!;
 
-  public MappingTableAttribute? MappingTableData { get; set; } = null;
+  // public MappingTableAttribute? MappingTableData { get; set; } = null;
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>

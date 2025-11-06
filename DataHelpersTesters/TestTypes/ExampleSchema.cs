@@ -20,18 +20,18 @@ public class VacationSchema
   public List<Place> Places { get; set; } = new List<Place>();
 
   // This is a mapping table for people-places.
-  public List<PeopletoPlaces> PeopleToPlaces { get; set; }
+//  public List<PeopletoPlaces> PeopleToPlaces { get; set; }
 }
 
 
-// ==============================================================================================================================
-// TODO: This needs to be updated to expicitly point to datasets on 'VacationSchema', not just a single data type!
-[MappingTable(nameof(VacationSchema.People), nameof(VacationSchema.Places), nameof(People_ID), nameof(Place_ID))]
-public class PeopletoPlaces
-{
-  public int People_ID { get; set; }
-  public int Place_ID { get; set; }
-}
+//// ==============================================================================================================================
+//// TODO: This needs to be updated to expicitly point to datasets on 'VacationSchema', not just a single data type!
+//[MappingTable(nameof(VacationSchema.People), nameof(VacationSchema.Places), nameof(People_ID), nameof(Place_ID))]
+//public class PeopletoPlaces
+//{
+//  public int People_ID { get; set; }
+//  public int Place_ID { get; set; }
+//}
 
 // ==============================================================================================================================
 public class Traveler : IHasPrimary
@@ -42,11 +42,8 @@ public class Traveler : IHasPrimary
   /// <summary>
   /// All of the places that this person has visited.
   /// </summary>
-  [RelationAttribute(DataSet = nameof(PeopletoPlaces), LocalPropertyName = nameof(PeopletoPlaces.Place_ID))]
-  public List<Place> PlacesVisited { get; set; }
-
-  [RelationAttribute(DataSet = nameof(VacationSchema.People))]
-  public Traveler MyProperty { get; set; }
+  [Relation(DataSetName = nameof(VacationSchema.Places))]
+  public ManyRelation<Place> PlacesVisited {get; set; }
 }
 
 // ==============================================================================================================================
@@ -59,8 +56,8 @@ public class Place : IHasPrimary
   /// <summary>
   /// All of the people that have visited this place.
   /// </summary>
-  //[Relationship(DataSet = nameof(PeopletoPlaces), TargetProperty = nameof(PeopletoPlaces.People_ID))]
-  //public List<Traveler> Visitors { get; set; }
+  [Relation(DataSetName = nameof(VacationSchema.People))]
+  public ManyRelation<Person> Visitors { get; set; }
 }
 
 
@@ -84,7 +81,7 @@ public class TestPerson2
   public int ID { get; set; }
   public string Name { get; set; }
 
-  [RelationAttribute(DataSet = nameof(TestSchema2.Domiciles))]
+  [Relation(DataSetName = nameof(TestSchema2.Domiciles))]
   public SingleRelation<House> Home { get; set; }
 }
 
@@ -159,7 +156,10 @@ public class Address : IHasPrimary
   // so we should make it required instead?
   // NOTE: What can we do about setting this as a 'SingleRelation'?
   // Should that be required?
-  public int Towns_ID { get; set; }
+  // --> Yes!
+  // public int Towns_ID { get; set; }
+  [Relation(DataSetName = nameof(BusinessSchema.Towns))]
+  public SingleRelation<Town> Town { get; set; } // = new SingleRelation<Town>();
 }
 
 // ==========================================================================
@@ -173,8 +173,8 @@ public class Town : IHasPrimary
   /// but there doesn't need to be a bi-directional relationship.
   /// An FK to this will be created on the 'Address' table.
   /// </summary>
-  [Relation(DataSet = nameof(BusinessSchema.Addresses))]
-  public ManyRelation<Address> Addresses { get; set; }
+  [Relation(DataSetName = nameof(BusinessSchema.Addresses))]
+  public ManyRelation<Address> Addresses { get; set; } // = new ManyRelation<Address>();
 }
 
 // ==========================================================================
@@ -185,7 +185,7 @@ public class ClientAccount : IHasPrimary
 
   // NOTE: This should resolve to the 'ClientAccounts' property on 'Person'
   // This is how we can model a 'bi-directional relationship.
-  [RelationAttribute(DataSet = nameof(BusinessSchema.People))]
+  [RelationAttribute(DataSetName = nameof(BusinessSchema.People))]
   public Person AccountManager { get; set; }
 }
 
@@ -220,7 +220,7 @@ public class ExampleParent : IHasPrimary
   // This parent has many different children.
   // That means that each child will have an FK that refers back to this specific parent.
   // The parent table does NOT point to its children directly.
-  [RelationAttribute(DataSet = nameof(ExampleSchema.Kids))]
+  [RelationAttribute(DataSetName = nameof(ExampleSchema.Kids))]
   public List<ExampleChild> Children { get; set; } = new List<ExampleChild>();
 }
 
@@ -230,6 +230,6 @@ public class ExampleChild : IHasPrimary
   public int ID { get; set; }
   public string? Label { get; set; }
 
-  [RelationAttribute(DataSet = nameof(ExampleSchema.Parents))]
+  [RelationAttribute(DataSetName = nameof(ExampleSchema.Parents))]
   public ExampleParent Parent { get; set; }
 }

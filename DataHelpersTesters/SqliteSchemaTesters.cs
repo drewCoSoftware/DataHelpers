@@ -1,17 +1,12 @@
-//OLD:  Probably useless..
 using System;
 using System.IO;
 using drewCo.Tools;
-using Microsoft.Data.Sqlite;
 using NUnit.Framework;
 using DataHelpers.Data;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 using IgnoreTest = NUnit.Framework.IgnoreAttribute;
 using System.Linq.Expressions;
-using System.Xml.Schema;
-using System.Collections.Immutable;
 using DataHelpers;
 using System.Linq;
 
@@ -26,13 +21,60 @@ public class SqliteSchemaTesters : TestBase
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
+  /// This test case was provided to show that we can do a many->many mapping from our schema defs.
+  /// Of especial importance is that the system is able to auto-generate a mapping table for our use.
+  /// </summary>
+  [Test]
+  public void CanModelManytoManyRelationship()
+  {
+    var factory = CreateTestDataBaseFor<VacationSchema>(nameof(CanModelManytoManyRelationship));
+    var schema = factory.Schema;
+
+    int x = 10;
+    //// Map sure that the mapping table schema is defined correctly!
+    //var td = schema.GetTableDef<PeopletoPlaces>();
+
+    //// Ensure that the column defs point to the correct places.
+    //{
+    //  var peopleId = td.GetColumn(nameof(PeopletoPlaces.People_ID));
+    //  Assert.That(peopleId, Is.Not.Null);
+
+    //  var rel = peopleId.RelatedDataSet;
+    //  Assert.That(rel, Is.Not.Null, "There should a defined relationship!");
+    //  Assert.That(rel.PropertyPath, Is.EqualTo(nameof(IHasPrimary.ID)));
+    //}
+
+    //{
+    //  var placeId = td.GetColumn(nameof(PeopletoPlaces.Place_ID));
+    //  Assert.That(placeId, Is.Not.Null);
+
+    //  var rel = placeId.RelatedDataSet;
+    //  Assert.That(rel, Is.Not.Null, "There should a defined relationship!");
+    //  Assert.That(rel.PropertyPath, Is.EqualTo(nameof(IHasPrimary.ID)));
+    //}
+
+    //// Make sure that no new extra columns were defined!
+    //Assert.That(td.Columns.Count, Is.EqualTo(2), "There should only be two columns defined!");
+
+    //// Finally, show that we can generate a many->many query to select all people that visited a place, or whatever....
+
+    Assert.Fail("Please finish this test!");
+    // Make sure that there are three tables!
+
+  }
+
+
+
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
   /// This test case shows that we can relate a single entity to many.
   /// In this case, we use the BusinessSchema type to show that a single Town can have many Addresses.
   /// </summary>
   [Test]
   public void CanModelOneToManyRelationship()
   {
-    var factory = CreateTestDataBaseFor<BusinessSchema>(nameof(CanHaveManytoManyRelationship));
+    var factory = CreateTestDataBaseFor<BusinessSchema>(nameof(CanModelOneToManyRelationship));
     var schema = factory.Schema;
 
     // TODO: Check to see that the table defs are correct....
@@ -64,7 +106,7 @@ public class SqliteSchemaTesters : TestBase
         City = "SomeCity",
         State = "NB",
         Street = (123 * (i+1)) + " Main Street",
-        Towns_ID = t.ID,
+        Town = t,
       };
 
       factory.Action(dal => {
@@ -80,7 +122,6 @@ public class SqliteSchemaTesters : TestBase
       Assert.That(addrs.Count, Is.EqualTo(MAX_ADDR));
     });
 
-    // Assert.Fail("please finish this test!");
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -125,7 +166,7 @@ public class SqliteSchemaTesters : TestBase
       City = "Metropolis",
       Street = "123 Steet Lane",
       State = "VA",
-      Towns_ID = testTown.ID
+      Town = testTown
     };
     factory.Action(dal =>
     {
@@ -156,48 +197,6 @@ public class SqliteSchemaTesters : TestBase
 
   }
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  /// <summary>
-  /// This test case was provided to show that we can do a many->many mapping from our schema defs.
-  /// Of especial importance is that the system is able to auto-generate a mapping table for our use.
-  /// </summary>
-  [Test]
-  public void CanHaveManytoManyRelationship()
-  {
-    var factory = CreateTestDataBaseFor<VacationSchema>(nameof(CanHaveManytoManyRelationship));
-    var schema = factory.Schema;
-
-    // Map sure that the mapping table schema is defined correctly!
-    var td = schema.GetTableDef<PeopletoPlaces>();
-
-    // Ensure that the column defs point to the correct places.
-    {
-      var peopleId = td.GetColumn(nameof(PeopletoPlaces.People_ID));
-      Assert.That(peopleId, Is.Not.Null);
-
-      var rel = peopleId.RelatedDataSet;
-      Assert.That(rel, Is.Not.Null, "There should a defined relationship!");
-      Assert.That(rel.PropertyPath, Is.EqualTo(nameof(IHasPrimary.ID)));
-    }
-
-    {
-      var placeId = td.GetColumn(nameof(PeopletoPlaces.Place_ID));
-      Assert.That(placeId, Is.Not.Null);
-
-      var rel = placeId.RelatedDataSet;
-      Assert.That(rel, Is.Not.Null, "There should a defined relationship!");
-      Assert.That(rel.PropertyPath, Is.EqualTo(nameof(IHasPrimary.ID)));
-    }
-
-    // Make sure that no new extra columns were defined!
-    Assert.That(td.Columns.Count, Is.EqualTo(2), "There should only be two columns defined!");
-
-    // Finally, show that we can generate a many->many query to select all people that visited a place, or whatever....
-
-    Assert.Fail("Please finish this test!");
-    // Make sure that there are three tables!
-
-  }
 
   // --------------------------------------------------------------------------------------------------------------------------
   protected static IDataFactory<TSchema> CreateTestDataBaseFor<TSchema>(string dbName)
@@ -654,7 +653,7 @@ public class TypewithRelationToNonPrimary : IHasPrimary
   public int ID { get; set; }
   public int Number { get; set; }
 
-  [RelationAttribute(DataSet = nameof(SchemaWithNonPrimaryType.DataSet1))]
+  [RelationAttribute(DataSetName = nameof(SchemaWithNonPrimaryType.DataSet1))]
   public TypeWithoutPrimary Relation { get; set; }
 }
 
