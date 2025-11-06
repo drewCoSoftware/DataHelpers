@@ -523,6 +523,26 @@ public class SchemaDefinition
 
     return res;
   }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Find + resolve mapping table for the given entity types.
+  /// </summary>
+  public TableDef? GetMappingTable<T1, T2>(bool allowNull = true)
+  {
+    var t1 = this.GetTableDef<T1>();
+    var t2 = this.GetTableDef<T2>();
+
+    string mtName = TableDef.ComputeMappingSetName(t1.Name, t2.Name);
+    TableDef? res = this.GetTableDef(mtName);
+
+    if (res == null && !allowNull)
+    {
+      throw new NullReferenceException($"There is no mapping table with the name: {mtName} in this schema!");
+    }
+
+    return res;
+  }
 }
 
 
@@ -1090,13 +1110,22 @@ public class TableDef
     return newMappingSets;
   }
 
+
   // --------------------------------------------------------------------------------------------------------------------------
-  private static string ComputeMappingSetName(TableDef relSet, RelationAttribute mutualRelation)
+  internal static string ComputeMappingSetName(string name1, string name2)
   {
     // We use sorted names so that the mapping set name is always the same for two given sets.
-    var names = (new[] { relSet.Name, mutualRelation.DataSetName }).Order().ToArray();
+    // NOTE: A direct comparison of the names will execute more faster.
+    var names = (new[] { name1, name2 }).Order().ToArray();
     return $"{names[0]}_to_{names[1]}_map";
   }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  internal static string ComputeMappingSetName(TableDef relSet, RelationAttribute mutualRelation)
+  {
+    return ComputeMappingSetName(relSet.Name, mutualRelation.DataSetName);
+  }
+
 
   // --------------------------------------------------------------------------------------------------------------------------
   private TableDef CreateMappingSet(TableDef relSet, RelationAttribute mutualRelation, string mtName)
@@ -1120,7 +1149,7 @@ public class TableDef
     {
       var cd = new ColumnDef(c, intType, intTypeName, false, false, false, new RelationAttribute()
       {
-        DataSetName = index == 0 ? mutualRelation.DataSetName : relSet.Name,
+        DataSetName = index == 0 ? relSet.Name : mutualRelation.DataSetName,
         LocalPropertyName = c,
         RelationType = ERelationType.Single
       });

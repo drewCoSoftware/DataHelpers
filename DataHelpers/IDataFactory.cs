@@ -24,15 +24,20 @@ public interface IDataFactory<TSchema>
   /// Add a new entity to the database.
   /// </summary>
   int Add<T>(T entity)
+    where T : IHasPrimary
   {
+    if (entity.ID != 0) { throw new InvalidOperationException($"The entity already has an assigned ID and can't be added to the set!  Use 'AddOrUpdate' or 'Update' calls instead!"); }
+
     var td = Schema.GetTableDef<T>();
     string query = td.GetInsertQuery();
-    int res = Action(dal => {
+    int res = Action(dal =>
+    {
       int qr = dal.RunSingleQuery<int>(query, entity);
       return qr;
     });
 
-    return res; 
+    entity.ID = res;
+    return res;
   }
 
 }

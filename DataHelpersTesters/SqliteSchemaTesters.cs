@@ -45,18 +45,18 @@ public class SqliteSchemaTesters : TestBase
 
 
     // Make sure that the mapping table points to the other two:
-    var toPeople = mappingTable.GetColumn($"{nameof(VacationSchema.Travelers)}_ID");
-    Assert.That(toPeople, Is.Not.Null);
-    Assert.That(toPeople.RelatedDataSet.TargetSet, Is.SameAs(placesSet), "This should be related to the Places dataset!");
+    var toTravelers = mappingTable.GetColumn($"{nameof(VacationSchema.Travelers)}_ID");
+    Assert.That(toTravelers, Is.Not.Null);
+    Assert.That(toTravelers.RelatedDataSet.TargetSet, Is.SameAs(travelersSet), $"This should be related to the {nameof(VacationSchema.Travelers)} dataset!");
 
 
     var toPlaces = mappingTable.GetColumn($"{nameof(VacationSchema.Places)}_ID");
     Assert.That(toPlaces, Is.Not.Null);
-    Assert.That(toPlaces.RelatedDataSet.TargetSet, Is.SameAs(travelersSet), "This should be related to the Travelers dataset!");
+    Assert.That(toPlaces.RelatedDataSet.TargetSet, Is.SameAs(placesSet), $"This should be related to the {nameof(VacationSchema.Places)} dataset!");
 
 
     // Do some queries, I gues....
-    var placeIds = new List<int>();
+    var allPlaces = new List<Place>();
     const int MAX_PLACES = 2;
     for (int i = 0; i < MAX_PLACES; i++)
     {
@@ -66,27 +66,38 @@ public class SqliteSchemaTesters : TestBase
         Name = "Destination_" + i
       };
       int id = factory.Add(p);
-      placeIds.Add(id);
+      allPlaces.Add(p);
     }
 
-    var visitorIds = new List<int>();
+    var alltravelers = new List<Traveler>();
     const int MAX_VISITOR = 3;
     for (int i = 0; i < MAX_VISITOR; i++)
     {
       var t = new Traveler()
       {
-        Name = "Dave"
+        Name = "Dave: " + i,
       };
       int id = factory.Add(t);
-      visitorIds.Add(id);
+      alltravelers.Add(t);
     }
 
     // Now we can associate the people to the places, as we see fit.
     // For ease of writing, we are going to associate all->all.
+    var mapTable = schema.GetMappingTable<Place, Traveler>();
+    foreach (var place in allPlaces)
+    {
+      foreach (var traveler in alltravelers)
+      {
+        string query = mapTable.GetInsertQuery();
+        factory.Action(dal => {
+          int newId = dal.RunSingleQuery<int>(query, new { Places_ID = place.ID, Travelers_ID = traveler.ID });
+          Assert.That(newId, Is.Not.EqualTo(0), "The mapping entry was not added!");
+        });
+      }
+    }
 
-    // Assert.Fail("Please finish this test!");
-    // Make sure that there are three tables!
-
+    // At this point we could show that we can pull them back out, but if they are in the DB,
+    // then I am sure that we could select them back out if we wanted to....
   }
 
 
