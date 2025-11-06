@@ -27,38 +27,71 @@ public class SqliteSchemaTesters : TestBase
   [Test]
   public void CanModelManytoManyRelationship()
   {
-    var factory = CreateTestDataBaseFor<VacationSchema>(nameof(CanModelManytoManyRelationship));
+    IDataFactory<VacationSchema> factory = CreateTestDataBaseFor<VacationSchema>(nameof(CanModelManytoManyRelationship));
     var schema = factory.Schema;
 
-    int x = 10;
-    //// Map sure that the mapping table schema is defined correctly!
-    //var td = schema.GetTableDef<PeopletoPlaces>();
 
-    //// Ensure that the column defs point to the correct places.
-    //{
-    //  var peopleId = td.GetColumn(nameof(PeopletoPlaces.People_ID));
-    //  Assert.That(peopleId, Is.Not.Null);
+    // Find the mapping table!
+    var mappingTable = (from x in schema.TableDefs where x.Name.EndsWith("_map") select x).SingleOrDefault();
+    Assert.That(mappingTable, Is.Not.Null, "We should have the mapping table!");
 
-    //  var rel = peopleId.RelatedDataSet;
-    //  Assert.That(rel, Is.Not.Null, "There should a defined relationship!");
-    //  Assert.That(rel.PropertyPath, Is.EqualTo(nameof(IHasPrimary.ID)));
-    //}
+    // We want to make sure that none of the first-class sets in the schema have a relation column.
+    // We achieve this with a simple column count....
+    var travelersSet = schema.GetTableDef(nameof(VacationSchema.Travelers));
+    Assert.That(travelersSet.Columns.Count, Is.EqualTo(2));
 
-    //{
-    //  var placeId = td.GetColumn(nameof(PeopletoPlaces.Place_ID));
-    //  Assert.That(placeId, Is.Not.Null);
+    var placesSet = schema.GetTableDef(nameof(VacationSchema.Places));
+    Assert.That(placesSet.Columns.Count, Is.EqualTo(3));
 
-    //  var rel = placeId.RelatedDataSet;
-    //  Assert.That(rel, Is.Not.Null, "There should a defined relationship!");
-    //  Assert.That(rel.PropertyPath, Is.EqualTo(nameof(IHasPrimary.ID)));
-    //}
 
-    //// Make sure that no new extra columns were defined!
-    //Assert.That(td.Columns.Count, Is.EqualTo(2), "There should only be two columns defined!");
+    // Make sure that the mapping table points to the other two:
+    var toPeople = mappingTable.GetColumn($"{nameof(VacationSchema.Travelers)}_ID");
+    Assert.That(toPeople, Is.Not.Null);
+    Assert.That(toPeople.RelatedDataSet.TargetSet, Is.SameAs(placesSet), "This should be related to the Places dataset!");
 
-    //// Finally, show that we can generate a many->many query to select all people that visited a place, or whatever....
 
-    Assert.Fail("Please finish this test!");
+    var toPlaces = mappingTable.GetColumn($"{nameof(VacationSchema.Places)}_ID");
+    Assert.That(toPlaces, Is.Not.Null);
+    Assert.That(toPlaces.RelatedDataSet.TargetSet, Is.SameAs(travelersSet), "This should be related to the Travelers dataset!");
+
+
+    // Do some queries, I gues....
+    var placeIds = new List<int>();
+    const int MAX_PLACES = 2;
+    for (int i = 0; i < MAX_PLACES; i++)
+    {
+      var p = new Place()
+      {
+        Country = "Fakeistan",
+        Name = "Destination_" + i
+      };
+      int id = factory.Add(p);
+      placeIds.Add(id);
+
+      //factory.Action(dal =>
+      //{
+      //  var td = dal.SchemaDef.GetTableDef<Place>();
+      //  var qr = td.GetInsertQuery();
+      //  int id = dal.RunSingleQuery<int>(qr, p);
+      //});
+    }
+
+    var visitorIds = new List<int>();
+    const int MAX_VISITOR = 3;
+    for (int i = 0; i < MAX_VISITOR; i++)
+    {
+      var t = new Traveler()
+      {
+        Name = "Dave"
+      };
+      int id = factory.Add(t);
+      visitorIds.Add(id);
+    }
+
+    // Now we can associate the people to the places, as we see fit.
+    // For ease of writing, we are going to associate all->all.
+
+    // Assert.Fail("Please finish this test!");
     // Make sure that there are three tables!
 
   }
@@ -102,14 +135,16 @@ public class SqliteSchemaTesters : TestBase
     const int MAX_ADDR = 3;
     for (int i = 0; i < MAX_ADDR; i++)
     {
-      var addr = new Address() { 
+      var addr = new Address()
+      {
         City = "SomeCity",
         State = "NB",
-        Street = (123 * (i+1)) + " Main Street",
+        Street = (123 * (i + 1)) + " Main Street",
         Town = t,
       };
 
-      factory.Action(dal => {
+      factory.Action(dal =>
+      {
         string insert = dal.SchemaDef.GetTableDef<Address>().GetInsertQuery();
         dal.RunSingleQuery<int>(insert, addr);
       });
@@ -117,7 +152,8 @@ public class SqliteSchemaTesters : TestBase
 
     // Now we will get the town with the included addresses back out from the DB:
     string query = "SELECT * FROM Addresses WHERE Towns_ID = @townId";
-    factory.Action(dal => {
+    factory.Action(dal =>
+    {
       var addrs = dal.RunQuery<Address>(query, new { townId = t.ID }).ToList();
       Assert.That(addrs.Count, Is.EqualTo(MAX_ADDR));
     });

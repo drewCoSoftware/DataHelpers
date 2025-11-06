@@ -173,6 +173,8 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
 
 
 // ==============================================================================================================================
+// NOTE: I think that all of this will be moved into 'IDataFactory'
+[Obsolete]
 public class TableAccess<TSchema>
 {
   private TableDef Def = default!;

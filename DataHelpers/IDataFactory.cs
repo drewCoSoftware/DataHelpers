@@ -17,6 +17,24 @@ public interface IDataFactory<TSchema>
   void SetupDatabase();
 
   SchemaDefinition Schema { get; }
+
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Add a new entity to the database.
+  /// </summary>
+  int Add<T>(T entity)
+  {
+    var td = Schema.GetTableDef<T>();
+    string query = td.GetInsertQuery();
+    int res = Action(dal => {
+      int qr = dal.RunSingleQuery<int>(query, entity);
+      return qr;
+    });
+
+    return res; 
+  }
+
 }
 
 // ========================================================================== 

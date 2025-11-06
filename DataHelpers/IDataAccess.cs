@@ -32,6 +32,7 @@ public interface IDataAccess<TSchema> : IDisposable
 
   TableAccess<TSchema> Table(string name);
 
+
   /// <summary>
   /// Rollback any currently active transaction.
   /// </summary>

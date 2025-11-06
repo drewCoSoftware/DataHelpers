@@ -16,22 +16,11 @@ namespace DataHelpersTesters;
 /// </summary>
 public class VacationSchema
 {
-  public List<Traveler> People { get; set; } = new List<Traveler>();
+  public List<Traveler> Travelers { get; set; } = new List<Traveler>();
   public List<Place> Places { get; set; } = new List<Place>();
-
-  // This is a mapping table for people-places.
-//  public List<PeopletoPlaces> PeopleToPlaces { get; set; }
+  
+  // NOTE: Mapping tables are auto-generated and don't need to be first-class entities (maybe they could be tho?)
 }
-
-
-//// ==============================================================================================================================
-//// TODO: This needs to be updated to expicitly point to datasets on 'VacationSchema', not just a single data type!
-//[MappingTable(nameof(VacationSchema.People), nameof(VacationSchema.Places), nameof(People_ID), nameof(Place_ID))]
-//public class PeopletoPlaces
-//{
-//  public int People_ID { get; set; }
-//  public int Place_ID { get; set; }
-//}
 
 // ==============================================================================================================================
 public class Traveler : IHasPrimary
@@ -56,9 +45,22 @@ public class Place : IHasPrimary
   /// <summary>
   /// All of the people that have visited this place.
   /// </summary>
-  [Relation(DataSetName = nameof(VacationSchema.People))]
+  [Relation(DataSetName = nameof(VacationSchema.Travelers))]
   public ManyRelation<Person> Visitors { get; set; }
 }
+
+
+
+
+//// ==============================================================================================================================
+// Theoretical mapping table for the PeopleToPlaces schema.
+//[MappingTable(nameof(VacationSchema.People), nameof(VacationSchema.Places), nameof(People_ID), nameof(Place_ID))]
+//public class PeopletoPlaces
+//{
+//  public int People_ID { get; set; }
+//  public int Place_ID { get; set; }
+//}
+
 
 
 // ==============================================================================================================================
