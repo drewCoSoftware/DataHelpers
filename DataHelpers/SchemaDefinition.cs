@@ -49,7 +49,7 @@ public class SchemaDefinition
     _TableDefs.TryGetValue(name, out TableDef? res);
     if (res == null && !allowNull)
     {
-      throw new InvalidOperationException($"There is no table named: {name} in this schema!");
+      throw new InvalidOperationException($"There is no dataset named: {name} in this schema!");
     }
     return res;
   }
@@ -324,10 +324,19 @@ public class SchemaDefinition
       def.PopulateMembers();
     }
 
+    var allGeneratedSets = new List<TableDef>();
     foreach (var def in _TableDefs.Values)
     {
       // Now we can populate all of the members.
-      def.PopulateRelationshipMembers();
+      var generatedSets = def.PopulateRelationshipMembers();
+      allGeneratedSets.AddRange(generatedSets);
+    }
+
+    // Add the generated sets to the Schema def.
+    // NOTE: We might need a filtering step here....
+    foreach (var item in allGeneratedSets)
+    {
+      this.AddMappingSet(item);
     }
 
   }
@@ -370,6 +379,7 @@ public class SchemaDefinition
   // --------------------------------------------------------------------------------------------------------------------------
   internal void AddMappingSet(TableDef def)
   {
+    // TOOD: Can the def be setup to denote that it is for mapping?
     this._TableDefs.Add(def.Name, def);
   }
 
@@ -871,8 +881,14 @@ public class TableDef
   /// in the schema.  This step DOES not create the actual links, it just gets the dynamic members in place
   /// so that they can be validated + populated correctly in a later step.
   /// </summary>
-  internal void PopulateRelationshipMembers()
+  /// <returns>
+  /// A list of new <see cref="TableDef"/> instances that represent mapping sets that should be created.
+  /// These mapping sets are auto-generated based on how relations are setup in the rest of the schema.
+  /// </returns>
+  internal List<TableDef> PopulateRelationshipMembers()
   {
+    var newMappingSets = new List<TableDef>();
+
     var toAdd = new List<ColumnDef>();
     var toRemove = new List<ColumnDef>();
 
@@ -934,72 +950,62 @@ public class TableDef
             var matchSet = Schema.GetTableDef(mtName, true);
             if (matchSet == null)
             {
-              Log.Verbose($"Many -> Many relation detected.  A mapping dataset will be created!");
-              Log.Verbose($"Mapping dataset name: {mtName}");
+              TableDef td = CreateMappingSet(relSet, mutualRelation, mtName);
 
-              Type intType = typeof(int);
-              string intTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
-
-              var td = new TableDef(null, mtName, new SchemaDefinition(Schema.Flavor, Schema.GetType()));
-              td.AddColumn(new ColumnDef(nameof(IHasPrimary.ID), intType, intTypeName, true, false, false, null));
-
-              // Now the id refs for each of the data sets.
-              string idCol1 = $"{relSet.Name}_{nameof(IHasPrimary.ID)}";
-              string idCol2 = $"{mutualRelation.DataSetName}_{nameof(IHasPrimary.ID)}";
-              var cols = new[] { idCol1, idCol2 };
-
-              int index = 0;
-              foreach (var c in cols)
+              // Make sure that it doesn't already exist!
+              var existing = (from x in newMappingSets
+                              where x.Name == td.Name
+                              select x).SingleOrDefault();
+              if (existing != null)
               {
-                var cd = new ColumnDef(c, intType, intTypeName, false, false, false, new RelationAttribute()
-                {
-                  DataSetName = index == 0 ? mutualRelation.DataSetName : relSet.Name,
-                  LocalPropertyName = c,
-                  RelationType = ERelationType.Single
-                });
-                td.AddColumn(cd);
-                ++index;
+                throw new InvalidOperationException("The mapping table may already exists.... check it more....");
               }
+              newMappingSets.Add(td);
 
-              Schema.AddMappingSet(td);
             }
-            else { 
+            else
+            {
               // Handle the scenario where the mapping table is already defined....
               throw new Exception("Handle this scenario: see comment!");
             }
             //throw new InvalidOperationException("create / check for the mapping table!");
             //int xagag = 10;
+
+
           }
-
-
-          // This columnd def gets added to the target dataset, NOT this one....
-          string useName = rd.TargetPropertyName ?? $"{this.Name}_{nameof(IHasPrimary.ID)}";
-
-          string dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
-
-          var useRelation = new RelationAttribute(this.Name);
-          useRelation.TargetPropertyName = nameof(IHasPrimary.ID);
-          useRelation.RelationType = ERelationType.Many;
-
-          // TODO: This is where we would check to make sure that there is already a column with the correct
-          // name that corresponds to a SingleRelation or ManyRelation member....
-          var match = targetSet.GetColumn(useName);
-          if (match != null)
+          else
           {
-            // There should be a relation, and it should point to this set!
-            if (match.RelationDef == null || match.RelationDef.DataSetName != this.Name)
+
+
+            // This columnd def gets added to the target dataset, NOT this one....
+            string useName = rd.TargetPropertyName ?? $"{this.Name}_{nameof(IHasPrimary.ID)}";
+
+            string dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
+
+            var useRelation = new RelationAttribute(this.Name);
+            useRelation.TargetPropertyName = nameof(IHasPrimary.ID);
+            useRelation.RelationType = ERelationType.Many;
+
+            // TODO: This is where we would check to make sure that there is already a column with the correct
+            // name that corresponds to a SingleRelation or ManyRelation member....
+            var match = targetSet.GetColumn(useName);
+            if (match != null)
             {
-              throw new InvalidOperationException($"There should be a relation on column: {useName} that points to this Dataset ({this.Name})!");
+              // There should be a relation, and it should point to this set!
+              if (match.RelationDef == null || match.RelationDef.DataSetName != this.Name)
+              {
+                throw new InvalidOperationException($"There should be a relation on column: {useName} that points to this Dataset ({this.Name})!");
+              }
+              int x = 10;
             }
-            int x = 10;
+
+            var colDef = new ColumnDef(useName, typeof(int), dbTypeName, false, false, false, useRelation);
+            targetSet.AddColumn(colDef);
+
+            //var targetSet = Schema.GetTableDef(rd.DataSet);
+
+            // throw new Exception("complete this branch!");
           }
-
-          var colDef = new ColumnDef(useName, typeof(int), dbTypeName, false, false, false, useRelation);
-          targetSet.AddColumn(colDef);
-
-          //var targetSet = Schema.GetTableDef(rd.DataSet);
-
-          // throw new Exception("complete this branch!");
         }
         else
         {
@@ -1021,6 +1027,41 @@ public class TableDef
       this._Columns.Remove(col);
     }
 
+
+    return newMappingSets;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private TableDef CreateMappingSet(TableDef relSet, RelationAttribute mutualRelation, string mtName)
+  {
+    Log.Verbose($"Many -> Many relation detected.  A mapping dataset will be created!");
+    Log.Verbose($"Mapping dataset name: {mtName}");
+
+    Type intType = typeof(int);
+    string intTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
+
+    var td = new TableDef(null, mtName, this.Schema);
+    td.AddColumn(new ColumnDef(nameof(IHasPrimary.ID), intType, intTypeName, true, false, false, null));
+
+    // Now the id refs for each of the data sets.
+    string idCol1 = $"{relSet.Name}_{nameof(IHasPrimary.ID)}";
+    string idCol2 = $"{mutualRelation.DataSetName}_{nameof(IHasPrimary.ID)}";
+    var cols = new[] { idCol1, idCol2 };
+
+    int index = 0;
+    foreach (var c in cols)
+    {
+      var cd = new ColumnDef(c, intType, intTypeName, false, false, false, new RelationAttribute()
+      {
+        DataSetName = index == 0 ? mutualRelation.DataSetName : relSet.Name,
+        LocalPropertyName = c,
+        RelationType = ERelationType.Single
+      });
+      td.AddColumn(cd);
+      ++index;
+    }
+
+    return td;
   }
 
   // ------------------------------------------------------------------------------------------------

@@ -88,7 +88,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
 
   // --------------------------------------------------------------------------------------------------------------------------
   [Obsolete("Use version from drewCo.Tools > 1.4.1.0")]
-  private static string GetFirstWord(string query)
+  public static string GetFirstWord(string query)
   {
     string res = query;
     int firstSpace= query.IndexOf(' ');
