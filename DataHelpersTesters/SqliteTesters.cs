@@ -23,7 +23,7 @@ namespace DataHelpersTesters
     [Test]
     public async Task CanRunTransactionsOnMultipleThreads()
     {
-      var factory = new SqliteDataFactory<ExampleSchema>("./test-data", nameof(CanRunTransactionsOnMultipleThreads));
+      var factory = new SqliteDataFactory<SimpleSchema>("./test-data", nameof(CanRunTransactionsOnMultipleThreads));
       factory.SetupDatabase();
 
       const int MAX_THREADS = 5;
@@ -37,7 +37,7 @@ namespace DataHelpersTesters
           {
             // Simluate long running action...
             Thread.Sleep(100);
-            int added = dal.RunExecute($"INSERT INTO {nameof(ExampleSchema.Onesies)} (Name) VALUES (\"xxx\")");
+            int added = dal.RunExecute($"INSERT INTO {nameof(SimpleSchema.People)} (Name) VALUES (\"xxx\")");
           });
         });
         tasks[i] = t;

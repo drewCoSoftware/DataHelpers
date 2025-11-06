@@ -57,6 +57,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   /// Insert the new instance into the database.
   /// The instance's ID property will be updated with the new ID in the database.
   /// </summary>
+  [Obsolete("This will be removed! Use 'Add' on IDatafactory!")]
   public void InsertNew<T>(T instance)
     where T : IHasPrimary
   {

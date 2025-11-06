@@ -1,12 +1,26 @@
 // ==========================================================================   
-using System;
 using System.Collections.Generic;
-using System.Security.Principal;
 using DataHelpers;
 using DataHelpers.Data;
 
 namespace DataHelpersTesters;
 
+
+// ==============================================================================================================================
+/// <summary>
+/// This schema only contains sets that don't have any relations to one another.
+/// </summary>
+public class SimpleSchema
+{
+  public List<SimplePerson> People { get; set; } = new List<SimplePerson>();
+}
+
+// ==============================================================================================================================
+public class SimplePerson : IHasPrimary
+{
+  public int ID { get; set; }
+  public string Name { get; set; }
+}
 
 
 // ==============================================================================================================================
@@ -18,7 +32,7 @@ public class VacationSchema
 {
   public List<Traveler> Travelers { get; set; } = new List<Traveler>();
   public List<Place> Places { get; set; } = new List<Place>();
-  
+
   // NOTE: Mapping tables are auto-generated and don't need to be first-class entities (maybe they could be tho?)
 }
 
@@ -32,7 +46,7 @@ public class Traveler : IHasPrimary
   /// All of the places that this person has visited.
   /// </summary>
   [Relation(DataSetName = nameof(VacationSchema.Places))]
-  public ManyRelation<Place> PlacesVisited {get; set; }
+  public ManyRelation<Place> PlacesVisited { get; set; }
 }
 
 // ==============================================================================================================================
@@ -47,60 +61,6 @@ public class Place : IHasPrimary
   /// </summary>
   [Relation(DataSetName = nameof(VacationSchema.Travelers))]
   public ManyRelation<Person> Visitors { get; set; }
-}
-
-
-
-
-//// ==============================================================================================================================
-// Theoretical mapping table for the PeopleToPlaces schema.
-//[MappingTable(nameof(VacationSchema.People), nameof(VacationSchema.Places), nameof(People_ID), nameof(Place_ID))]
-//public class PeopletoPlaces
-//{
-//  public int People_ID { get; set; }
-//  public int Place_ID { get; set; }
-//}
-
-
-
-// ==============================================================================================================================
-public class TestSchema2
-{
-  public List<TestPerson2> People { get; set; }
-  public List<House> Domiciles { get; set; }
-}
-
-// ==============================================================================================================================
-public class House : IHasPrimary
-{
-  public int ID { get; set; }
-  public string Address { get; set; }
-}
-
-// ==============================================================================================================================
-public class TestPerson2
-{
-  public int ID { get; set; }
-  public string Name { get; set; }
-
-  [Relation(DataSetName = nameof(TestSchema2.Domiciles))]
-  public SingleRelation<House> Home { get; set; }
-}
-
-
-// ==========================================================================
-public class ExampleSchema
-{
-  // NOTE: In the schema, these lists represent tables of data.
-  // Could a schema have a single entry table represented as well?
-  // It could be useful to have a different generic type to represent a set<T> vs.
-  // a list?
-  // --> NOTE: We are using these schema types as a declaration of the overall data,
-  // not as a means to resolve that data!
-  public List<ExampleParent> Parents { get; set; } = new List<ExampleParent>();
-  public List<ExampleChild> Kids { get; set; } = new List<ExampleChild>();
-  public List<SomeData> SomeData { get; set; } = new List<SomeData>();
-  public List<OneMember> Onesies { get; set; } = new List<OneMember>();
 }
 
 // ==========================================================================
@@ -189,49 +149,4 @@ public class ClientAccount : IHasPrimary
   // This is how we can model a 'bi-directional relationship.
   [RelationAttribute(DataSetName = nameof(BusinessSchema.People))]
   public Person AccountManager { get; set; }
-}
-
-
-
-// ==========================================================================
-/// <summary>
-/// Just a regular old table with no relations.
-/// </summary> 
-public class SomeData : IHasPrimary
-{
-  public int ID { get; set; }
-  public string Name { get; set; }
-  public int Number { get; set; }
-  public DateTimeOffset Date { get; set; }
-}
-
-// ==========================================================================   
-public class OneMember : IHasPrimary
-{
-  public int ID { get; set; }
-  public string Name { get; set; }
-}
-
-// ==========================================================================   
-public class ExampleParent : IHasPrimary
-{
-  public int ID { get; set; }
-  public string Name { get; set; }
-  public DateTimeOffset CreateDate { get; set; }
-
-  // This parent has many different children.
-  // That means that each child will have an FK that refers back to this specific parent.
-  // The parent table does NOT point to its children directly.
-  [RelationAttribute(DataSetName = nameof(ExampleSchema.Kids))]
-  public List<ExampleChild> Children { get; set; } = new List<ExampleChild>();
-}
-
-// ==========================================================================
-public class ExampleChild : IHasPrimary
-{
-  public int ID { get; set; }
-  public string? Label { get; set; }
-
-  [RelationAttribute(DataSetName = nameof(ExampleSchema.Parents))]
-  public ExampleParent Parent { get; set; }
 }
