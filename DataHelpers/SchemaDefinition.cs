@@ -46,7 +46,7 @@ public class SchemaDefinition
   // --------------------------------------------------------------------------------------------------------------------------
   public TableDef? GetTableDef(string name, bool allowNull = false)
   {
-    var res = _TableDefs[name];
+    _TableDefs.TryGetValue(name, out TableDef? res);
     if (res == null && !allowNull)
     {
       throw new InvalidOperationException($"There is no table named: {name} in this schema!");
@@ -365,6 +365,12 @@ public class SchemaDefinition
       }
     }
 
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  internal void AddMappingSet(TableDef def)
+  {
+    this._TableDefs.Add(def.Name, def);
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -917,14 +923,52 @@ public class TableDef
           }
 
           // Find a ref to this dataset in the def?
-          var mutualRelation = relSet.GetRelation(this);
-          // if (mutualRelation.RelationType == ERelationType.Invalid) { throw new Exception("fail!"); }
+          var mutualRelation = relSet.GetRelationTo(this);
+
+          // if (mutualRelation.DataSetName == this.Name) { throw new Exception("cicular dependency?"); }
 
           if (mutualRelation != null && mutualRelation.RelationType == ERelationType.Many && mutualRelation.DataSetName == this.Name)
           {
             // This is a many-many relationship!
-            throw new InvalidOperationException("create / check for the mapping table!");
-            int xagag = 10;
+            string mtName = $"{relSet.Name}_to_{mutualRelation.DataSetName}_map";
+            var matchSet = Schema.GetTableDef(mtName, true);
+            if (matchSet == null)
+            {
+              Log.Verbose($"Many -> Many relation detected.  A mapping dataset will be created!");
+              Log.Verbose($"Mapping dataset name: {mtName}");
+
+              Type intType = typeof(int);
+              string intTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
+
+              var td = new TableDef(null, mtName, new SchemaDefinition(Schema.Flavor, Schema.GetType()));
+              td.AddColumn(new ColumnDef(nameof(IHasPrimary.ID), intType, intTypeName, true, false, false, null));
+
+              // Now the id refs for each of the data sets.
+              string idCol1 = $"{relSet.Name}_{nameof(IHasPrimary.ID)}";
+              string idCol2 = $"{mutualRelation.DataSetName}_{nameof(IHasPrimary.ID)}";
+              var cols = new[] { idCol1, idCol2 };
+
+              int index = 0;
+              foreach (var c in cols)
+              {
+                var cd = new ColumnDef(c, intType, intTypeName, false, false, false, new RelationAttribute()
+                {
+                  DataSetName = index == 0 ? mutualRelation.DataSetName : relSet.Name,
+                  LocalPropertyName = c,
+                  RelationType = ERelationType.Single
+                });
+                td.AddColumn(cd);
+                ++index;
+              }
+
+              Schema.AddMappingSet(td);
+            }
+            else { 
+              // Handle the scenario where the mapping table is already defined....
+              throw new Exception("Handle this scenario: see comment!");
+            }
+            //throw new InvalidOperationException("create / check for the mapping table!");
+            //int xagag = 10;
           }
 
 
@@ -980,7 +1024,7 @@ public class TableDef
   }
 
   // ------------------------------------------------------------------------------------------------
-  private RelationAttribute? GetRelation(TableDef dataset)
+  private RelationAttribute? GetRelationTo(TableDef dataset)
   {
 
     foreach (var item in this.Columns)
@@ -999,7 +1043,7 @@ public class TableDef
   /// </summary>
   private bool HasRelationTo(TableDef dataset)
   {
-    RelationAttribute? relAttr = GetRelation(dataset);
+    RelationAttribute? relAttr = GetRelationTo(dataset);
     return relAttr != null;
   }
 
