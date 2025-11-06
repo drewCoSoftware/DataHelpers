@@ -332,13 +332,80 @@ public class SchemaDefinition
       allGeneratedSets.AddRange(generatedSets);
     }
 
+    // Now we can remove all of the temp, related columns from each of the sets:
+    foreach (var def in _TableDefs.Values)
+    {
+      var toRemove = (from x in def.Columns where x.DataType == ColumnDef.RELATION_PLACEHOLDER select x).ToList();
+      foreach (var item in toRemove)
+      {
+        def.RemoveCol(item);
+      }
+    }
+
     // Add the generated sets to the Schema def.
-    // NOTE: We might need a filtering step here....
+    // We filter them first because at time of writing it is possible to double-define them (no way to detect that one has been created in prior step)
+    // allGeneratedSets.DistinctBy(x=>x.Name
+    allGeneratedSets = GetUniqueSets(allGeneratedSets);
+
+
     foreach (var item in allGeneratedSets)
     {
       this.AddMappingSet(item);
     }
 
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private List<TableDef> GetUniqueSets(List<TableDef> input)
+  {
+    var res = input;
+
+    var toRemove = new List<TableDef>();
+    int len = input.Count;
+    for (int i = 0; i < len; i++)
+    {
+      var src = input[i];
+      for (int j = i + 1; j < len; j++)
+      {
+        var comp = input[j];
+        if (src.Name == comp.Name &&
+        src.DataType == comp.DataType &&
+        ColumnsMatch(src, comp))
+        {
+          toRemove.Add(comp);
+        }
+      }
+    }
+    foreach (var item in toRemove)
+    {
+      res.Remove(item);
+    }
+    return res;
+
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private bool ColumnsMatch(TableDef src, TableDef comp)
+  {
+    if (src.Columns.Count == comp.Columns.Count)
+    {
+
+      int len = src.Columns.Count;
+      for (int i = 0; i < len; i++)
+      {
+        var srcCol = src.Columns[i];
+        var compCol = comp.GetColumn(srcCol.Name);
+        if (compCol == null) { return false; }
+
+        // We can get even deeper into matching here if we want, but this should be OK for now...
+        // if (compCol.rel
+        return true;
+      }
+
+
+    }
+
+    return false;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -351,6 +418,8 @@ public class SchemaDefinition
       {
         if (rel.HasTableDependency(t))
         {
+          // This co-dependency only matters when we have enforced one->one relations.
+          // Otherwise, one 
           string msg = $"A circular reference from table: {t.Name} to: {rel.TargetSet.Name} was detected!";
           throw new InvalidOperationException(msg);
         }
@@ -890,7 +959,6 @@ public class TableDef
     var newMappingSets = new List<TableDef>();
 
     var toAdd = new List<ColumnDef>();
-    var toRemove = new List<ColumnDef>();
 
     // Let's find all the relations first...
     foreach (var col in this.Columns)
@@ -946,7 +1014,7 @@ public class TableDef
           if (mutualRelation != null && mutualRelation.RelationType == ERelationType.Many && mutualRelation.DataSetName == this.Name)
           {
             // This is a many-many relationship!
-            string mtName = $"{relSet.Name}_to_{mutualRelation.DataSetName}_map";
+            string mtName = ComputeMappingSetName(relSet, mutualRelation);
             var matchSet = Schema.GetTableDef(mtName, true);
             if (matchSet == null)
             {
@@ -1011,9 +1079,6 @@ public class TableDef
         {
           throw new InvalidOperationException($"The column type: {col.RuntimeType} is not supported!");
         }
-
-        // This column is a placeholder, so we can remove it now (probably).
-        toRemove.Add(col);
       }
     }
 
@@ -1022,13 +1087,15 @@ public class TableDef
       this.AddColumn(newCol);
     }
 
-    foreach (var col in toRemove)
-    {
-      this._Columns.Remove(col);
-    }
-
-
     return newMappingSets;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private static string ComputeMappingSetName(TableDef relSet, RelationAttribute mutualRelation)
+  {
+    // We use sorted names so that the mapping set name is always the same for two given sets.
+    var names = (new[] { relSet.Name, mutualRelation.DataSetName }).Order().ToArray();
+    return $"{names[0]}_to_{names[1]}_map";
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -1088,11 +1155,24 @@ public class TableDef
     return relAttr != null;
   }
 
+  // ------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// This is only used during schema generation so we can remove temp columns (@_RELATION)
+  /// </summary>
+  internal void RemoveCol(ColumnDef colDef)
+  {
+    this._Columns.Remove(colDef);
+  }
 }
 
 // ============================================================================================================================
 public class ColumnDef
 {
+  /// <summary>
+  /// Special DataType name used for placeholder relation defs during schema generation.
+  /// </summary>
+  public const string RELATION_PLACEHOLDER = "@_RELATION";
+
   // --------------------------------------------------------------------------------------------------------------------------
   public string Name { get; private set; }                 // This is the same name as the property that this def comes from.
   public Type RuntimeType { get; private set; }

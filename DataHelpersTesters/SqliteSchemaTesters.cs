@@ -67,13 +67,6 @@ public class SqliteSchemaTesters : TestBase
       };
       int id = factory.Add(p);
       placeIds.Add(id);
-
-      //factory.Action(dal =>
-      //{
-      //  var td = dal.SchemaDef.GetTableDef<Place>();
-      //  var qr = td.GetInsertQuery();
-      //  int id = dal.RunSingleQuery<int>(qr, p);
-      //});
     }
 
     var visitorIds = new List<int>();
