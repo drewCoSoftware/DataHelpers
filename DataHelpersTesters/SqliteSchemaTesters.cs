@@ -20,9 +20,27 @@ public class SqliteSchemaTesters : TestBase
 {
   // --------------------------------------------------------------------------------------------------------------------------
   [Test]
-    public void CanIncludeNullWhenCreatingParametersFromInstance() { 
-      Assert.Fail();
-    }
+  public void CanIncludeNullWhenCreatingParametersFromInstance()
+  {
+    // var myData = new { Name = "Dave", Number = null
+    const int TEST_NUMBER = 123;
+    var myData = new SimplePerson()
+    {
+      Name = null,
+      Number = TEST_NUMBER,
+    };
+
+    Dictionary<string, object> qParams = Helpers.CreateParams("insert", myData, includeNulls: true);
+
+    Assert.That(qParams.Count, Is.EqualTo(2), "There should be two parameters!");
+    var number = qParams[nameof(SimplePerson.Number)];
+    Assert.That(number, Is.EqualTo(TEST_NUMBER));
+
+    var name = qParams[nameof(SimplePerson.Name)];
+    Assert.That(name, Is.Null);
+
+    // TODO: 
+  }
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
@@ -94,7 +112,8 @@ public class SqliteSchemaTesters : TestBase
       foreach (var traveler in alltravelers)
       {
         string query = mapTable.GetInsertQuery();
-        factory.Action(dal => {
+        factory.Action(dal =>
+        {
           int newId = dal.RunSingleQuery<int>(query, new { Places_ID = place.ID, Travelers_ID = traveler.ID });
           Assert.That(newId, Is.Not.EqualTo(0), "The mapping entry was not added!");
         });
@@ -376,21 +395,24 @@ public class SqliteSchemaTesters : TestBase
     const string TEST_QUERY = "SELECT * FROM People";
     Assert.Throws<InvalidOperationException>(() =>
     {
-      factory.Action(dal => {
+      factory.Action(dal =>
+      {
         dal.RunSingleQuery<SimplePerson>(TEST_QUERY, null);
       });
     });
 
-    Assert.Fail("write some factory code that can select single items!");
+    //Assert.Fail("write some factory code that can select single items!");
 
     //// Let's do a different one....
-    //SimplePerson? p1 = dal.RunSingleQuery<SimplePerson>(TEST_QUERY + " WHERE ID = 1", null);
-    //Assert.That(p1, Is.Not.Null);
-    //Assert.That(NAME_1, Is.EqualTo(p1!.Name));
 
-    //SimplePerson? p2 = dal.RunSingleQuery<SimplePerson>(TEST_QUERY + " WHERE ID = 2", null);
-    //Assert.That(p2, Is.Not.Null);
-    //Assert.That(NAME_2, Is.EqualTo(p2!.Name));
+    // SimplePerson? p1 = factory.GetDataAccess().RunSingleQuery<SimplePerson>(TEST_QUERY + " WHERE ID = 1", null);
+    SimplePerson? p1 = factory.GetById<SimplePerson>(1);
+    Assert.That(p1, Is.Not.Null);
+    Assert.That(NAME_1, Is.EqualTo(p1!.Name));
+
+    SimplePerson? p2 = factory.GetById<SimplePerson>(2);
+    Assert.That(p2, Is.Not.Null);
+    Assert.That(NAME_2, Is.EqualTo(p2!.Name));
   }
 
   // --------------------------------------------------------------------------------------------------------------------------

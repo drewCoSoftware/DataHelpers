@@ -20,6 +20,7 @@ public class SimplePerson : IHasPrimary
 {
   public int ID { get; set; }
   public string Name { get; set; }
+  public int Number { get; set; }
 }
 
 

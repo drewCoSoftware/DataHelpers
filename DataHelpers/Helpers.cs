@@ -12,7 +12,7 @@ public static class Helpers
   /// Create a set of dynamic query parameters from the given object.
   /// This allows us to use some of our conventions for mapping relationships to types.
   /// </summary>
-  public static QueryParams CreateParams(string queryType, object fromInstance, bool includeID = false)
+  public static QueryParams CreateParams(string queryType, object fromInstance, bool includeNulls = false, bool includeID = false)
   {
     if (fromInstance == null) { throw new ArgumentNullException($"Please provide an instance for {nameof(fromInstance)}"); }
 
@@ -31,18 +31,22 @@ public static class Helpers
         // We need to support only those 
         if (ReflectionTools.HasInterface<ISingleRelation>(item.PropertyType))
         {
+          string setName = rel.DataSetName;
+          string useName = setName + "_" + nameof(IHasPrimary.ID);
+
           var relType = item.PropertyType.GetGenericArguments()[0];
           var relVal = item.GetValue(fromInstance);
           if (relVal == null || (relVal as ISingleRelation).ID == 0)
           {
             // This is null, or unset:
             // We will ignore it.  See notes below about constraint enforcements + leaving out values.
+            if (includeNulls) { 
+              res.Add(useName, null);
+            }
             continue;
           }
 
 
-          string setName = rel.DataSetName;
-          string useName = setName + "_" + nameof(IHasPrimary.ID);
           int useId = (relVal as ISingleRelation).ID;
 
           res.Add(useName, useId);
@@ -75,7 +79,7 @@ public static class Helpers
       else
       {
         object? useVal = item.GetValue(fromInstance);
-        if (useVal == null)
+        if (!includeNulls && useVal == null)
         {
           // NOTE: Depending on what we are doing, and what data set / type we are targeting, we may
           // want to flag non-nullable values.  Requires more machinery, but might be nice....

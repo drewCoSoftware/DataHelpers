@@ -40,6 +40,21 @@ public interface IDataFactory<TSchema>
     return res;
   }
 
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Get the entity of the given type by its ID
+  /// </summary>
+  T? GetById<T>(int id)
+  where T : IHasPrimary
+  {
+    T? res = Action(dal =>
+    {
+      var td = Schema.GetTableDef<T>();
+      string query = td.GetSelectQuery<T>() + " WHERE id = @id";
+      return dal.RunSingleQuery<T>(query, new { id = id });
+    });
+    return res;
+  }
 }
 
 // ========================================================================== 
