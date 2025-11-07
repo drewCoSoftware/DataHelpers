@@ -107,13 +107,13 @@ public class RelationAttribute : Attribute
   /// The name of the property on the defining type that represents the relation.
   /// If null, a default value will be used.
   /// </summary>
-  public string? LocalPropertyName { get; set; }
+  public string? LocalIDPropertyName { get; set; }
 
   /// <summary>
   /// The name of the property on the target data set that represents the relation.
   /// If null, a default value will be used.
   /// </summary>
-  public string? TargetPropertyName { get; set; }
+  public string? TargetIDPropertyName { get; set; }
 
 
   /// <summary>

@@ -3,18 +3,9 @@ using System.Text;
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.Text.Json.Serialization;
-using System.Reflection;
 using System.Linq.Expressions;
-using System.Reflection.Emit;
-using System.ComponentModel;
 using drewCo.Tools.Logging;
-using System.Runtime.CompilerServices;
-using System.Diagnostics;
-using System.Net;
-using System.Security.AccessControl;
-using System.Formats.Tar;
-
-//using System.com
+using System.Reflection;
 
 namespace DataHelpers.Data;
 
@@ -28,17 +19,80 @@ public class SchemaDefinition
   private Dictionary<string, TableDef> _TableDefs = new Dictionary<string, TableDef>(StringComparer.OrdinalIgnoreCase);
   private Dictionary<Type, TableDef> TypesToTableDef = new Dictionary<Type, TableDef>();
   public ReadOnlyCollection<TableDef> TableDefs { get { return new ReadOnlyCollection<TableDef>(_TableDefs.Values.ToList()); } }
+  public ISqlFlavor Flavor { get; private set; }
+
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public TableDef? GetTableDef<T>(bool allowNull = false)
+  public SchemaDefinition(ISqlFlavor flavor_)
+  {
+    Flavor = flavor_;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Create a new schema defintion from the given type.  Each of the properties in <paramref name="schemaType"/>
+  /// will be used to create a new table in the schema.
+  /// </summary>
+  public SchemaDefinition(ISqlFlavor flavor_, Type schemaType)
+    : this(flavor_)
+  {
+    // We will add a data set for each of the properties defined in 'schemaType'
+    var props = ReflectionTools.GetProperties(schemaType);
+    foreach (var prop in props)
+    {
+      if (!prop.CanWrite) { continue; }
+
+      var useType = prop.PropertyType;
+      if (ReflectionTools.HasInterface<IList>(useType))
+      {
+        useType = useType.GetGenericArguments()[0];
+      }
+
+      // NOTE: I think it is a good idea to take a first pass to create all of the named tables
+      // BEFORE populating their data.  The thing is that it is possible for their to be tables
+      // of the same struture, but just with different names, like in a multi-tenant app.
+      // of course, if we cared about multi-tenancy, then this type of schema definition
+      // probably would not work in the first place......
+      // Such a system would have to be aware of name groupings?
+      // --> OK, so multi-tenancy is way overkill, let's just make it so that the various members
+      // and relationships are all resolved by type.  Then the first pass of this resolver is made
+      // simply to determine the type->name mappings....
+      // Anything that doesn't appear at this parent level can't be used.  I am OK with that
+      // because I don't really see the need to have sub-type resolvers at this point in time.
+      // If we ever needed such a feature, then it would just have to work by detecting the first
+      // name->type mapping, and then force all subsequent name->type mappings to be the same?
+
+      // NOTE: Other attributes could be analyzed to change table names, etc.
+      // ResolveTableDef(prop.Name, useType);
+      InitTableDef(prop.Name, useType);
+    }
+
+    PopulateMembers();
+
+    PopulateRelationships();
+
+
+    ValidateSchema();
+
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public TableDef? TryGetTableDef<T>()
   {
     if (!TypesToTableDef.TryGetValue(typeof(T), out TableDef? res))
     {
-      if (!allowNull)
-      {
-        throw new InvalidOperationException($"There is no table def for type: {typeof(T)} in this schema!");
-      }
       return null;
+    }
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public TableDef GetTableDef<T>()
+  {
+    TableDef res = TryGetTableDef<T>();
+    if (res == null)
+    {
+      throw new InvalidOperationException($"There is no table def for type: {typeof(T)} in this schema!");
     }
     return res;
   }
@@ -251,61 +305,6 @@ public class SchemaDefinition
 
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public ISqlFlavor Flavor { get; private set; }
-  public SchemaDefinition(ISqlFlavor flavor_)
-  {
-    Flavor = flavor_;
-  }
-
-  // --------------------------------------------------------------------------------------------------------------------------
-  /// <summary>
-  /// Create a new schema defintion from the given type.  Each of the properties in <paramref name="schemaType"/>
-  /// will be used to create a new table in the schema.
-  /// </summary>
-  public SchemaDefinition(ISqlFlavor flavor_, Type schemaType)
-    : this(flavor_)
-  {
-    // We will add a data set for each of the properties defined in 'schemaType'
-    var props = ReflectionTools.GetProperties(schemaType);
-    foreach (var prop in props)
-    {
-      if (!prop.CanWrite) { continue; }
-
-      var useType = prop.PropertyType;
-      if (ReflectionTools.HasInterface<IList>(useType))
-      {
-        useType = useType.GetGenericArguments()[0];
-      }
-
-      // NOTE: I think it is a good idea to take a first pass to create all of the named tables
-      // BEFORE populating their data.  The thing is that it is possible for their to be tables
-      // of the same struture, but just with different names, like in a multi-tenant app.
-      // of course, if we cared about multi-tenancy, then this type of schema definition
-      // probably would not work in the first place......
-      // Such a system would have to be aware of name groupings?
-      // --> OK, so multi-tenancy is way overkill, let's just make it so that the various members
-      // and relationships are all resolved by type.  Then the first pass of this resolver is made
-      // simply to determine the type->name mappings....
-      // Anything that doesn't appear at this parent level can't be used.  I am OK with that
-      // because I don't really see the need to have sub-type resolvers at this point in time.
-      // If we ever needed such a feature, then it would just have to work by detecting the first
-      // name->type mapping, and then force all subsequent name->type mappings to be the same?
-
-      // NOTE: Other attributes could be analyzed to change table names, etc.
-      // ResolveTableDef(prop.Name, useType);
-      InitTableDef(prop.Name, useType);
-    }
-
-    PopulateMembers();
-
-    PopulateRelationships();
-
-
-    ValidateSchema();
-
-  }
-
-  // --------------------------------------------------------------------------------------------------------------------------
   private void PopulateRelationships()
   {
     foreach (var def in _TableDefs.Values)
@@ -328,7 +327,7 @@ public class SchemaDefinition
     foreach (var def in _TableDefs.Values)
     {
       // Now we can populate all of the members.
-      var generatedSets = def.PopulateRelationshipMembers();
+      var generatedSets = def.PopulateRelationMembers();
       allGeneratedSets.AddRange(generatedSets);
     }
 
@@ -612,6 +611,7 @@ public class TableDef
       bool isUnique = ReflectionTools.HasAttribute<UniqueAttribute>(p);
 
       // TODO: The property type should also be checked for nullable!
+      // TODO: ReflectionTools needs to be updated to include all of this so that nullables can be correctly detected!
       bool isNullable = ReflectionTools.HasAttribute<IsNullableAttribute>(p) ||
                         ReflectionTools.HasAttribute<System.Runtime.CompilerServices.NullableAttribute>(p) ||
                         p.PropertyType.Name.StartsWith("Nullable`1");
@@ -637,6 +637,26 @@ public class TableDef
 
     }
   }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  [Obsolete("Use IsNullable from drewco.tools.reflectiontools > 1.4.1.0")]
+  public static bool IsNullableEx(Type t) {
+
+    bool isNullable = ReflectionTools.HasAttribute<IsNullableAttribute>(t) ||
+                      ReflectionTools.HasAttribute<System.Runtime.CompilerServices.NullableAttribute>(t) ||
+                      t.Name.StartsWith("Nullable`1");
+
+                      return isNullable;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  [Obsolete("Use IsNullable from drewco.tools.reflectiontools > 1.4.1.0")]
+  public static bool IsNullableEx(PropertyInfo p)
+  {
+    bool res = IsNullableEx(p.PropertyType);
+    return res;
+  }
+
 
   // --------------------------------------------------------------------------------------------------------------------------
   // TODO: This should be moved to ReflectionTools ASAP.
@@ -974,7 +994,7 @@ public class TableDef
   /// A list of new <see cref="TableDef"/> instances that represent mapping sets that should be created.
   /// These mapping sets are auto-generated based on how relations are setup in the rest of the schema.
   /// </returns>
-  internal List<TableDef> PopulateRelationshipMembers()
+  internal List<TableDef> PopulateRelationMembers()
   {
     var newMappingSets = new List<TableDef>();
 
@@ -1002,8 +1022,8 @@ public class TableDef
         {
           // In single relations we use a column from this type.
           // Because we are using one of our special data types, that defined column is mapped to it. <-- review this, does it make sense?
-          string useName = rd.LocalPropertyName ?? $"{rd.DataSetName}_{nameof(IHasPrimary.ID)}";
-          rd.LocalPropertyName = useName;
+          string useName = rd.LocalIDPropertyName ?? $"{rd.DataSetName}_{nameof(IHasPrimary.ID)}";
+          rd.LocalIDPropertyName = useName;
           // rd.RelationType = GetRelationType(col);
           var match = this.GetColumn(useName);
           if (match == null) { match = (from x in toAdd where x.Name == useName select x).SingleOrDefault(); }
@@ -1012,7 +1032,7 @@ public class TableDef
           {
             // Create the new def.....
             string dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
-            var cd = new ColumnDef(useName, typeof(int), dbTypeName, false, false, false, rd);
+            var cd = new ColumnDef(useName, typeof(int), dbTypeName, false, col.IsUnique, col.IsNullable, rd);
             toAdd.Add(cd);
           }
         }
@@ -1062,12 +1082,12 @@ public class TableDef
 
 
             // This columnd def gets added to the target dataset, NOT this one....
-            string useName = rd.TargetPropertyName ?? $"{this.Name}_{nameof(IHasPrimary.ID)}";
+            string useName = rd.TargetIDPropertyName ?? $"{this.Name}_{nameof(IHasPrimary.ID)}";
 
             string dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
 
             var useRelation = new RelationAttribute(this.Name);
-            useRelation.TargetPropertyName = nameof(IHasPrimary.ID);
+            useRelation.TargetIDPropertyName = nameof(IHasPrimary.ID);
             useRelation.RelationType = ERelationType.Many;
 
             // TODO: This is where we would check to make sure that there is already a column with the correct
@@ -1149,7 +1169,7 @@ public class TableDef
       var cd = new ColumnDef(c, intType, intTypeName, false, false, false, new RelationAttribute()
       {
         DataSetName = index == 0 ? relSet.Name : mutualRelation.DataSetName,
-        LocalPropertyName = c,
+        LocalIDPropertyName = c,
         RelationType = ERelationType.Single
       });
       td.AddColumn(cd);
@@ -1191,6 +1211,30 @@ public class TableDef
   {
     this._Columns.Remove(colDef);
   }
+
+  //// ------------------------------------------------------------------------------------------------
+  ///// <summary>
+  ///// Creates an insert query using the given object as a model.
+  ///// This function, in particular, will leave out optional/null params.
+  ///// </summary>
+  //public string GetInsertQueryFor<T>(T addr)
+  //{
+  //  var props = ReflectionTools.GetProperties<T>();
+  //  var qParams = Helpers.CreateParams("insert", addr, true);
+
+  //  foreach (var c in this.Columns)
+  //  {
+  //    if (qParams.TryGetValue(c.Name, out var value)) {
+  //      if (value == null && c.IsNullable) { 
+  //        // We won't include this, as it isn't needed!
+  //      }
+  //    }
+  //  }
+
+  //  //return "";
+  //  // var map = from x in props select new {Key = x.Name,  Value = x.GetValue(addr)}).ToDictionary();
+  //  throw new NotImplementedException();
+  //}
 }
 
 // ============================================================================================================================

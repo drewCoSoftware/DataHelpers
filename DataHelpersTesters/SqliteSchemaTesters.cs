@@ -9,6 +9,8 @@ using IgnoreTest = NUnit.Framework.IgnoreAttribute;
 using System.Linq.Expressions;
 using DataHelpers;
 using System.Linq;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace DataHelpersTesters;
 
@@ -18,6 +20,49 @@ namespace DataHelpersTesters;
 // a way to generate test data for the query generation tests, I think this is very possible.
 public class SqliteSchemaTesters : TestBase
 {
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// This test case was provided to show that 
+  /// </summary>
+  [Test]
+  public void CanUseOptionalRelation()
+  {
+
+    IDataFactory<VacationSchema> factory = CreateTestDataBaseFor<VacationSchema>(CurrentFunctionName());
+    var schema = factory.Schema;
+
+    TableDef td = schema.GetTableDef<Traveler>();
+    Assert.That(td, Is.Not.Null);
+
+    var opRelation = td.GetColumn("FavoritePlace_ID");
+    Assert.That(opRelation, Is.Not.Null);
+    Assert.That(opRelation.IsNullable, "This property should be marked as nullable!");
+
+
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  // Thanks internet!
+  // https://stackoverflow.com/questions/2652460/how-to-get-the-name-of-the-current-method-from-code
+  /// <summary>
+  /// Returns the name of the current function.
+  /// </summary>
+  /// <returns>The name of the current method, or '&lt;null&gt;' if it is not available.</returns>
+  /// <remarks>
+  /// Because of possible inlining and compiler optimization, this function may not have reliable results.
+  /// Use the 'nameof' operator if you need exact (but not-portable) results.
+  /// </remarks>
+  [Obsolete("Use version from drewCo.Tools > 1.4.1.0")]
+  [MethodImpl(MethodImplOptions.NoInlining)]
+  public static string CurrentFunctionName()
+  {
+    var st = new StackTrace();
+    var sf = st.GetFrame(1);
+
+    return sf?.GetMethod()?.Name ?? "<null>";
+  }
+
   // --------------------------------------------------------------------------------------------------------------------------
   [Test]
   public void CanIncludeNullWhenCreatingParametersFromInstance()
@@ -61,7 +106,7 @@ public class SqliteSchemaTesters : TestBase
     // We want to make sure that none of the first-class sets in the schema have a relation column.
     // We achieve this with a simple column count....
     var travelersSet = schema.GetTableDef(nameof(VacationSchema.Travelers));
-    Assert.That(travelersSet.Columns.Count, Is.EqualTo(2));
+    Assert.That(travelersSet.Columns.Count, Is.EqualTo(3));
 
     var placesSet = schema.GetTableDef(nameof(VacationSchema.Places));
     Assert.That(placesSet.Columns.Count, Is.EqualTo(3));

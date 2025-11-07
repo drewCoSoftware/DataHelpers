@@ -25,21 +25,26 @@ public static class Helpers
       // Don't attempt to include ids.
       if (item.Name == nameof(IHasPrimary.ID) && !includeID) { continue; }
 
-      var rel = ReflectionTools.GetAttribute<RelationAttribute>(item);
-      if (rel != null)
+      var relAttr = ReflectionTools.GetAttribute<RelationAttribute>(item);
+      if (relAttr != null)
       {
-        // We need to support only those 
         if (ReflectionTools.HasInterface<ISingleRelation>(item.PropertyType))
         {
-          string setName = rel.DataSetName;
-          string useName = setName + "_" + nameof(IHasPrimary.ID);
+          string setName = relAttr.DataSetName;
+          string useName = relAttr.LocalIDPropertyName ?? setName + "_" + nameof(IHasPrimary.ID);
 
           var relType = item.PropertyType.GetGenericArguments()[0];
           var relVal = item.GetValue(fromInstance);
           if (relVal == null || (relVal as ISingleRelation).ID == 0)
           {
+            // TODO: If the property isn't nullable, we should raise a flag here!
+            // Not sure if we should blow it up, but I will for now....
+            // NOTE: This call isn't detecting the nullability of the type correctly!
+            //if (!TableDef.IsNullableEx(item)) { 
+            //  throw new Exception("The value for a non-nullable property is currently null!");
+            //}
+
             // This is null, or unset:
-            // We will ignore it.  See notes below about constraint enforcements + leaving out values.
             if (includeNulls) { 
               res.Add(useName, null);
             }

@@ -66,7 +66,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
       throw new InvalidOperationException("This instance already has an ID!");
     }
 
-    TableDef tableDef = SchemaDef.GetTableDef<T>(false)!;
+    TableDef? tableDef = SchemaDef.TryGetTableDef<T>()!;
     string query = tableDef.GetInsertQuery();
 
     int newID = RunSingleQuery<int>(query, instance);
@@ -79,11 +79,19 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   {
     string queryType = GetFirstWord(query).ToLower();
 
-    Dictionary<string,object>? dParams = null;
-    if (qParams != null && !(qParams is QueryParams)) {
-      dParams = Helpers.CreateParams(queryType, qParams);
+    QueryParams? useParams = null;
+    if (qParams != null)
+    {
+      if (qParams is QueryParams)
+      {
+        useParams = qParams as QueryParams;
+      }
+      else {
+        useParams = Helpers.CreateParams(queryType, qParams);
+      }
     }
-    var res = RunQuery<T>(Connection, query, dParams);
+
+    var res = RunQuery<T>(Connection, query, useParams);
     return res;
   }
 
@@ -92,8 +100,9 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   public static string GetFirstWord(string query)
   {
     string res = query;
-    int firstSpace= query.IndexOf(' ');
-    if (firstSpace != -1) { 
+    int firstSpace = query.IndexOf(' ');
+    if (firstSpace != -1)
+    {
       res = query.Substring(0, firstSpace);
     }
 

@@ -48,6 +48,9 @@ public class Traveler : IHasPrimary
   /// </summary>
   [Relation(DataSetName = nameof(VacationSchema.Places))]
   public ManyRelation<Place> PlacesVisited { get; set; }
+
+  [Relation(DataSetName = nameof(VacationSchema.Places), LocalIDPropertyName = "FavoritePlace_ID")]
+  public SingleRelation<Place>? FavoritePlace { get; set; } = null;
 }
 
 // ==============================================================================================================================
