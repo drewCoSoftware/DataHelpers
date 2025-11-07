@@ -1056,10 +1056,6 @@ public class TableDef
               // Handle the scenario where the mapping table is already defined....
               throw new Exception("Handle this scenario: see comment!");
             }
-            //throw new InvalidOperationException("create / check for the mapping table!");
-            //int xagag = 10;
-
-
           }
           else
           {
@@ -1089,11 +1085,14 @@ public class TableDef
 
             var colDef = new ColumnDef(useName, typeof(int), dbTypeName, false, false, false, useRelation);
             targetSet.AddColumn(colDef);
-
-            //var targetSet = Schema.GetTableDef(rd.DataSet);
-
-            // throw new Exception("complete this branch!");
           }
+        }
+        else if (col.RuntimeType == typeof(int))
+        {
+          // This is probably a generated property... I think that we can maybe leave it alone / ignore it.
+          // We don't need to create a new column, table, etc.
+          // Otherwise we need to flag the column as 'generated' which may be the best approach....
+          continue;
         }
         else
         {

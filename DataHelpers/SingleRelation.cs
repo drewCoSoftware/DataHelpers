@@ -26,7 +26,8 @@ public interface ISingleRelation : IRelation
 
 // ==========================================================================
 // Used for easy type detection.
-public interface IManyRelation : IRelation {
+public interface IManyRelation : IRelation
+{
 }
 
 
@@ -73,7 +74,7 @@ where T : class, IHasPrimary
   /// It is nullable b/c it may not have been resolved yet...
   /// </summary>
   private T? _Data = null;
-  T? Data
+  public T? Data
   {
     get { return _Data; }
     // Setting the data explicitly will also change the ID!
@@ -86,6 +87,11 @@ where T : class, IHasPrimary
     var res = new SingleRelation<T>();
     res.Data = data;
     return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public static implicit operator T? (SingleRelation<T> data) { 
+    return data.Data;
   }
 }
 

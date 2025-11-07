@@ -18,6 +18,11 @@ namespace DataHelpersTesters;
 // a way to generate test data for the query generation tests, I think this is very possible.
 public class SqliteSchemaTesters : TestBase
 {
+  // --------------------------------------------------------------------------------------------------------------------------
+  [Test]
+    public void CanIncludeNullWhenCreatingParametersFromInstance() { 
+      Assert.Fail();
+    }
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
@@ -251,24 +256,6 @@ public class SqliteSchemaTesters : TestBase
 
 
 
-
-  // --------------------------------------------------------------------------------------------------------------------------
-  /// <summary>
-  /// This test case shows that we can use the 'Relation' class on our data types to represent
-  /// FKs vs. having to define a seperate *_ID and *_Entity explicitly.  The goal is to make
-  /// defining our types + selects, etc. easier to deal with....
-  /// </summary>
-  [Test]
-  public void CanUseRelationFeature()
-  {
-
-    Assert.Inconclusive("This feature is currently under consideration.");
-    //var schemaDef = new SchemaDefinition(new SqliteFlavor(), typeof(TestSchema2));
-    //Assert.Fail("Please finish this test!");
-
-  }
-
-
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// This shows that properties with the 'Relation' attribute will automatically have FK relations setup in the schema / defs.
@@ -393,6 +380,8 @@ public class SqliteSchemaTesters : TestBase
         dal.RunSingleQuery<SimplePerson>(TEST_QUERY, null);
       });
     });
+
+    Assert.Fail("write some factory code that can select single items!");
 
     //// Let's do a different one....
     //SimplePerson? p1 = dal.RunSingleQuery<SimplePerson>(TEST_QUERY + " WHERE ID = 1", null);
