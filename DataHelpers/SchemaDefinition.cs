@@ -593,7 +593,8 @@ public class TableDef
   // --------------------------------------------------------------------------------------------------------------------------
   internal void PopulateMembers()
   {
-    foreach (var p in ReflectionTools.GetProperties(DataType))
+    var allProps = ReflectionTools.GetProperties(DataType);
+    foreach (var p in allProps)
     {
       if (!p.CanWrite) { continue; }
       if (ReflectionTools.HasAttribute<IgnoreAttribute>(p)) { continue; }

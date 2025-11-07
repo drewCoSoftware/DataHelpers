@@ -137,7 +137,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
       }
     }
 
-    var res = conn.Query<T>(query, useParams);
+   var res = conn.Query<T>(query, useParams);
 
     return res;
   }

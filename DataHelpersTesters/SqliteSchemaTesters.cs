@@ -11,6 +11,7 @@ using DataHelpers;
 using System.Linq;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using NUnit.Framework.Interfaces;
 
 namespace DataHelpersTesters;
 
@@ -20,6 +21,19 @@ namespace DataHelpersTesters;
 // a way to generate test data for the query generation tests, I think this is very possible.
 public class SqliteSchemaTesters : TestBase
 {
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// This test case was provided to solve a problem where a type in a schema could have multiple relations
+  /// to a single dataset.  While this is OK, the code was only adding one related ID property, using the default
+  /// naming convention.  The issue is resolved by setting explicit names, but the code should be able to
+  /// detect and fail, or at least generate a non-conflicting name.
+  /// </summary>
+  [Test]
+  public void CanResolveAmbiguousRelationIDProperties()
+  {
+    Assert.Fail("complete this test!  See comment / SoccerClub.Contact for tips/examples.");
+  }
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
