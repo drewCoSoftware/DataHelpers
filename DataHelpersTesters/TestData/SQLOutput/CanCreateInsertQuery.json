@@ -1,0 +1,4 @@
+{
+  "IsApproved": true,
+  "SQL": "INSERT INTO People (name,number,addresses_id) VALUES (@Name,@Number,@Addresses_ID) RETURNING id"
+}

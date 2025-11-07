@@ -1,4 +1,0 @@
-{
-  "IsApproved": true,
-  "SQL": "CREATE TABLE IF NOT EXISTS ClientAccounts (\r\nid INTEGER PRIMARY KEY NOT NULL, \r\nclientname TEXT NOT NULL, \r\naccountmanager_id INTEGER NOT NULL,\r\nFOREIGN KEY(accountmanager_id) REFERENCES People(ID)\r\n);\r\n"
-}

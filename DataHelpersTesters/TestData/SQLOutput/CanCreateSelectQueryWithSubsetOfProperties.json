@@ -1,4 +1,4 @@
 {
   "IsApproved": true,
-  "SQL": "SELECT ID,Name FROM SomeData"
+  "SQL": "SELECT ID,Name FROM People"
 }

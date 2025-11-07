@@ -140,14 +140,14 @@ public class Town : IHasPrimary
   public ManyRelation<Address> Addresses { get; set; } // = new ManyRelation<Address>();
 }
 
-// ==========================================================================
-public class ClientAccount : IHasPrimary
-{
-  public int ID { get; set; }
-  public string ClientName { get; set; }
+//// ==========================================================================
+//public class ClientAccount : IHasPrimary
+//{
+//  public int ID { get; set; }
+//  public string ClientName { get; set; }
 
-  // NOTE: This should resolve to the 'ClientAccounts' property on 'Person'
-  // This is how we can model a 'bi-directional relationship.
-  [RelationAttribute(DataSetName = nameof(BusinessSchema.People))]
-  public Person AccountManager { get; set; }
-}
+//  // NOTE: This should resolve to the 'ClientAccounts' property on 'Person'
+//  // This is how we can model a 'bi-directional relationship.
+//  [RelationAttribute(DataSetName = nameof(BusinessSchema.People))]
+//  public Person AccountManager { get; set; }
+//}

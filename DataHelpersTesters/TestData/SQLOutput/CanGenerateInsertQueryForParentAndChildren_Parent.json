@@ -1,4 +1,0 @@
-{
-  "IsApproved": true,
-  "SQL": "INSERT INTO Parents (Name,CreateDate) VALUES (@Name,@CreateDate);"
-}

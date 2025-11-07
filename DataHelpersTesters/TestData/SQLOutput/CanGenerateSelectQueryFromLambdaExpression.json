@@ -1,0 +1,4 @@
+{
+  "IsApproved": true,
+  "SQL": "SELECT * FROM People WHERE ID = @ID"
+}

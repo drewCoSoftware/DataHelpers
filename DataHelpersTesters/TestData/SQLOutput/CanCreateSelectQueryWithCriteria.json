@@ -1,4 +1,0 @@
-{
-  "IsApproved": true,
-  "SQL": "SELECT * FROM SomeData WHERE @Name = \u0027dave\u0027 AND @Number = 10"
-}

@@ -1,4 +1,0 @@
-{
-  "IsApproved": true,
-  "SQL": "-- TABLE: Parents\r\nCREATE TABLE IF NOT EXISTS Parents (\r\nid INTEGER PRIMARY KEY NOT NULL, \r\nname TEXT NOT NULL, \r\ncreatedate TEXT NOT NULL\r\n);\r\n\r\n-- TABLE: Kids\r\nCREATE TABLE IF NOT EXISTS Kids (\r\nid INTEGER PRIMARY KEY NOT NULL, \r\nlabel TEXT NULL, \r\nparent_id INTEGER NOT NULL,\r\nFOREIGN KEY(parent_id) REFERENCES Parents(ID)\r\n);\r\n\r\n-- TABLE: SomeData\r\nCREATE TABLE IF NOT EXISTS SomeData (\r\nid INTEGER PRIMARY KEY NOT NULL, \r\nname TEXT NOT NULL, \r\nnumber INTEGER NOT NULL, \r\ndate TEXT NOT NULL\r\n);\r\n\r\n"
-}

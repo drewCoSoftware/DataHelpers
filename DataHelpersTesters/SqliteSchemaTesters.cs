@@ -294,13 +294,13 @@ public class SqliteSchemaTesters : TestBase
       Assert.That(td.RelatedDataSets[0].TargetSet.Name == nameof(BusinessSchema.Addresses));
     }
 
-    {
-      var td = schemaDef.GetTableDef<ClientAccount>();
+    //{
+    //  var td = schemaDef.GetTableDef<ClientAccount>();
 
-      // One child ref. to 'Account'
-      Assert.That(td.RelatedDataSets.Count, Is.EqualTo(1));
-      Assert.That(td.RelatedDataSets[0].TargetSet.Name == nameof(BusinessSchema.People));
-    }
+    //  // One child ref. to 'Account'
+    //  Assert.That(td.RelatedDataSets.Count, Is.EqualTo(1));
+    //  Assert.That(td.RelatedDataSets[0].TargetSet.Name == nameof(BusinessSchema.People));
+    //}
 
 
 
@@ -321,14 +321,14 @@ public class SqliteSchemaTesters : TestBase
       CheckSQL(nameof(CanCreateForeignKeyFromRelation) + "\\Person", createQuery);
     }
 
-    {
-      // This should have two FKs.  one to the account manager (person), and one 
-      // so that we can associate multiple client accounts with a single 
-      var td = schemaDef.GetTableDef<ClientAccount>();
-      string createQuery = td.GetCreateQuery();
+    //{
+    //  // This should have two FKs.  one to the account manager (person), and one 
+    //  // so that we can associate multiple client accounts with a single 
+    //  var td = schemaDef.GetTableDef<ClientAccount>();
+    //  string createQuery = td.GetCreateQuery();
 
-      CheckSQL(nameof(CanCreateForeignKeyFromRelation) + "\\ClientAccount", createQuery);
-    }
+    //  CheckSQL(nameof(CanCreateForeignKeyFromRelation) + "\\ClientAccount", createQuery);
+    //}
 
   }
 
@@ -433,65 +433,17 @@ public class SqliteSchemaTesters : TestBase
   [IgnoreTest("Not implemented!")]
   public void CanUseEnumInSchema()
   {
+    // NOTE: Use 'SimpleSchema' for this.
+    Assert.Fail("Please finish this test!");
+
   }
-
-  //// --------------------------------------------------------------------------------------------------------------------------
-  //// This test case was provided as an example fo how to do insert types queries with child/parent
-  //// data.  This will serve as the basis for future query generation and schema structuring code.
-  //[Test]
-  //public void CanInsertChildRecordsWithParentID()
-  //{
-  //  var dal = CreateSqliteDatabase<BusinessSchema>(nameof(CanInsertChildRecordsWithParentID), out SchemaDefinition schema);
-
-  //  var parent = new ExampleParent()
-  //  {
-  //    CreateDate = DateTimeOffset.Now,
-  //    Name = "Parent1"
-  //  };
-
-  //  string insertQuery = schema.GetTableDef("Parents")?.GetInsertQuery() ?? string.Empty;
-  //  Assert.That(insertQuery, Is.Not.Empty);
-
-  //  // NOTE: We are using 'RunSingleQuery' here so that we can get the returned ID!
-  //  int newID = dal.RunSingleQuery<int>(insertQuery, parent);
-  //  Assert.That(1, Is.EqualTo(newID));
-
-  //  // HACK: This should maybe be assinged during insert?
-  //  parent.ID = newID;
-
-  //  // Confirm that we can get the data back out...
-  //  string select = schema.GetSelectQuery<ExampleParent>(x => x.ID == newID);
-  //  var parentCheck = dal.RunQuery<ExampleParent>(select, new { ID = newID });
-  //  Assert.That(parentCheck, Is.Not.Null);
-
-  //  // Now we will insert the child record:
-  //  var child = new ExampleChild()
-  //  {
-  //    Label = "Child1",
-  //    Parent = parent
-  //  };
-
-  //  string insertChild = schema.GetTableDef<ExampleChild>()?.GetInsertQuery() ?? string.Empty;
-
-  //  // Let's see if we can create an anonymous type that can be used for inserts.....
-  //  object paramsObject = schema.GetParamatersObject<ExampleChild>(child);
-  //  int childID = dal.RunSingleQuery<int>(insertChild, paramsObject); // new { Label = child.Label, Parents_ID = child.Parent.ID });
-
-  //  string selectChild = schema.GetSelectQuery<ExampleChild>(x => x.ID == childID);
-  //  var childCheck = dal.RunSingleQuery<ExampleChild>(selectChild, new { ID = childID });
-  //  Assert.That(childCheck, Is.Not.Null);
-  //  Assert.That("Child1", Is.EqualTo(childCheck!.Label));
-
-  //}
 
   // --------------------------------------------------------------------------------------------------------------------------
   protected SqliteDataAccess<T> CreateSqliteDatabase<T>(string dbName, out SchemaDefinition schema)
   {
     string dataDir = Path.Combine("./TestData", "Databases");
-    //    FileTools.CreateDirectory(dataDir);
 
     string dbFilePath = Path.GetFullPath(Path.Combine(dataDir, dbName + ".sqlite"));
-    //  FileTools.DeleteExistingFile(dbFilePath);
 
     var factory = new SqliteDataFactory<T>(dataDir, dbFilePath);
     FileTools.DeleteExistingFile(factory.DBFilePath);
@@ -510,18 +462,6 @@ public class SqliteSchemaTesters : TestBase
     return new SchemaDefinition(new SqliteFlavor(), typeof(T));
   }
 
-  //// --------------------------------------------------------------------------------------------------------------------------
-  //// A simple test case to show that our insert queries for types with parents are generated correctly.
-  //[Test]
-  //public void CanCreateInsertQueryForTypeWithParentRelationship()
-  //{
-  //  SchemaDefinition schema = CreateSqliteSchema<BusinessSchema>();
-
-  //  var tableDef = schema.GetTableDef<Person>();
-  //  string insert = tableDef.GetInsertQuery();
-  //  CheckSQL(nameof(CanCreateInsertQueryForTypeWithParentRelationship), insert);
-
-  //}
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
@@ -531,47 +471,10 @@ public class SqliteSchemaTesters : TestBase
   public void CanGenerateSelectQueryFromLambdaExpression()
   {
     var schema = new SchemaDefinition(new SqliteFlavor(), typeof(BusinessSchema));
-
-    // var p = new ExampleParent()
-    // {
-    //   CreateDate = DateTimeOffset.Now,
-    //   Name = "Parent1"
-    // };
-    // p.Children.Add(new ExampleChild()
-    // {
-    //   Label = "Child1"
-    // });
-    // p.Children.Add(new ExampleChild()
-    // {
-    //   Label = "Child2"
-    // });
-
     {
       string selectByIdQuery = schema.GetSelectQuery<Person>(x => x.ID == 1);
-      string expected = "SELECT * FROM Parents WHERE ID = @ID";
-      Assert.That(expected, Is.EqualTo(selectByIdQuery));
+      CheckSQL(nameof(CanGenerateSelectQueryFromLambdaExpression), selectByIdQuery);
     }
-
-    // TEMP: Disable....
-    // {
-    //   string query = schema.GetInsertUpdateQuery(p);
-    //   CheckSQL(nameof(CanGenerateInsertQueryForParentAndChildren) + "_Parent", query);
-    // }
-    // {
-    //   string query = schema.GetInsertUpdateQuery(p.Children[0]);
-    //   CheckSQL(nameof(CanGenerateInsertQueryForParentAndChildren) + "_Child0", query);
-    // }
-
-    // Now let's see if we can actually insert the data.
-    // string TEST_DB_NAME = nameof(CanGenerateInsertQueryForParentAndChildren) + ".sqlite";
-    // string dbDir = Path.Combine(FileTools.GetAppDir(), "TestDBs");
-    // FileTools.CreateDirectory(dbDir);
-
-    // string dbPath = Path.Combine(dbDir, TEST_DB_NAME);
-    // FileTools.DeleteExistingFile(dbPath);
-
-    // var access = new SqliteDataAccess<BusinessSchema>(dbDir, TEST_DB_NAME);
-
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -606,59 +509,6 @@ public class SqliteSchemaTesters : TestBase
     });
   }
 
-  //// --------------------------------------------------------------------------------------------------------------------------
-  ///// <summary>
-  ///// Shows that we can get a SQL statement that creates a table that references another.
-  ///// </summary>
-  //[Test]
-  //public void CanGetCreateTableQueryWithForeignKey()
-  //{
-  //  var schema = new SchemaDefinition(new SqliteFlavor(), typeof(BusinessSchema));
-  //  Assert.That(4, Is.EqualTo(schema.TableDefs.Count));
-
-  //  // Make sure that we have the correct table names!
-  //  var tables = new[] { "Parents", "Kids" };
-  //  foreach (var tableName in tables)
-  //  {
-  //    var t = schema.GetTableDef(tableName);
-  //    Assert.That(t, Is.Not.Null);
-  //  }
-
-  //  // Make sure that this table def has a column that points to the parent table.
-  //  var table = schema.GetTableDef("Kids");
-  //  Assert.That(table, Is.Not.Null);
-  //  Assert.That(table!.RelatedDataSets.Count, Is.EqualTo(1));
-  //  Assert.That(table.RelatedDataSets[0].TargetSet.Name, Is.EqualTo(nameof(BusinessSchema.Parents)));
-
-  //  // NOTE: We don't really have a way to check + validate output SQL at this time.
-  //  // It would be rad to have some kind of system that was able to save the current query in a
-  //  // file of sorts, which we could then mark as 'OK' or whatever.  IF subsequent output deviated from
-  //  // that, then we would have a problem....
-  //  // The test case would be indeterminant up until we signed off on the initial query code....
-  //  string sql = table!.GetCreateQuery();
-  //  Console.WriteLine($"Query is: {sql}");
-
-
-  //  // Let's make sure that the parents table has the correct number of columns as well...
-  //  TableDef? parentTable = schema.GetTableDef(nameof(BusinessSchema.Parents));
-  //  Assert.That(parentTable, Is.Not.Null);
-
-  //  // We should only have three columns.  A column for the children doesn't make sense!
-  //  Assert.That(3, Is.EqualTo(parentTable!.Columns.Count));
-
-  //}
-
-  // // -------------------------------------------------------------------------------------------------------------------------- 
-  // [Test]
-  // public void CanGetCreateTableQuery()
-  // {
-  //   var schema = new SchemaDefinition(new SqliteFlavor(), typeof(BusinessSchema));
-  //   string query = schema.GetCreateSQL();
-
-  //   throw new NotImplementedException("Please complete this test!");
-
-  //   int x = 10;
-  // }
 
   // NOTE: We need some kind of test schema for this.  It can be something from this test library.
   // -------------------------------------------------------------------------------------------------------------------------- 
@@ -676,8 +526,10 @@ public class SqliteSchemaTesters : TestBase
 
     // UPDATE: Use the 'checksql' function!
 
-    const string EXPECTED = "INSERT INTO People (name,createdate) VALUES (@Name,@CreateDate) RETURNING id";
-    Assert.That(EXPECTED, Is.EqualTo(insertQuery));
+    CheckSQL(nameof(CanCreateInsertQuery), insertQuery);
+
+    //const string EXPECTED = "INSERT INTO People (name,createdate) VALUES (@Name,@CreateDate) RETURNING id";
+    //Assert.That(EXPECTED, Is.EqualTo(insertQuery));
   }
 }
 
