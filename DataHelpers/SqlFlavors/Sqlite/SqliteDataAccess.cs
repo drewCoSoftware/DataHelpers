@@ -22,9 +22,12 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   private SchemaDefinition _Schema;
   public SchemaDefinition SchemaDef { get { return _Schema; } }
 
-
+  [Obsolete("This will be provided by DBA!")]
   private SqliteConnection Connection = null!;
+  [Obsolete]
   private SqliteTransaction? Transaction = null!;
+
+  private DHandler DBA = null!;
 
   // --------------------------------------------------------------------------------------------------------------------------
   public SqliteDataAccess(string connectionString, SchemaDefinition schema_, string dataDir_)
@@ -33,6 +36,8 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
     _Schema = schema_;
     DataDirectory = dataDir_;
 
+    DBA = new DHandler(SqliteFactory.Instance, this.ConnectionString, this.SchemaDef);
+
     Connection = new SqliteConnection(ConnectionString);
     Connection.Open();
   }
@@ -40,9 +45,19 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   // --------------------------------------------------------------------------------------------------------------------------
   public void Dispose()
   {
+    DBA.Dispose();
+
     Transaction?.Commit();
     Transaction?.Dispose();
     Connection.Dispose();
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public List<T> TestQuery<T>(string query, QueryParams qParams)  
+    where T: new()
+  { 
+      var res=  DBA.Query<T>(query, qParams);
+      return res;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -86,7 +101,8 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
       {
         useParams = qParams as QueryParams;
       }
-      else {
+      else
+      {
         useParams = Helpers.CreateParams(queryType, qParams);
       }
     }
@@ -137,7 +153,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
       }
     }
 
-   var res = conn.Query<T>(query, useParams);
+    var res = conn.Query<T>(query, useParams);
 
     return res;
   }

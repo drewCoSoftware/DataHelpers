@@ -12,6 +12,9 @@ using System.Linq;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using NUnit.Framework.Interfaces;
+using Dapper;
+using static Dapper.SqlMapper;
+using System.Data;
 
 namespace DataHelpersTesters;
 
@@ -21,6 +24,57 @@ namespace DataHelpersTesters;
 // a way to generate test data for the query generation tests, I think this is very possible.
 public class SqliteSchemaTesters : TestBase
 {
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// This test case was provided to show that when we select data with related members, the single relations
+  /// will be populated and report ids.
+  /// NOTE: This might be a good place to look into adding 'many relation' selections as well.
+  /// </summary>
+  [Test]
+  public void CanGetRelatedDataFromSelectQuery()
+  {
+
+    IDataFactory<VacationSchema> factory = CreateTestDataBaseFor<VacationSchema>(CurrentFunctionName());
+    var schema = factory.Schema;
+
+
+
+    var testPlace = new Place()
+    {
+      Country = "Testistan",
+      Name = "The Royal Gardens",
+    };
+    factory.Add<Place>(testPlace);
+
+    Traveler testTraveler = new()
+    {
+      FavoritePlace = testPlace,
+      Name = "Test Testington"
+    };
+    factory.Add(testTraveler);
+
+
+    // This shows that we can 
+    factory.Action<Place>(dal => {
+      var qParams = Helpers.CreateParams("select", new { id = testTraveler.ID });
+      Traveler t = (dal as SqliteDataAccess<VacationSchema>).TestQuery<Traveler>("SELECT * FROM Travelers WHERE id = @id", qParams).Single();
+      
+      int x = 10;
+      // Console.WriteLine("there are : " + items.Count);
+      return null;
+    });
+
+
+    // Let's grab us a traveler and see their favorite place!
+    var check = factory.GetById<Traveler>(testTraveler.ID);
+    Assert.That(check, Is.Not.Null);
+    Assert.That(check.FavoritePlace, Is.Not.Null);
+    Assert.That(check.FavoritePlace.ID, Is.EqualTo(testPlace.ID));
+
+    // Finally, the data of the relation should be null because we haven't explicitly resolved it.
+    Assert.That(check.FavoritePlace.Data, Is.Null);
+  }
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
