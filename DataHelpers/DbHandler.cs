@@ -2,6 +2,9 @@
 using System.Data;
 using System.Data.Common;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+
+using BindCallback = System.Action<object>;
 
 // ==============================================================================================================================
 public class DHandler : IDisposable
@@ -12,6 +15,16 @@ public class DHandler : IDisposable
   private string ConnectionString = null!;
   private DbConnection? Connection = null;
   private DbTransaction? Transaction = null;
+
+  /// <summary>
+  /// Cache of property maps for types.
+  /// </summary>
+  private static Dictionary<Type, PropMap> _Generated = new Dictionary<Type, PropMap>();
+  private static object _PropMapLock = new object();
+
+
+  private static Dictionary<Type, List<BindCallback>> _BindCallbacks = new Dictionary<Type, List<BindCallback>>();
+  // private static object _CallbackLock = new object();
 
   // --------------------------------------------------------------------------------------------------------------------------
   public DHandler(DbProviderFactory dbProvider_, string connectionString_, SchemaDefinition schemaDef_)
@@ -27,6 +40,16 @@ public class DHandler : IDisposable
     Transaction?.Commit();
     Transaction?.Dispose();
     Connection?.Dispose();
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public static void RegisterCallback<T>(BindCallback cb) { 
+    
+    if (!_BindCallbacks.TryGetValue(typeof(T), out List<BindCallback> callbacks)) {
+      callbacks = new List<BindCallback>();
+      _BindCallbacks.Add(typeof(T), callbacks);
+    }
+    callbacks.Add(cb);
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -46,15 +69,7 @@ public class DHandler : IDisposable
   public List<T> Query<T>(string query, QueryParams? qParams = null)
   where T : new()
   {
-    // factory.
     var conn = ResolveConnection();
-    //if (conn == null)
-    //{
-    //  throw new InvalidOperationException("Failed to create connection.");
-    //}
-
-    //conn.ConnectionString = connectionString;
-    //conn.Open();
 
     using (DbCommand cmd = conn.CreateCommand())
     {
@@ -98,27 +113,27 @@ public class DHandler : IDisposable
     }
   }
 
-  public static object? Scalar(DbProviderFactory factory, string connectionString, string sql, QueryParams qParams)
-  {
-    using (DbConnection conn = factory.CreateConnection())
-    {
-      if (conn == null)
-      {
-        throw new InvalidOperationException("Failed to create connection.");
-      }
+  //public static object? Scalar(DbProviderFactory factory, string connectionString, string sql, QueryParams qParams)
+  //{
+  //  using (DbConnection conn = factory.CreateConnection())
+  //  {
+  //    if (conn == null)
+  //    {
+  //      throw new InvalidOperationException("Failed to create connection.");
+  //    }
 
-      conn.ConnectionString = connectionString;
-      conn.Open();
+  //    conn.ConnectionString = connectionString;
+  //    conn.Open();
 
-      using (DbCommand cmd = conn.CreateCommand())
-      {
-        cmd.CommandText = sql;
-        AddParameters(cmd, qParams);
-        object? val = cmd.ExecuteScalar();
-        return val is DBNull ? null : val;
-      }
-    }
-  }
+  //    using (DbCommand cmd = conn.CreateCommand())
+  //    {
+  //      cmd.CommandText = sql;
+  //      AddParameters(cmd, qParams);
+  //      object? val = cmd.ExecuteScalar();
+  //      return val is DBNull ? null : val;
+  //    }
+  //  }
+  //}
 
   // --------------------------------------------------------------------------------------------------------------------------
   private static void AddParameters(DbCommand cmd, QueryParams? qParams)
@@ -156,15 +171,8 @@ public class DHandler : IDisposable
     // NOTE: We should be able to get this from the schema / dataset def!
     // Having that def is what will make it so that we can map the special 'ID' properties back onto
     // the return type!
-    PropertyInfo[] props = typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public);
-    Dictionary<string, PropertyInfo> propMap = new Dictionary<string, PropertyInfo>();
-    foreach (PropertyInfo pi in props)
-    {
-      if (pi.CanWrite)
-      {
-        propMap[pi.Name] = pi;
-      }
-    }
+    PropMap propMap = GetPropertyMap<T>();
+
 
     while (reader.Read())
     {
@@ -198,10 +206,48 @@ public class DHandler : IDisposable
         }
       }
 
+      // This is where we can do callbacks....
+      if (_BindCallbacks.TryGetValue(typeof(T), out  var callbacks))
+      {
+        foreach (var c in callbacks) {
+          c.Invoke((T)item);
+        }
+      }
+
       results.Add(item);
     }
 
     return results;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private static PropMap GetPropertyMap<T>()
+  {
+    // NOTE: I'm thinking that the property maps can even come from 'SchemaDef'!
+
+
+
+    lock (_PropMapLock)
+    {
+      if (_Generated.TryGetValue(typeof(T), out var res))
+      {
+        return res;
+      }
+
+      PropertyInfo[] props = typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public);
+      Dictionary<string, PropertyInfo> propMap = new Dictionary<string, PropertyInfo>();
+      foreach (PropertyInfo pi in props)
+      {
+        if (pi.CanWrite)
+        {
+          propMap[pi.Name] = pi;
+        }
+      }
+
+      _Generated.Add(typeof(T), propMap);
+      return propMap;
+    }
+
   }
 
   private static object? ConvertValue(object value, Type targetType)

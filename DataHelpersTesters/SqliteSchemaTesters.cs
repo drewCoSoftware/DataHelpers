@@ -54,12 +54,23 @@ public class SqliteSchemaTesters : TestBase
     };
     factory.Add(testTraveler);
 
+    //DbHandler.RegisterBindCallback<Traveler>(x =>
+    //{
+    //  var place = (Traveler)x;
+
+    //  int xby = 10;
+    //});
+
 
     // This shows that we can 
-    factory.Action<Place>(dal => {
+    factory.Action<Place>(dal =>
+    {
       var qParams = Helpers.CreateParams("select", new { id = testTraveler.ID });
       Traveler t = (dal as SqliteDataAccess<VacationSchema>).TestQuery<Traveler>("SELECT * FROM Travelers WHERE id = @id", qParams).Single();
-      
+
+      Assert.That(t.ID, Is.EqualTo(testTraveler.ID));
+      Assert.That(t.Name, Is.EqualTo(testTraveler.Name));
+
       int x = 10;
       // Console.WriteLine("there are : " + items.Count);
       return null;

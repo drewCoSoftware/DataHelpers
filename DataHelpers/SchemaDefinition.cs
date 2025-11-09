@@ -74,6 +74,20 @@ public class SchemaDefinition
 
     ValidateSchema();
 
+    CreatePropertyMap();
+
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Creates the property map that is used during querying for binding data.
+  /// </summary>
+  private void CreatePropertyMap()
+  {
+    foreach (var td in this.TableDefs)
+    {
+      td.CreatePropertyMap();
+    }
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -634,7 +648,8 @@ public class TableDef
                                  isPrimary,
                                  isUnique,
                                  isNullable,
-                                 relAttr));
+                                 relAttr,
+                                 p));
 
     }
   }
@@ -1033,7 +1048,7 @@ public class TableDef
           {
             // Create the new def.....
             string dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
-            var cd = new ColumnDef(useName, typeof(int), dbTypeName, false, col.IsUnique, col.IsNullable, rd);
+            var cd = new ColumnDef(useName, typeof(int), dbTypeName, false, col.IsUnique, col.IsNullable, rd, null);
             toAdd.Add(cd);
           }
         }
@@ -1104,7 +1119,7 @@ public class TableDef
               int x = 10;
             }
 
-            var colDef = new ColumnDef(useName, typeof(int), dbTypeName, false, false, false, useRelation);
+            var colDef = new ColumnDef(useName, typeof(int), dbTypeName, false, false, false, useRelation, null);
             targetSet.AddColumn(colDef);
           }
         }
@@ -1157,7 +1172,7 @@ public class TableDef
     string intTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
 
     var td = new TableDef(null, mtName, this.Schema);
-    td.AddColumn(new ColumnDef(nameof(IHasPrimary.ID), intType, intTypeName, true, false, false, null));
+    td.AddColumn(new ColumnDef(nameof(IHasPrimary.ID), intType, intTypeName, true, false, false, null, null));
 
     // Now the id refs for each of the data sets.
     string idCol1 = $"{relSet.Name}_{nameof(IHasPrimary.ID)}";
@@ -1172,7 +1187,7 @@ public class TableDef
         DataSetName = index == 0 ? relSet.Name : mutualRelation.DataSetName,
         LocalIDPropertyName = c,
         RelationType = ERelationType.Single
-      });
+      }, null);
       td.AddColumn(cd);
       ++index;
     }
@@ -1213,6 +1228,26 @@ public class TableDef
     this._Columns.Remove(colDef);
   }
 
+
+  public PropMap PropMap {get; private set; }= null!;
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  internal void CreatePropertyMap()
+  {
+      PropMap = new PropMap();
+
+      foreach (var colDef in this.Columns){
+        
+        // For the most part, only scalars get added to the property map!
+        if (colDef.PropInfo != null && ReflectionTools.IsSimpleType(colDef.RuntimeType)) {
+          PropMap.Add(colDef.Name, colDef.PropInfo);
+        }
+        // colDef.RuntimeType
+      }
+      
+      int z = 23905;
+  }
+
   //// ------------------------------------------------------------------------------------------------
   ///// <summary>
   ///// Creates an insert query using the given object as a model.
@@ -1238,6 +1273,10 @@ public class TableDef
   //}
 }
 
+public class PropMapInfo { 
+}
+
+
 // ============================================================================================================================
 public class ColumnDef
 {
@@ -1254,6 +1293,8 @@ public class ColumnDef
   public bool IsUnique { get; private set; }
   public bool IsNullable { get; private set; }
 
+  public PropertyInfo? PropInfo { get; private set; } = null;
+
   //// NOTE: This has a non-private setter b/c we have to update them sometimes, after the fact,
   //// because of the sloppy way that we are currently creating the table defs.
   //// we should have it so that the columns are added to the def BEFORE we attempt resolve the relationships.
@@ -1266,7 +1307,7 @@ public class ColumnDef
   internal RelationAttribute? RelationDef { get; set; } = null;
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public ColumnDef(string name, Type runtimeType, string dataType, bool isPrimary, bool isUnique, bool isNullable, RelationAttribute? relationDef_)
+  public ColumnDef(string name, Type runtimeType, string dataType, bool isPrimary, bool isUnique, bool isNullable, RelationAttribute? relationDef_, PropertyInfo? propInfo_)
   {
     Name = name;
     RuntimeType = runtimeType;
@@ -1275,6 +1316,7 @@ public class ColumnDef
     IsUnique = isUnique;
     IsNullable = isNullable;
     RelationDef = relationDef_;
+    PropInfo = propInfo_;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
