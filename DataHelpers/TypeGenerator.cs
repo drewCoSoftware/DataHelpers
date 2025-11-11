@@ -9,58 +9,6 @@ public interface IHasPrimary
 }
 
 
-///// <summary>
-///// Indicates that this type supports a many-many relationship via mapping table.
-///// </summary>
-//public interface MappingTable { 
-//  public 
-//}
-
-//// ==============================================================================================================================
-//[AttributeUsage(AttributeTargets.Class)]
-//public class MappingTableAttribute : Attribute
-//{
-//  //public readonly Type DataSet1Type = null;
-//  //public readonly Type DataSet2Type = null;
-//  public readonly string DataSet1 = null!;
-//  public readonly string DataSet2 = null!;
-//  public readonly string DataSet1ID = null!;
-//  public readonly string DataSet2ID = null!;
-
-//  // --------------------------------------------------------------------------------------------------------------------------
-//  public MappingTableAttribute(string dataSet1_, string dataSet2_, string idName1_, string idName2_)
-//  {
-//    //DataSet1Type = dataSet1Type_;
-//    //DataSet2Type = dataSet2Type_;
-//    DataSet1 = dataSet1_;
-//    DataSet2 = dataSet2_;
-//    DataSet1ID = idName1_;
-//    DataSet2ID = idName2_;
-//  }
-//}
-
-//// ============================================================================================================================
-///// <summary>
-///// This indicates that there are child tables that point back to this parent via FK relationship.
-///// </summary>
-//[Obsolete("This will be removed in favor of 'Relationship' semantics")]
-//[AttributeUsage(AttributeTargets.Property)]
-//public class ChildRelationship : Attribute
-//{
-//}
-
-
-//// ============================================================================================================================
-///// <summary>
-///// Indicates that the member points to a parent table via FK relationship.
-///// </summary>
-//[Obsolete("This will be removed in favor of 'Relationship' semantics")]
-//[AttributeUsage(AttributeTargets.Property)]
-//public class ParentRelationship : Attribute
-//{
-//}
-
-
 // ============================================================================================================================
 /// <summary>
 /// This allows us to have many sets of the same type that can have different names.

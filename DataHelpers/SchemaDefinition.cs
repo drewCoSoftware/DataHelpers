@@ -295,11 +295,11 @@ public class SchemaDefinition
         // }
         // // else
         // {
-        values.Add($"@{c.Name}");
+        values.Add($"@{c.PropertyName}");
         //        }
 
         // NOTE: This is where we will check for nulls, default values, etc.
-        columns.Add(c.Name);
+        columns.Add(c.PropertyName);
       }
 
       // INSERT
@@ -407,7 +407,7 @@ public class SchemaDefinition
       for (int i = 0; i < len; i++)
       {
         var srcCol = src.Columns[i];
-        var compCol = comp.GetColumn(srcCol.Name);
+        var compCol = comp.GetColumn(srcCol.PropertyName);
         if (compCol == null) { return false; }
 
         // We can get even deeper into matching here if we want, but this should be OK for now...
@@ -515,15 +515,15 @@ public class SchemaDefinition
     // throw new NotImplementedException();
   }
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  /// <summary>
-  /// NOTE: This should happen when we are building out our defs.
-  /// NOTE: It should also be part of the current sql flavor too!
-  /// </summary>
-  public static string FormatName(string name)
-  {
-    return name.ToLower();
-  }
+  //// --------------------------------------------------------------------------------------------------------------------------
+  ///// <summary>
+  ///// NOTE: This should happen when we are building out our defs.
+  ///// NOTE: It should also be part of the current sql flavor too!
+  ///// </summary>
+  //public static string FormatColumnName(string name)
+  //{
+  //  return name.ToLower();
+  //}
 
   // --------------------------------------------------------------------------------------------------------------------------
   private List<TableDef> SortDependencies(Dictionary<string, TableDef> tableDefs)
@@ -593,7 +593,16 @@ public class TableDef
   public ColumnDef? GetColumn(string name)
   {
     var res = (from x in _Columns
-               where x.Name == name
+               where x.PropertyName == name
+               select x).FirstOrDefault();
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public ColumnDef? GetColumnByDataStoreName(string name)
+  {
+    var res = (from x in _Columns
+               where x.DataStoreName == name
                select x).FirstOrDefault();
     return res;
   }
@@ -640,9 +649,12 @@ public class TableDef
         relAttr.RelationType = GetRelationType(p.PropertyType);
       }
 
+      string colName = this.Schema.Flavor.GetDataStoreName(p.Name);
+
       // This is a normal property.
       // NOTE: Non-related lists can't be represented.... should we make it so that lists are always included?
       _Columns.Add(new ColumnDef(p.Name,
+                                 colName,
                                  p.PropertyType,
                                  Schema.Flavor.TypeResolver.GetDataTypeName(p.PropertyType, isPrimary),
                                  isPrimary,
@@ -656,13 +668,14 @@ public class TableDef
 
   // --------------------------------------------------------------------------------------------------------------------------
   [Obsolete("Use IsNullable from drewco.tools.reflectiontools > 1.4.1.0")]
-  public static bool IsNullableEx(Type t) {
+  public static bool IsNullableEx(Type t)
+  {
 
     bool isNullable = ReflectionTools.HasAttribute<IsNullableAttribute>(t) ||
                       ReflectionTools.HasAttribute<System.Runtime.CompilerServices.NullableAttribute>(t) ||
                       t.Name.StartsWith("Nullable`1");
 
-                      return isNullable;
+    return isNullable;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -701,7 +714,7 @@ public class TableDef
 
     foreach (var col in Columns)
     {
-      string useName = SchemaDefinition.FormatName(col.Name);
+      string useName = col.DataStoreName;
 
       string def = $"{useName} {col.DataType}";
       if (col.IsPrimary)
@@ -728,7 +741,7 @@ public class TableDef
       if (col.RelatedDataSet != null)
       {
 
-        string fk = $"FOREIGN KEY({useName}) REFERENCES {col.RelatedDataSet.TargetSet.Name}({col.RelatedDataSet.TargetIDColumn.Name})";
+        string fk = $"FOREIGN KEY({useName}) REFERENCES {col.RelatedDataSet.TargetSet.Name}({col.RelatedDataSet.TargetIDColumn.PropertyName})";
         fkDefs.Add(fk);
       }
 
@@ -765,7 +778,7 @@ public class TableDef
     ICollection<ColumnDef> useDefs = useCols != null ? SelectColumns(useCols) : this.Columns;
     foreach (var c in useDefs)
     {
-      string colName = SchemaDefinition.FormatName(c.Name);
+      string colName = c.DataStoreName;
 
       if (c.IsPrimary)
       {
@@ -776,7 +789,7 @@ public class TableDef
       // NOTE: This makes no consideration for foreign keys, cols with defaults, etc.
       // We just throw them all in.
       colNames.Add(colName);
-      colVals.Add("@" + c.Name);  // NOTE: We are using the same casing as the original datatype for the value parameters!
+      colVals.Add("@" + c.PropertyName);  // NOTE: We are using the same casing as the original datatype for the value parameters!
     }
 
     return new NamesAndValues(colNames, colVals, pkName);
@@ -792,7 +805,7 @@ public class TableDef
     {
       foreach (var colDef in this._Columns)
       {
-        if (c == colDef.Name)
+        if (c == colDef.PropertyName)
         {
           res.Add(colDef);
         }
@@ -955,7 +968,7 @@ public class TableDef
         {
           TargetSet = targetSet,
           TargetIDColumn = targetSet.GetColumn(nameof(IHasPrimary.ID)),
-          PropertyPath = col.Name,
+          PropertyPath = col.PropertyName,
           RelationType = col.RelationDef.RelationType,
         };
         this.RelatedDataSets.Add(ddsInfo);
@@ -984,7 +997,7 @@ public class TableDef
   private void AddColumn(ColumnDef colDef)
   {
     // Only add the def if it doesn't already have 
-    var match = (from x in _Columns where x.Name == colDef.Name select x).FirstOrDefault();
+    var match = (from x in _Columns where x.PropertyName == colDef.PropertyName select x).FirstOrDefault();
     if (match != null)
     {
       if (ColumnDef.AreSame(colDef, match))
@@ -1038,17 +1051,18 @@ public class TableDef
         {
           // In single relations we use a column from this type.
           // Because we are using one of our special data types, that defined column is mapped to it. <-- review this, does it make sense?
-          string useName = rd.LocalIDPropertyName ?? $"{rd.DataSetName}_{nameof(IHasPrimary.ID)}";
-          rd.LocalIDPropertyName = useName;
+          string propName = rd.LocalIDPropertyName ?? $"{rd.DataSetName}_{nameof(IHasPrimary.ID)}";
+          string colName = Schema.Flavor.GetDataStoreName(propName);
+          rd.LocalIDPropertyName = propName;
           // rd.RelationType = GetRelationType(col);
-          var match = this.GetColumn(useName);
-          if (match == null) { match = (from x in toAdd where x.Name == useName select x).SingleOrDefault(); }
+          var match = this.GetColumn(propName);
+          if (match == null) { match = (from x in toAdd where x.PropertyName == propName select x).SingleOrDefault(); }
 
           if (match == null)
           {
             // Create the new def.....
             string dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
-            var cd = new ColumnDef(useName, typeof(int), dbTypeName, false, col.IsUnique, col.IsNullable, rd, null);
+            var cd = new ColumnDef(propName, colName, typeof(int), dbTypeName, false, col.IsUnique, col.IsNullable, rd, null);
             toAdd.Add(cd);
           }
         }
@@ -1099,6 +1113,7 @@ public class TableDef
 
             // This columnd def gets added to the target dataset, NOT this one....
             string useName = rd.TargetIDPropertyName ?? $"{this.Name}_{nameof(IHasPrimary.ID)}";
+            string sqlName = Schema.Flavor.GetDataStoreName(useName);
 
             string dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
 
@@ -1119,7 +1134,7 @@ public class TableDef
               int x = 10;
             }
 
-            var colDef = new ColumnDef(useName, typeof(int), dbTypeName, false, false, false, useRelation, null);
+            var colDef = new ColumnDef(useName, sqlName, typeof(int), dbTypeName, false, false, false, useRelation, null);
             targetSet.AddColumn(colDef);
           }
         }
@@ -1171,8 +1186,11 @@ public class TableDef
     Type intType = typeof(int);
     string intTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
 
+    string useName = nameof(IHasPrimary.ID);
+    string sqlName = Schema.Flavor.GetDataStoreName(useName);
+
     var td = new TableDef(null, mtName, this.Schema);
-    td.AddColumn(new ColumnDef(nameof(IHasPrimary.ID), intType, intTypeName, true, false, false, null, null));
+    td.AddColumn(new ColumnDef(useName, sqlName, intType, intTypeName, true, false, false, null, null));
 
     // Now the id refs for each of the data sets.
     string idCol1 = $"{relSet.Name}_{nameof(IHasPrimary.ID)}";
@@ -1182,7 +1200,8 @@ public class TableDef
     int index = 0;
     foreach (var c in cols)
     {
-      var cd = new ColumnDef(c, intType, intTypeName, false, false, false, new RelationAttribute()
+      sqlName = Schema.Flavor.GetDataStoreName(c);
+      var cd = new ColumnDef(c, sqlName, intType, intTypeName, false, false, false, new RelationAttribute()
       {
         DataSetName = index == 0 ? relSet.Name : mutualRelation.DataSetName,
         LocalIDPropertyName = c,
@@ -1228,25 +1247,27 @@ public class TableDef
     this._Columns.Remove(colDef);
   }
 
-
-  public PropMap PropMap {get; private set; }= null!;
+  public PropMap PropMap { get; private set; } = null!;
 
   // --------------------------------------------------------------------------------------------------------------------------
   internal void CreatePropertyMap()
   {
-      PropMap = new PropMap();
+    PropMap = new PropMap();
 
-      foreach (var colDef in this.Columns){
-        
-        // For the most part, only scalars get added to the property map!
-        if (colDef.PropInfo != null && ReflectionTools.IsSimpleType(colDef.RuntimeType)) {
-          PropMap.Add(colDef.Name, colDef.PropInfo);
-        }
-        // colDef.RuntimeType
-      }
-      
-      int z = 23905;
+    foreach (var colDef in this.Columns)
+    {
+
+      // For the most part, only scalars get added to the property map!
+      //if (colDef.PropInfo != null && ReflectionTools.IsSimpleType(colDef.RuntimeType))
+      //{
+      //  PropMap.Add(colDef.DataStoreName, colDef);
+      //}
+      // colDef.RuntimeType
+    }
+
+    int z = 23905;
   }
+
 
   //// ------------------------------------------------------------------------------------------------
   ///// <summary>
@@ -1273,7 +1294,8 @@ public class TableDef
   //}
 }
 
-public class PropMapInfo { 
+public class PropMapInfo
+{
 }
 
 
@@ -1286,7 +1308,8 @@ public class ColumnDef
   public const string RELATION_PLACEHOLDER = "@_RELATION";
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public string Name { get; private set; }                 // This is the same name as the property that this def comes from.
+  public string? PropertyName { get; private set; }                 // This is the same name as the property that this def comes from.
+  public string DataStoreName { get; private set; }                 // The name that is used in the data-store (SQL for example)
   public Type RuntimeType { get; private set; }
   public string DataType { get; private set; }
   public bool IsPrimary { get; private set; }
@@ -1307,9 +1330,10 @@ public class ColumnDef
   internal RelationAttribute? RelationDef { get; set; } = null;
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public ColumnDef(string name, Type runtimeType, string dataType, bool isPrimary, bool isUnique, bool isNullable, RelationAttribute? relationDef_, PropertyInfo? propInfo_)
+  public ColumnDef(string propName, string dataStoreName, Type runtimeType, string dataType, bool isPrimary, bool isUnique, bool isNullable, RelationAttribute? relationDef_, PropertyInfo? propInfo_)
   {
-    Name = name;
+    PropertyName = propName;
+    DataStoreName = dataStoreName;
     RuntimeType = runtimeType;
     DataType = dataType;
     IsPrimary = isPrimary;
@@ -1322,7 +1346,7 @@ public class ColumnDef
   // --------------------------------------------------------------------------------------------------------------------------
   public static bool AreSame(ColumnDef colDef, ColumnDef match)
   {
-    bool res = (colDef.Name == match.Name &&
+    bool res = (colDef.PropertyName == match.PropertyName &&
                 colDef.IsPrimary == match.IsPrimary &&
                 colDef.DataType == match.DataType &&
                 colDef.IsUnique == match.IsUnique);

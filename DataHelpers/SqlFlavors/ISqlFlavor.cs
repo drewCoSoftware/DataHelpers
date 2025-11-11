@@ -10,7 +10,15 @@
   {
     IDataTypeResolver TypeResolver { get; }
 
-//    string GetIdentitySyntax(ColumnDef col);
+    /// <summary>
+    /// Compute the name that will be used on the data store (typically sql)
+    /// for this property.
+    /// </summary>
+    string GetDataStoreName(string propName)
+    {
+      string res = propName.ToLower();
+      return res;
+    }
   }
 
 

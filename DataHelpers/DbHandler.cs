@@ -1,9 +1,10 @@
 ﻿using DataHelpers.Data;
+using drewCo.Tools.Logging;
 using System.Data;
 using System.Data.Common;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-
+using System.Security.Cryptography;
 using BindCallback = System.Action<object>;
 
 // ==============================================================================================================================
@@ -43,9 +44,11 @@ public class DHandler : IDisposable
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public static void RegisterCallback<T>(BindCallback cb) { 
-    
-    if (!_BindCallbacks.TryGetValue(typeof(T), out List<BindCallback> callbacks)) {
+  public static void RegisterCallback<T>(BindCallback cb)
+  {
+
+    if (!_BindCallbacks.TryGetValue(typeof(T), out List<BindCallback> callbacks))
+    {
       callbacks = new List<BindCallback>();
       _BindCallbacks.Add(typeof(T), callbacks);
     }
@@ -113,28 +116,6 @@ public class DHandler : IDisposable
     }
   }
 
-  //public static object? Scalar(DbProviderFactory factory, string connectionString, string sql, QueryParams qParams)
-  //{
-  //  using (DbConnection conn = factory.CreateConnection())
-  //  {
-  //    if (conn == null)
-  //    {
-  //      throw new InvalidOperationException("Failed to create connection.");
-  //    }
-
-  //    conn.ConnectionString = connectionString;
-  //    conn.Open();
-
-  //    using (DbCommand cmd = conn.CreateCommand())
-  //    {
-  //      cmd.CommandText = sql;
-  //      AddParameters(cmd, qParams);
-  //      object? val = cmd.ExecuteScalar();
-  //      return val is DBNull ? null : val;
-  //    }
-  //  }
-  //}
-
   // --------------------------------------------------------------------------------------------------------------------------
   private static void AddParameters(DbCommand cmd, QueryParams? qParams)
   {
@@ -156,7 +137,7 @@ public class DHandler : IDisposable
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  private static List<T> MapToList<T>(IDataReader reader)
+  private List<T> MapToList<T>(IDataReader reader)
     where T : new()
   {
     List<T> results = new List<T>();
@@ -171,8 +152,9 @@ public class DHandler : IDisposable
     // NOTE: We should be able to get this from the schema / dataset def!
     // Having that def is what will make it so that we can map the special 'ID' properties back onto
     // the return type!
-    PropMap propMap = GetPropertyMap<T>();
+    // PropMap colMap = GetColumnMap<T>();
 
+    var td = SchemaDef.GetTableDef<T>();
 
     while (reader.Read())
     {
@@ -180,10 +162,45 @@ public class DHandler : IDisposable
 
       foreach (KeyValuePair<string, int> kvp in ordinals)
       {
-        if (!propMap.TryGetValue(kvp.Key, out PropertyInfo? prop))
+        var col = td.GetColumnByDataStoreName(kvp.Key);
+        if (col == null)
         {
           continue;
         }
+        var prop = col.PropInfo;
+        if (prop == null)
+        {
+          if (col.RelationDef == null)
+          {
+            Log.Verbose($"The column named: {kvp.Key} on type: {td.Name} does not have a PropertyInfo or Relation!");
+            continue;
+          }
+
+          // We have a relation, so this is where we can create / populate that id....
+          // We can resolve the data type, but I also need to be able to point this to a property on the current type....
+          var rel = col.RelationDef;
+          if (rel.RelationType != DataHelpers.ERelationType.Single)
+          {
+            // Umm.... this is a maybe, not sure what the conditions are ATM...
+            throw new Exception("There is apparently data for a many relation on this dataset?  Is that right?");
+          }
+
+          var targetSet = SchemaDef.GetTableDef(rel.DataSetName);
+          if (targetSet == null) { throw new NullReferenceException($"There is no data set named: {rel.DataSetName} in the schema!"); }
+
+
+          var instance = Activator.CreateInstance(targetSet.DataType) as IHasPrimary;
+          // instance.ID = kvp.Value;
+
+          int xyz = 10;
+
+          continue;
+        }
+        //if (!colMap.TryGetValue(kvp.Key, out ColumnDef? prop))
+        //{
+        //  // This is probably where we want to check for special, ID types!
+        //  continue;
+        //}
 
         object? raw = reader.IsDBNull(kvp.Value) ? null : reader.GetValue(kvp.Value);
         if (raw == null)
@@ -194,22 +211,20 @@ public class DHandler : IDisposable
 
         Type targetType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
 
-        try
-        {
-          object? converted = ConvertValue(raw, targetType);
-          prop.SetValue(item, converted);
-        }
-        catch
-        {
-          // Silent skip on conversion issues, or throw if preferred
-          // throw; 
-        }
+        object? converted = ConvertValue(raw, targetType);
+        prop.SetValue(item, converted);
+        //catch
+        //{
+        //  // Silent skip on conversion issues, or throw if preferred
+        //  // throw; 
+        //}
       }
 
       // This is where we can do callbacks....
-      if (_BindCallbacks.TryGetValue(typeof(T), out  var callbacks))
+      if (_BindCallbacks.TryGetValue(typeof(T), out var callbacks))
       {
-        foreach (var c in callbacks) {
+        foreach (var c in callbacks)
+        {
           c.Invoke((T)item);
         }
       }
@@ -221,32 +236,32 @@ public class DHandler : IDisposable
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  private static PropMap GetPropertyMap<T>()
+  private PropMap GetColumnMap<T>()
   {
     // NOTE: I'm thinking that the property maps can even come from 'SchemaDef'!
+    var td = SchemaDef.GetTableDef<T>();
+    return td.PropMap;
 
+    //lock (_PropMapLock)
+    //{
+    //  if (_Generated.TryGetValue(typeof(T), out var res))
+    //  {
+    //    return res;
+    //  }
 
+    //  PropertyInfo[] props = typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public);
+    //  Dictionary<string, PropertyInfo> propMap = new Dictionary<string, PropertyInfo>();
+    //  foreach (PropertyInfo pi in props)
+    //  {
+    //    if (pi.CanWrite)
+    //    {
+    //      propMap[pi.Name] = pi;
+    //    }
+    //  }
 
-    lock (_PropMapLock)
-    {
-      if (_Generated.TryGetValue(typeof(T), out var res))
-      {
-        return res;
-      }
-
-      PropertyInfo[] props = typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public);
-      Dictionary<string, PropertyInfo> propMap = new Dictionary<string, PropertyInfo>();
-      foreach (PropertyInfo pi in props)
-      {
-        if (pi.CanWrite)
-        {
-          propMap[pi.Name] = pi;
-        }
-      }
-
-      _Generated.Add(typeof(T), propMap);
-      return propMap;
-    }
+    //  _Generated.Add(typeof(T), propMap);
+    //  return propMap;
+    //}
 
   }
 
