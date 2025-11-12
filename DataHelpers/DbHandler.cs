@@ -171,8 +171,7 @@ public class DHandler : IDisposable
         throw new NotSupportedException("This scenario is not supported!  We can only map primitive types when there is one column of results!");
       }
 
-      var res = ReadScalarColumnData<T>(reader);
-      return res;
+      return ReadScalarColumnData<T>(reader);
 
     }
 
@@ -238,19 +237,28 @@ public class DHandler : IDisposable
 
   // --------------------------------------------------------------------------------------------------------------------------
   private void MapRelationData<T>(IDataReader reader, T item, KeyValuePair<string, int> kvp, ColumnDef col)
-  //where T : new()
   {
     // We have a relation, so this is where we can create / populate that id....
     // We can resolve the data type, but I also need to be able to point this to a property on the current type....
     var rel = col.RelationDef;
-    if (rel.RelationType != DataHelpers.ERelationType.Single)
+    if (rel.RelationType == ERelationType.Single)
     {
-      // Umm.... this is a maybe, not sure what the conditions are ATM...
-      throw new Exception("There is apparently data for a many relation on this dataset?  Is that right?");
+      if (rel.TargetProperty == null)
+      {
+        throw new ArgumentNullException("A target property should be set on this relation!");
+      }
     }
-    if (rel.TargetProperty == null)
+    else if (rel.RelationType == ERelationType.Many)
     {
-      throw new ArgumentNullException("A target property should be set on this relation!");
+      // NOTE: We aren't doing any specific checks here, but in the future when we want to do more
+      // specific mappings we will definitely have to care about this stuff.
+      Log.Warning("There is no specific support or checks for ManyRelations at this point!");
+      //if (rel.TargetProperty != null)
+      //{
+      //  // This is probably a many->many, but I am not really sure if we want to do anything about that...
+      //  // Umm.... this is a maybe, not sure what the conditions are ATM...
+      //  throw new Exception("There is apparently data for a many relation on this dataset?  Is that right?");
+      //}
     }
 
     var targetSet = SchemaDef.GetTableDef(rel.DataSetName);

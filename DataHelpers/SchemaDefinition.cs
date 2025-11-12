@@ -1082,7 +1082,9 @@ public class TableDef
 
           // if (mutualRelation.DataSetName == this.Name) { throw new Exception("cicular dependency?"); }
 
-          if (mutualRelation != null && mutualRelation.RelationType == ERelationType.Many && mutualRelation.DataSetName == this.Name)
+          if (mutualRelation != null &&
+              mutualRelation.RelationType == ERelationType.Many &&
+              mutualRelation.DataSetName == this.Name)
           {
             // This is a many-many relationship!
             string mtName = ComputeMappingSetName(relSet, mutualRelation);
@@ -1110,7 +1112,7 @@ public class TableDef
           }
           else
           {
-
+            // This is a one-many relationship.
 
             // This columnd def gets added to the target dataset, NOT this one....
             string useName = rd.TargetIDPropertyName ?? $"{this.Name}_{nameof(IHasPrimary.ID)}";
@@ -1121,6 +1123,7 @@ public class TableDef
             var useRelation = new RelationAttribute(this.Name);
             useRelation.TargetIDPropertyName = nameof(IHasPrimary.ID);
             useRelation.RelationType = ERelationType.Many;
+            useRelation.TargetProperty = mutualRelation.TargetProperty;
 
             // TODO: This is where we would check to make sure that there is already a column with the correct
             // name that corresponds to a SingleRelation or ManyRelation member....
