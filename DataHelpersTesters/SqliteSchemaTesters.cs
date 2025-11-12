@@ -70,7 +70,7 @@ public class SqliteSchemaTesters : TestBase
 
       Assert.That(t.ID, Is.EqualTo(testTraveler.ID));
       Assert.That(t.Name, Is.EqualTo(testTraveler.Name));
-
+      Assert.That(t.FavoritePlace.ID, Is.Not.EqualTo(0));
       int x = 10;
       // Console.WriteLine("there are : " + items.Count);
       return null;

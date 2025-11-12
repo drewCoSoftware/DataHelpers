@@ -21,7 +21,7 @@ public interface IRelation
 // Used for easy type detection.
 public interface ISingleRelation : IRelation
 {
-  int ID { get; }
+  int ID { get; set; }
 }
 
 // ==========================================================================
@@ -62,7 +62,7 @@ where T : class, IHasPrimary
     set
     {
       _ID = value;
-      if (_Data.ID != _ID)
+      if (_Data != null && _Data.ID != _ID)
       {
         _Data = null;
       }

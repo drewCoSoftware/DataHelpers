@@ -647,6 +647,7 @@ public class TableDef
       if (relAttr != null)
       {
         relAttr.RelationType = GetRelationType(p.PropertyType);
+        relAttr.TargetProperty = p;
       }
 
       string colName = this.Schema.Flavor.GetDataStoreName(p.Name);

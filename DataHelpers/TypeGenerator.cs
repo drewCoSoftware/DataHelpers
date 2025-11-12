@@ -1,4 +1,5 @@
 ﻿using drewCo.Curations;
+using System.Reflection;
 
 namespace DataHelpers.Data;
 
@@ -69,11 +70,10 @@ public class RelationAttribute : Attribute
   /// </summary>
   internal ERelationType RelationType { get; set; }
 
-  ///// <summary>
-  ///// Name of the target property (if any) in the relationship.
-  ///// This is how we can explictly define a bi-directional relationship.
-  ///// </summary>
-  //public string? TargetProperty { get; set; }
+  /// <summary>
+  /// The instance that stores the actualy relation data.  This may not always be set, depending on the scenario.
+  /// </summary>
+  public PropertyInfo? TargetProperty { get; set; }
 
   // --------------------------------------------------------------------------------------------------------------------------
   public RelationAttribute() { }

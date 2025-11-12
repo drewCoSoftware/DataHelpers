@@ -1,4 +1,5 @@
-﻿using DataHelpers.Data;
+﻿using DataHelpers;
+using DataHelpers.Data;
 using drewCo.Tools.Logging;
 using System.Data;
 using System.Data.Common;
@@ -167,6 +168,7 @@ public class DHandler : IDisposable
         {
           continue;
         }
+
         var prop = col.PropInfo;
         if (prop == null)
         {
@@ -176,48 +178,14 @@ public class DHandler : IDisposable
             continue;
           }
 
-          // We have a relation, so this is where we can create / populate that id....
-          // We can resolve the data type, but I also need to be able to point this to a property on the current type....
-          var rel = col.RelationDef;
-          if (rel.RelationType != DataHelpers.ERelationType.Single)
-          {
-            // Umm.... this is a maybe, not sure what the conditions are ATM...
-            throw new Exception("There is apparently data for a many relation on this dataset?  Is that right?");
-          }
-
-          var targetSet = SchemaDef.GetTableDef(rel.DataSetName);
-          if (targetSet == null) { throw new NullReferenceException($"There is no data set named: {rel.DataSetName} in the schema!"); }
-
-
-          var instance = Activator.CreateInstance(targetSet.DataType) as IHasPrimary;
-          // instance.ID = kvp.Value;
-
-          int xyz = 10;
+          MapRelationData(reader, item, kvp, col);
 
           continue;
         }
-        //if (!colMap.TryGetValue(kvp.Key, out ColumnDef? prop))
-        //{
-        //  // This is probably where we want to check for special, ID types!
-        //  continue;
-        //}
 
-        object? raw = reader.IsDBNull(kvp.Value) ? null : reader.GetValue(kvp.Value);
-        if (raw == null)
-        {
-          prop.SetValue(item, null);
-          continue;
-        }
-
-        Type targetType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
-
-        object? converted = ConvertValue(raw, targetType);
-        prop.SetValue(item, converted);
-        //catch
-        //{
-        //  // Silent skip on conversion issues, or throw if preferred
-        //  // throw; 
-        //}
+        // Normal property, nullable or otherwise.
+        object? useVal = ResolveValue(reader, kvp.Value, prop.PropertyType);
+        prop.SetValue(item, useVal);
       }
 
       // This is where we can do callbacks....
@@ -233,6 +201,54 @@ public class DHandler : IDisposable
     }
 
     return results;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private void MapRelationData<T>(IDataReader reader, T item, KeyValuePair<string, int> kvp, ColumnDef col) where T : new()
+  {
+    // We have a relation, so this is where we can create / populate that id....
+    // We can resolve the data type, but I also need to be able to point this to a property on the current type....
+    var rel = col.RelationDef;
+    if (rel.RelationType != DataHelpers.ERelationType.Single)
+    {
+      // Umm.... this is a maybe, not sure what the conditions are ATM...
+      throw new Exception("There is apparently data for a many relation on this dataset?  Is that right?");
+    }
+    if (rel.TargetProperty == null)
+    {
+      throw new ArgumentNullException("A target property should be set on this relation!");
+    }
+
+    var targetSet = SchemaDef.GetTableDef(rel.DataSetName);
+    if (targetSet == null) { throw new NullReferenceException($"There is no data set named: {rel.DataSetName} in the schema!"); }
+
+    // TODO: If we want, we can determine what the generic data type is....
+    //if (targetSet.DataType != rel.TargetProperty.PropertyType)
+    //{
+    //  throw new InvalidOperationException($"The target data set type: {targetSet.DataType} does not match target property type: {rel.TargetProperty.PropertyType}!");
+    //}
+    // Use the ID type on 'IHasPrimary' interface.
+    object? idVal = ResolveValue(reader, kvp.Value, typeof(int));
+    if (idVal != null)
+    {
+      // Create the instance of the relation type + assign the ID.
+      // TODO: At a later date we can decide if there is data in the result set (from a JOIN) where we would
+      // populate the rest of the instance data.
+      var instance = Activator.CreateInstance(rel.TargetProperty.PropertyType) as ISingleRelation; //    Activator.CreateInstance(targetSet.DataType) as IHasPrimary;
+      instance.ID = (int)idVal;
+      rel.TargetProperty.SetValue(item, instance);
+    }
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private object? ResolveValue(IDataReader reader, int value, Type dataType)
+  {
+    object? raw = reader.IsDBNull(value) ? null : reader.GetValue(value);
+    if (raw == null) { return null; }
+
+    Type targetType = Nullable.GetUnderlyingType(dataType) ?? dataType;
+    object? converted = ConvertValue(raw, targetType);
+    return converted;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
