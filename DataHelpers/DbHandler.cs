@@ -350,9 +350,28 @@ public class DHandler : IDisposable
       return Guid.Parse(Convert.ToString(value)!);
     }
 
-    if (targetType == typeof(DateTimeOffset) && value is DateTime dt)
+    if (targetType == typeof(DateTimeOffset))
     {
-      return new DateTimeOffset(dt);
+      if (value is DateTime dt)
+      {
+        return new DateTimeOffset(dt);
+      }
+      else if (value is string)
+      {
+        if (DateTimeOffset.TryParse((string)value, out var dto))
+        {
+          return dto;
+        }
+        else
+        {
+          throw new InvalidOperationException($"Could not parse DateTimeOffset from string value: {(string)value}!");
+        }
+
+      }
+      else
+      {
+        throw new InvalidOperationException("can't cast type to DateTimeOffset!");
+      }
     }
 
     // Common change-type path (handles numeric conversions, strings, bools, DateTime, etc.)
