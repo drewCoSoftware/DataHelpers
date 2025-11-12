@@ -1,5 +1,6 @@
 ﻿using DataHelpers;
 using DataHelpers.Data;
+using drewCo.Tools;
 using drewCo.Tools.Logging;
 using System.Data;
 using System.Data.Common;
@@ -26,7 +27,6 @@ public class DHandler : IDisposable
 
 
   private static Dictionary<Type, List<BindCallback>> _BindCallbacks = new Dictionary<Type, List<BindCallback>>();
-  // private static object _CallbackLock = new object();
 
   // --------------------------------------------------------------------------------------------------------------------------
   public DHandler(DbProviderFactory dbProvider_, string connectionString_, SchemaDefinition schemaDef_)
@@ -42,6 +42,25 @@ public class DHandler : IDisposable
     Transaction?.Commit();
     Transaction?.Dispose();
     Connection?.Dispose();
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public DbTransaction BeginTransaction()
+  {
+    var res = Connection.BeginTransaction();
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public void Rollback()
+  {
+    if (Transaction == null)
+    {
+      throw new InvalidOperationException("There is no transaction to roll back!");
+    }
+    Transaction.Rollback();
+    Transaction.Dispose();
+    Transaction = null;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -70,11 +89,9 @@ public class DHandler : IDisposable
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public List<T> Query<T>(string query, QueryParams? qParams = null)
-  where T : new()
+  public IEnumerable<T> Query<T>(string query, QueryParams? qParams = null)
   {
     var conn = ResolveConnection();
-
     using (DbCommand cmd = conn.CreateCommand())
     {
       cmd.CommandText = query;
@@ -89,31 +106,20 @@ public class DHandler : IDisposable
 
   // --------------------------------------------------------------------------------------------------------------------------
   public T? QuerySingle<T>(string query, QueryParams? qParams = null)
-  where T : new()
   {
     var list = Query<T>(query, qParams);
     return list.SingleOrDefault();
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public static int Execute(DbProviderFactory factory, string connectionString, string sql, QueryParams qParams)
+  public int Execute(string sql, QueryParams qParams)
   {
-    using (DbConnection conn = factory.CreateConnection())
+    var conn = ResolveConnection();
+    using (DbCommand cmd = conn.CreateCommand())
     {
-      if (conn == null)
-      {
-        throw new InvalidOperationException("Failed to create connection.");
-      }
-
-      conn.ConnectionString = connectionString;
-      conn.Open();
-
-      using (DbCommand cmd = conn.CreateCommand())
-      {
-        cmd.CommandText = sql;
-        AddParameters(cmd, qParams);
-        return cmd.ExecuteNonQuery();
-      }
+      cmd.CommandText = sql;
+      AddParameters(cmd, qParams);
+      return cmd.ExecuteNonQuery();
     }
   }
 
@@ -138,10 +144,11 @@ public class DHandler : IDisposable
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  private List<T> MapToList<T>(IDataReader reader)
-    where T : new()
+  // REFACTOR: This will should probably use a 'yield return' at some point, which will come in handy
+  // for extra large queries...
+  private IEnumerable<T> MapToList<T>(IDataReader reader)
   {
-    List<T> results = new List<T>();
+    var res = new List<T>();
     Dictionary<string, int> ordinals = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
     for (int i = 0; i < reader.FieldCount; i++)
@@ -155,12 +162,26 @@ public class DHandler : IDisposable
     // the return type!
     // PropMap colMap = GetColumnMap<T>();
 
-    var td = SchemaDef.GetTableDef<T>();
+    // This is kind of a hack, but any time we are returning a primitive type, we can skip a lot of
+    // extra processing / make different assumptions.
+    if (ReflectionTools.IsSimpleType(typeof(T)))
+    {
+      if (reader.FieldCount > 1)
+      {
+        throw new NotSupportedException("This scenario is not supported!  We can only map primitive types when there is one column of results!");
+      }
+
+      var res = ReadScalarColumnData<T>(reader);
+      return res;
+
+    }
+
 
     while (reader.Read())
     {
-      T item = new T();
+      T item = Activator.CreateInstance<T>();
 
+      var td = SchemaDef.GetTableDef<T>();
       foreach (KeyValuePair<string, int> kvp in ordinals)
       {
         var col = td.GetColumnByDataStoreName(kvp.Key);
@@ -197,14 +218,27 @@ public class DHandler : IDisposable
         }
       }
 
-      results.Add(item);
+      res.Add(item);
     }
 
-    return results;
+    return res;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  private void MapRelationData<T>(IDataReader reader, T item, KeyValuePair<string, int> kvp, ColumnDef col) where T : new()
+  private IEnumerable<T> ReadScalarColumnData<T>(IDataReader reader)
+  {
+    var res = new List<T>();
+    while (reader.Read())
+    {
+      T next = (T)ResolveValue(reader, 0, typeof(T));
+      res.Add(next);
+    }
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private void MapRelationData<T>(IDataReader reader, T item, KeyValuePair<string, int> kvp, ColumnDef col)
+  //where T : new()
   {
     // We have a relation, so this is where we can create / populate that id....
     // We can resolve the data type, but I also need to be able to point this to a property on the current type....

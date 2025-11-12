@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Net.Http.Headers;
@@ -22,12 +23,12 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   private SchemaDefinition _Schema;
   public SchemaDefinition SchemaDef { get { return _Schema; } }
 
-  [Obsolete("This will be provided by DBA!")]
-  private SqliteConnection Connection = null!;
-  [Obsolete]
-  private SqliteTransaction? Transaction = null!;
+  //[Obsolete("This will be provided by DBHandler!")]
+  //private SqliteConnection Connection = null!;
+  //[Obsolete]
+  //private SqliteTransaction? Transaction = null!;
 
-  private DHandler DBA = null!;
+  private DHandler DBHandler = null!;
 
   // --------------------------------------------------------------------------------------------------------------------------
   public SqliteDataAccess(string connectionString, SchemaDefinition schema_, string dataDir_)
@@ -36,35 +37,36 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
     _Schema = schema_;
     DataDirectory = dataDir_;
 
-    DBA = new DHandler(SqliteFactory.Instance, this.ConnectionString, this.SchemaDef);
+    DBHandler = new DHandler(SqliteFactory.Instance, this.ConnectionString, this.SchemaDef);
 
-    Connection = new SqliteConnection(ConnectionString);
-    Connection.Open();
+    //Connection = new SqliteConnection(ConnectionString);
+    //Connection.Open();
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
   public void Dispose()
   {
-    DBA.Dispose();
+    DBHandler.Dispose();
 
-    Transaction?.Commit();
-    Transaction?.Dispose();
-    Connection.Dispose();
+    //Transaction?.Commit();
+    //Transaction?.Dispose();
+    //Connection.Dispose();
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public List<T> TestQuery<T>(string query, QueryParams qParams)  
-    where T: new()
-  { 
-      var res=  DBA.Query<T>(query, qParams);
-      return res;
-  }
-
-  // --------------------------------------------------------------------------------------------------------------------------
-  public SqliteTransaction BeginTransaction()
+  public IEnumerable<T> TestQuery<T>(string query, QueryParams qParams)
+    where T : new()
   {
-    Transaction = Connection.BeginTransaction();
-    return Transaction;
+    var res = DBHandler.Query<T>(query, qParams);
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public DbTransaction BeginTransaction()
+  {
+    return DBHandler.BeginTransaction();
+    //Transaction = Connection.BeginTransaction();
+    //return Transaction;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -94,6 +96,16 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   {
     string queryType = GetFirstWord(query).ToLower();
 
+    QueryParams? useParams = ResolveQueryParams(qParams, queryType);
+
+    var res = DBHandler.Query<T>(query, useParams);
+    // var res = RunQuery<T>(Connection, query, useParams);
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private static QueryParams? ResolveQueryParams(object? qParams, string queryType)
+  {
     QueryParams? useParams = null;
     if (qParams != null)
     {
@@ -107,8 +119,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
       }
     }
 
-    var res = RunQuery<T>(Connection, query, useParams);
-    return res;
+    return useParams;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -163,36 +174,43 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   // --------------------------------------------------------------------------------------------------------------------------
   public int RunExecute(string query, object? qParams = null)
   {
-    int res = RunExecute(Connection, query, qParams);
+    string queryType = GetFirstWord(query);
+    var useParams = ResolveQueryParams(qParams, queryType);
+    int res = DBHandler.Execute(query, useParams);
     return res;
+    //int res = RunExecute(Connection, query, qParams);
+    //return res;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
+  // We pass the connection in here so that we can keep a transaction open?
+  [Obsolete]
   protected int RunExecute(SqliteConnection conn, string query, object? qParams = null)
   {
     int res = conn.Execute(query, qParams);
     return res;
   }
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  public TableAccess<TSchema> Table(string name)
-  {
-    var td = SchemaDef.GetTableDef(name, false)!;
+  //// --------------------------------------------------------------------------------------------------------------------------
+  //public TableAccess<TSchema> Table(string name)
+  //{
+  //  var td = SchemaDef.GetTableDef(name, false)!;
 
-    var res = new TableAccess<TSchema>(td, this);
-    return res;
-  }
+  //  var res = new TableAccess<TSchema>(td, this);
+  //  return res;
+  //}
 
   // --------------------------------------------------------------------------------------------------------------------------
   public void Rollback()
   {
-    if (Transaction == null)
-    {
-      throw new InvalidOperationException("There is no transaction to roll back!");
-    }
-    Transaction.Rollback();
-    Transaction.Dispose();
-    Transaction = null;
+    DBHandler.Rollback();
+    //if (Transaction == null)
+    //{
+    //  throw new InvalidOperationException("There is no transaction to roll back!");
+    //}
+    //Transaction.Rollback();
+    //Transaction.Dispose();
+    //Transaction = null;
   }
 
 }
