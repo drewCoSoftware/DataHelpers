@@ -549,6 +549,13 @@ public class SchemaDefinition
     string mtName = TableDef.ComputeMappingSetName(t1.Name, t2.Name);
     TableDef? res = this.GetTableDef(mtName);
 
+    // Maybe the types are swapped....
+    if (res == null)
+    {
+      mtName = TableDef.ComputeMappingSetName(t2.Name, t1.Name); 
+      res = this.GetTableDef(mtName);
+    }
+
     if (res == null && !allowNull)
     {
       throw new NullReferenceException($"There is no mapping table with the name: {mtName} in this schema!");
