@@ -49,6 +49,11 @@ public class ManyRelation<T> : IManyRelation
 public class SingleRelation<T> : IHasPrimary, ISingleRelation
 where T : class, IHasPrimary
 {
+  public SingleRelation() { }
+  public SingleRelation(int id)
+  {
+    _ID = id;
+  }
 
   /// <summary>
   /// The ID of the associated entity.
@@ -90,9 +95,18 @@ where T : class, IHasPrimary
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public static implicit operator T? (SingleRelation<T> data) { 
+  public static implicit operator T?(SingleRelation<T> data)
+  {
     return data.Data;
   }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public static implicit operator SingleRelation<T>(int id)
+  {
+    var res = new SingleRelation<T>(id);
+    return res;
+  }
+
 }
 
 //public class Relations<T> : IHasPrimary {

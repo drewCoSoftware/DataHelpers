@@ -541,7 +541,7 @@ public class SchemaDefinition
   /// <summary>
   /// Find + resolve mapping table for the given entity types.
   /// </summary>
-  public TableDef? GetMappingTable<T1, T2>(bool allowNull = true)
+  public TableDef? GetMappingTable<T1, T2>(bool allowNull = false)
   {
     var t1 = this.GetTableDef<T1>();
     var t2 = this.GetTableDef<T2>();
@@ -929,6 +929,7 @@ public class TableDef
 
   }
 
+  // TODO: We should be able to use a non-generic select query for mapping tables.....
   // ---------------------------------------------------------------------------------------------------
   // NOTE: I think that the 'TableDef' type should be a generic.....
   /// <summary>
