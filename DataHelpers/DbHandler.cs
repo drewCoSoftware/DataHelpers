@@ -47,8 +47,9 @@ public class DHandler : IDisposable
   // --------------------------------------------------------------------------------------------------------------------------
   public DbTransaction BeginTransaction()
   {
-    var res = Connection.BeginTransaction();
-    return res;
+    var conn = ResolveConnection();
+    Transaction = conn.BeginTransaction();
+    return Transaction;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
