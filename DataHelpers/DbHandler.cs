@@ -10,7 +10,7 @@ using System.Security.Cryptography;
 using BindCallback = System.Action<object>;
 
 // ==============================================================================================================================
-public class DHandler : IDisposable
+public class DBHandler : IDisposable
 {
   private SchemaDefinition SchemaDef = null!;
 
@@ -29,7 +29,7 @@ public class DHandler : IDisposable
   private static Dictionary<Type, List<BindCallback>> _BindCallbacks = new Dictionary<Type, List<BindCallback>>();
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public DHandler(DbProviderFactory dbProvider_, string connectionString_, SchemaDefinition schemaDef_)
+  public DBHandler(DbProviderFactory dbProvider_, string connectionString_, SchemaDefinition schemaDef_)
   {
     _DBProvider = dbProvider_;
     ConnectionString = connectionString_;

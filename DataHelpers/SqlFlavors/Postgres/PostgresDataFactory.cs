@@ -61,7 +61,7 @@ namespace DataHelpers.SqlFlavors.Postgres
     // --------------------------------------------------------------------------------------------------------------------------
     public override void Action(Action<IDataAccess<TSchema>> action)
     {
-      using (var dal = new PostgresDataAccess<TSchema>(ConnectionString))
+      using (var dal = new PostgresDataAccess<TSchema>(ConnectionString, Schema))
       {
         action(dal);
       }
@@ -70,7 +70,7 @@ namespace DataHelpers.SqlFlavors.Postgres
     // --------------------------------------------------------------------------------------------------------------------------
     public override TData Action<TData>(Func<IDataAccess<TSchema>, TData> action)
     {
-      using (var dal = new PostgresDataAccess<TSchema>(ConnectionString))
+      using (var dal = new PostgresDataAccess<TSchema>(ConnectionString, Schema))
       {
         TData res = action(dal);
         return res;
@@ -104,10 +104,8 @@ namespace DataHelpers.SqlFlavors.Postgres
     [Obsolete("This will be removed in a future iteration!")]
     public override IDataAccess<TSchema> GetDataAccess()
     {
-      throw new NotImplementedException();
-
-      //var res = new PostgresDataAccess<TSchema>(ConnectionString);
-      //return res;
+      var res = new PostgresDataAccess<TSchema>(ConnectionString, Schema);
+      return res;
     }
 
 

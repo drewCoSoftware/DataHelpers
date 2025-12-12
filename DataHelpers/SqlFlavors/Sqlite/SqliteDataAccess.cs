@@ -28,7 +28,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   //[Obsolete]
   //private SqliteTransaction? Transaction = null!;
 
-  private DHandler DBHandler = null!;
+  private DBHandler DBHandler = null!;
 
   // --------------------------------------------------------------------------------------------------------------------------
   public SqliteDataAccess(string connectionString, SchemaDefinition schema_, string dataDir_)
@@ -37,7 +37,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
     _Schema = schema_;
     DataDirectory = dataDir_;
 
-    DBHandler = new DHandler(SqliteFactory.Instance, this.ConnectionString, this.SchemaDef);
+    DBHandler = new DBHandler(SqliteFactory.Instance, this.ConnectionString, this.SchemaDef);
 
     //Connection = new SqliteConnection(ConnectionString);
     //Connection.Open();
@@ -94,47 +94,15 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   // --------------------------------------------------------------------------------------------------------------------------
   public IEnumerable<T> RunQuery<T>(string query, object? qParams)
   {
-    string queryType = GetFirstWord(query).ToLower();
-
-    QueryParams? useParams = ResolveQueryParams(qParams, queryType);
+    string queryType = Helpers.GetFirstWord(query).ToLower();
+    QueryParams? useParams = Helpers.ResolveQueryParams(qParams, queryType);
 
     var res = DBHandler.Query<T>(query, useParams);
     // var res = RunQuery<T>(Connection, query, useParams);
     return res;
   }
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  private static QueryParams? ResolveQueryParams(object? qParams, string queryType)
-  {
-    QueryParams? useParams = null;
-    if (qParams != null)
-    {
-      if (qParams is QueryParams)
-      {
-        useParams = qParams as QueryParams;
-      }
-      else
-      {
-        useParams = Helpers.CreateParams(queryType, qParams);
-      }
-    }
 
-    return useParams;
-  }
-
-  // --------------------------------------------------------------------------------------------------------------------------
-  [Obsolete("Use version from drewCo.Tools > 1.4.1.0")]
-  public static string GetFirstWord(string query)
-  {
-    string res = query;
-    int firstSpace = query.IndexOf(' ');
-    if (firstSpace != -1)
-    {
-      res = query.Substring(0, firstSpace);
-    }
-
-    return res;
-  }
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
@@ -151,31 +119,31 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   }
 
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  protected IEnumerable<T> RunQuery<T>(SqliteConnection conn, string query, QueryParams? qParams)
-  {
-    DynamicParameters? useParams = null;
-    if (qParams != null)
-    {
-      useParams = new DynamicParameters();
-      foreach (var item in qParams)
-      {
-        useParams.Add(item.Key, item.Value);
-      }
-    }
+  //// --------------------------------------------------------------------------------------------------------------------------
+  //protected IEnumerable<T> RunQuery<T>(SqliteConnection conn, string query, QueryParams? qParams)
+  //{
+  //  DynamicParameters? useParams = null;
+  //  if (qParams != null)
+  //  {
+  //    useParams = new DynamicParameters();
+  //    foreach (var item in qParams)
+  //    {
+  //      useParams.Add(item.Key, item.Value);
+  //    }
+  //  }
 
-    var res = conn.Query<T>(query, useParams);
+  //  var res = conn.Query<T>(query, useParams);
 
-    return res;
-  }
+  //  return res;
+  //}
 
 
 
   // --------------------------------------------------------------------------------------------------------------------------
   public int RunExecute(string query, object? qParams = null)
   {
-    string queryType = GetFirstWord(query);
-    var useParams = ResolveQueryParams(qParams, queryType);
+    string queryType = Helpers.GetFirstWord(query);
+    var useParams = Helpers.ResolveQueryParams(qParams, queryType);
     int res = DBHandler.Execute(query, useParams);
     return res;
     //int res = RunExecute(Connection, query, qParams);

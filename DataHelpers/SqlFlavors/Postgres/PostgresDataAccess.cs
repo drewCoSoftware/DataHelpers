@@ -1,26 +1,30 @@
 using System.Reflection;
 using DataHelpers.Data;
 using Npgsql;
-using Dapper;
 using drewCo.Tools;
 using System.Text;
 using NpgsqlTypes;
 using System.Diagnostics;
+using Microsoft.Data.Sqlite;
 
 
 // ========================================================================== 
 public class PostgresDataAccess<TSchema> : IDataAccess<TSchema>
 {
-  public SchemaDefinition SchemaDef => throw new NotImplementedException();
+  private SchemaDefinition _Schema;
+  public SchemaDefinition SchemaDef { get { return _Schema; } }
 
   public string ConnectionString { get; private set; }
   private string? DatabaseName { get; set; } = null;
   private bool IsDefaultDatabase = true;   // use the default 'postgres' database when one isn't specifically set in the connection string.
 
+  private DBHandler DBHandler = null!;
+
   // -----------------------------------------------------------------------------------------------
-  public PostgresDataAccess(string connectionString_)
+  public PostgresDataAccess(string connectionString_, SchemaDefinition schema_)
   {
-    this.ConnectionString = connectionString_;
+    ConnectionString = connectionString_;
+    _Schema = schema_;
 
     string[] parts = ConnectionString.Split(";");
     foreach (var p in parts)
@@ -37,6 +41,8 @@ public class PostgresDataAccess<TSchema> : IDataAccess<TSchema>
     {
       ConnectionString += "Database=postgres";
     }
+
+    DBHandler = new DBHandler(NpgsqlFactory.Instance, this.ConnectionString, this.SchemaDef);
   }
 
   private NpgsqlDataSource _DataSource = null!;
@@ -192,67 +198,78 @@ public class PostgresDataAccess<TSchema> : IDataAccess<TSchema>
   public IEnumerable<T> RunQuery<T>(string query, object? qParams)
   {
 
-    using (var conn = OpenConnection()) //  new PostgresConnection(ConnectionString))
-    {
-      var res = RunQuery<T>(conn, query, qParams);
-      conn.Close();
-      return res;
-    }
-
-  }
-
-  // --------------------------------------------------------------------------------------------------------------------------
-  protected IEnumerable<T> RunQuery<T>(NpgsqlConnection conn, string query, object? parameters)
-  {
-
-    // We will fix any datetimeoffset parametesr to have a UTC offset which is required
-    // by postgresql.
-    if (parameters != null)
-    {
-      var props = ReflectionTools.GetProperties(parameters.GetType());
-      foreach (var p in props)
-      {
-        if (p.PropertyType == typeof(DateTimeOffset) || p.PropertyType == typeof(DateTimeOffset?))
-        {
-          if (!p.CanWrite)
-          {
-            Console.WriteLine($"Warning!  DatetimeOffset value for property {p.Name} is not writable!  Operation will fail if date offset is not zero!");
-          }
-          object? val = p.GetValue(parameters);
-          if (val != null)
-          {
-            DateTimeOffset useVal = ((DateTimeOffset)val).ToUniversalTime();
-            p.SetValue(parameters, useVal);
-          }
-        }
-      }
-    }
+    string queryType = Helpers.GetFirstWord(query).ToLower();
+    QueryParams? useParams = Helpers.ResolveQueryParams(qParams, queryType);
 
 
-    var res = conn.Query<T>(query, parameters);
+    var res = DBHandler.Query<T>(queryType, useParams);
     return res;
 
+    //using (var conn = OpenConnection()) //  new PostgresConnection(ConnectionString))
+    //{
+    //  var res = RunQuery<T>(conn, query, qParams);
+    //  conn.Close();
+    //  return res;
+    //}
+
   }
+
+  //// --------------------------------------------------------------------------------------------------------------------------
+  //protected IEnumerable<T> RunQuery<T>(NpgsqlConnection conn, string query, object? parameters)
+  //{
+  //  // We will fix any datetimeoffset parametesr to have a UTC offset which is required
+  //  // by postgresql.
+  //  if (parameters != null)
+  //  {
+  //    var props = ReflectionTools.GetProperties(parameters.GetType());
+  //    foreach (var p in props)
+  //    {
+  //      if (p.PropertyType == typeof(DateTimeOffset) || p.PropertyType == typeof(DateTimeOffset?))
+  //      {
+  //        if (!p.CanWrite)
+  //        {
+  //          Console.WriteLine($"Warning!  DatetimeOffset value for property {p.Name} is not writable!  Operation will fail if date offset is not zero!");
+  //        }
+  //        object? val = p.GetValue(parameters);
+  //        if (val != null)
+  //        {
+  //          DateTimeOffset useVal = ((DateTimeOffset)val).ToUniversalTime();
+  //          p.SetValue(parameters, useVal);
+  //        }
+  //      }
+  //    }
+  //  }
+
+
+  //  var res = conn.Query<T>(query, parameters);
+  //  return res;
+
+  //}
 
 
   // -----------------------------------------------------------------------------------------------
   public int RunExecute(string query, object? qParams)
   {
-    using (var conn = OpenConnection())
-    {
-      int res = RunExecute(conn, query, qParams);
-
-      conn.Close();
-      return res;
-    }
-  }
-
-  // --------------------------------------------------------------------------------------------------------------------------
-  protected int RunExecute(NpgsqlConnection conn, string query, object? qParams)
-  {
-    int res = conn.Execute(query, qParams);
+    string queryType = Helpers.GetFirstWord(query);
+    var useParams = Helpers.ResolveQueryParams(qParams, queryType);
+    int res = DBHandler.Execute(query, useParams);
     return res;
+
+    //using (var conn = OpenConnection())
+    //{
+    //  int res = RunExecute(conn, query, qParams);
+
+    //  conn.Close();
+    //  return res;
+    //}
   }
+
+  //// --------------------------------------------------------------------------------------------------------------------------
+  //protected int RunExecute(NpgsqlConnection conn, string query, object? qParams)
+  //{
+  //  int res = conn.Execute(query, qParams);
+  //  return res;
+  //}
 
 
   // --------------------------------------------------------------------------------------------------------------------------

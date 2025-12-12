@@ -8,6 +8,39 @@ public static class Helpers
 {
 
   // --------------------------------------------------------------------------------------------------------------------------
+  [Obsolete("Use version from drewCo.Tools > 1.4.1.0")]
+  public static string GetFirstWord(string query)
+  {
+    string res = query;
+    int firstSpace = query.IndexOf(' ');
+    if (firstSpace != -1)
+    {
+      res = query.Substring(0, firstSpace);
+    }
+
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public static QueryParams? ResolveQueryParams(object? qParams, string queryType)
+  {
+    QueryParams? useParams = null;
+    if (qParams != null)
+    {
+      if (qParams is QueryParams)
+      {
+        useParams = qParams as QueryParams;
+      }
+      else
+      {
+        useParams = Helpers.CreateParams(queryType, qParams);
+      }
+    }
+
+    return useParams;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// Create a set of dynamic query parameters from the given object.
   /// This allows us to use some of our conventions for mapping relationships to types.
