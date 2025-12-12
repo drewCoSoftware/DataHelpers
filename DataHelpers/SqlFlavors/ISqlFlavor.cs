@@ -19,6 +19,14 @@
       string res = propName.ToLower();
       return res;
     }
+
+    /// <summary>
+    /// Some flavors want to declare their refs as part of the column def.
+    /// </summary>
+    bool UsesInlineFKDeclaration { get; }
+
+
+    public string GetIdentitySyntax(ColumnDef col);
   }
 
 

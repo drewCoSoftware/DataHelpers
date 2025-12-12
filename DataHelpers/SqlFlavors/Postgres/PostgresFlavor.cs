@@ -1,4 +1,6 @@
 
+using drewCo.Tools;
+
 namespace DataHelpers.Data;
 
 // ============================================================================================================================
@@ -7,12 +9,14 @@ public class PostgresFlavor : ISqlFlavor
   private readonly PostgresDataTypeResolver _TypeResolver = new PostgresDataTypeResolver();
   public IDataTypeResolver TypeResolver { get { return _TypeResolver; } }
 
+  public bool UsesInlineFKDeclaration { get { return true; } }
+
   // --------------------------------------------------------------------------------------------------------------------------
   public string GetIdentitySyntax(ColumnDef col)
   {
     if ((col.IsPrimary && col.DataType == "integer" || col.DataType == "bigint"))
     {
-      return " GENERATED AS IDENTITY";
+      return " GENERATED ALWAYS AS IDENTITY";
     }
     return string.Empty;
   }
@@ -32,7 +36,13 @@ public class PostgresDataTypeResolver : IDataTypeResolver
   // NOTE: We might actually want to have more information about the column so we can get the right name...
   public string GetDataTypeName(Type t, bool isPrimaryCol)
   {
-    string res = "";
+    if (ReflectionTools.HasInterface<IRelation>(t))
+    {
+      // Annotated type.  The corresponding column def will be replaced or removed, depending.
+      return ColumnDef.RELATION_PLACEHOLDER;
+    }
+
+    string res = string.Empty;
 
     if (t == typeof(Int32) || t == typeof(Int32?))
     {

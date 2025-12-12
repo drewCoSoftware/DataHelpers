@@ -9,6 +9,18 @@ public class SqliteFlavor : ISqlFlavor
   private readonly SqliteDataTypeResolver _TypeResolver = new SqliteDataTypeResolver();
   public IDataTypeResolver TypeResolver { get { return _TypeResolver; } }
 
+
+  public bool UsesInlineFKDeclaration { get { return false; } }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  // SQLITE identity is assumed....
+  public string GetIdentitySyntax(ColumnDef col)
+  {
+    return string.Empty;
+  }
+
+
+
   // // --------------------------------------------------------------------------------------------------------------------------
   // public string GetIdentitySyntax(ColumnDef col)
   // {
@@ -29,12 +41,13 @@ public class SqliteDataTypeResolver : IDataTypeResolver
   // --------------------------------------------------------------------------------------------------------------------------
   public string GetDataTypeName(Type t, bool isPrimaryCol)
   {
-    if (ReflectionTools.HasInterface<IRelation>(t)) { 
+    if (ReflectionTools.HasInterface<IRelation>(t))
+    {
       // Annotated type.  The corresponding column def will be replaced or removed, depending.
       return ColumnDef.RELATION_PLACEHOLDER;
     }
 
-    string res = "";
+    string res = string.Empty;
 
     if (t == typeof(Int32) || t == typeof(Int64) || t == typeof(Int32?))
     {

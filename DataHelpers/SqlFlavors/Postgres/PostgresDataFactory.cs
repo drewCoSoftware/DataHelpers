@@ -6,7 +6,7 @@ using Dapper;
 namespace DataHelpers.SqlFlavors.Postgres
 {
   // ==============================================================================================================================
-  public class PostgresDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
+  public class PostgresDataFactory<TSchema> : IDataFactory<TSchema, PostgresFlavor>
   {
     //    public string DataDirectory { get; private set; }
     //  public string DBFilePath { get; private set; }
@@ -61,22 +61,20 @@ namespace DataHelpers.SqlFlavors.Postgres
     // --------------------------------------------------------------------------------------------------------------------------
     public override void Action(Action<IDataAccess<TSchema>> action)
     {
-      throw new NotImplementedException();
-      //using (var dal = new PostgresDataAccess<TSchema>(ConnectionString))
-      //{
-      //  action(dal);
-      //}
+      using (var dal = new PostgresDataAccess<TSchema>(ConnectionString))
+      {
+        action(dal);
+      }
     }
 
     // --------------------------------------------------------------------------------------------------------------------------
     public override TData Action<TData>(Func<IDataAccess<TSchema>, TData> action)
     {
-      throw new NotImplementedException();
-      //using (var dal = new PostgresDataAccess<TSchema>(ConnectionString))
-      //{
-      //  TData res = action(dal);
-      //  return res;
-      //}
+      using (var dal = new PostgresDataAccess<TSchema>(ConnectionString))
+      {
+        TData res = action(dal);
+        return res;
+      }
     }
 
 
@@ -161,7 +159,7 @@ namespace DataHelpers.SqlFlavors.Postgres
       {
         using (var tx = conn.BeginTransaction())
         {
-          // conn.Execute(query);
+          conn.Execute(query);
           tx.Commit();
         }
         conn.Close();

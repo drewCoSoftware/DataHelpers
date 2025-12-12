@@ -725,9 +725,14 @@ public class TableDef
       string useName = col.DataStoreName;
 
       string def = $"{useName} {col.DataType}";
+      if (col.RelatedDataSet != null && Schema.Flavor.UsesInlineFKDeclaration)
+      {
+        def += $" REFERENCES { col.RelatedDataSet.TargetSet.Name} ({ col.RelatedDataSet.TargetIDColumn.PropertyName})";
+      }
+
       if (col.IsPrimary)
       {
-        def += " PRIMARY KEY"; // + Schema.Flavor.GetIdentitySyntax(col); // flavo  PRIMARY KEY";
+        def += " PRIMARY KEY" + Schema.Flavor.GetIdentitySyntax(col);
       }
 
       if (!col.IsNullable)
@@ -746,9 +751,8 @@ public class TableDef
 
       colDefs.Add(def);
 
-      if (col.RelatedDataSet != null)
+      if (col.RelatedDataSet != null && !Schema.Flavor.UsesInlineFKDeclaration)
       {
-
         string fk = $"FOREIGN KEY({useName}) REFERENCES {col.RelatedDataSet.TargetSet.Name}({col.RelatedDataSet.TargetIDColumn.PropertyName})";
         fkDefs.Add(fk);
       }
