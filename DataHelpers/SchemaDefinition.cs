@@ -563,6 +563,22 @@ public class SchemaDefinition
 
     return res;
   }
+
+  // ------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Generates a query to remove  entries from a mapping table.
+  /// </summary>
+  public string GetRemoveMappingQueryFor<TFor, TMapped>(List<int> forIds)
+  {
+    var forTable = GetTableDef<TFor>();
+
+    var mtable = this.GetMappingTable<TFor, TMapped>();
+    string forIdName = $"{forTable.Name}_{nameof(IHasPrimary.ID)}".ToLower();
+    string idsList = $"({string.Join(",", forIds)})";
+
+    string query = $"DELETE FROM {mtable.Name} WHERE {forIdName} IN {idsList}";
+    return query;
+  }
 }
 
 
