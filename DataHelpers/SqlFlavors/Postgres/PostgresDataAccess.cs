@@ -64,7 +64,8 @@ public class PostgresDataAccess<TSchema> : IDataAccess<TSchema>
   public void Dispose()
   {
     // Complete transactions + connections here!
-    Debug.WriteLine("Complete the implementation please!");
+    DBHandler.Dispose();
+    // Debug.WriteLine("Complete the implementation please!");
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -199,10 +200,10 @@ public class PostgresDataAccess<TSchema> : IDataAccess<TSchema>
   {
 
     string queryType = Helpers.GetFirstWord(query).ToLower();
-    QueryParams? useParams = Helpers.ResolveQueryParams(qParams, queryType);
+    QueryParams? useParams = SchemaDef.Flavor.ResolveQueryParams(qParams, queryType);
 
 
-    var res = DBHandler.Query<T>(queryType, useParams);
+    var res = DBHandler.Query<T>(query, useParams);
     return res;
 
     //using (var conn = OpenConnection()) //  new PostgresConnection(ConnectionString))
@@ -251,7 +252,7 @@ public class PostgresDataAccess<TSchema> : IDataAccess<TSchema>
   public int RunExecute(string query, object? qParams)
   {
     string queryType = Helpers.GetFirstWord(query);
-    var useParams = Helpers.ResolveQueryParams(qParams, queryType);
+    var useParams = SchemaDef.Flavor.ResolveQueryParams(qParams, queryType);
     int res = DBHandler.Execute(query, useParams);
     return res;
 

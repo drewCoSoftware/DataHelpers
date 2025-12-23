@@ -32,7 +32,7 @@ public interface IDataFactory<TSchema>
     string query = td.GetInsertQuery();
     int res = Action(dal =>
     {
-      var qParams = Helpers.CreateParams("insert", entity, true);
+      var qParams =  Schema.Flavor.CreateParams("insert", entity, true);
       int qr = dal.RunSingleQuery<int>(query, qParams);
       return qr;
     });

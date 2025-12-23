@@ -95,7 +95,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   public IEnumerable<T> RunQuery<T>(string query, object? qParams)
   {
     string queryType = Helpers.GetFirstWord(query).ToLower();
-    QueryParams? useParams = Helpers.ResolveQueryParams(qParams, queryType);
+    QueryParams? useParams = SchemaDef.Flavor.ResolveQueryParams(qParams, queryType);
 
     var res = DBHandler.Query<T>(query, useParams);
     // var res = RunQuery<T>(Connection, query, useParams);
@@ -143,7 +143,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   public int RunExecute(string query, object? qParams = null)
   {
     string queryType = Helpers.GetFirstWord(query);
-    var useParams = Helpers.ResolveQueryParams(qParams, queryType);
+    var useParams = SchemaDef.Flavor.ResolveQueryParams(qParams, queryType);
     int res = DBHandler.Execute(query, useParams);
     return res;
     //int res = RunExecute(Connection, query, qParams);

@@ -10,6 +10,24 @@ using System.Security.Cryptography;
 using BindCallback = System.Action<object>;
 
 // ==============================================================================================================================
+public class QueryParamValue
+{
+  // --------------------------------------------------------------------------------------------------------------------------
+  public QueryParamValue(object? value_, DbType dataType_)
+  {
+    Value = value_;
+    DataType = dataType_;
+
+    if (DataType == DbType.DateTimeOffset && Value != null)
+    {
+      Value = ((DateTimeOffset)Value).ToUniversalTime();
+    }
+  }
+  public object? Value { get; set; } = null;
+  public DbType DataType { get; set; }
+}
+
+// ==============================================================================================================================
 public class DBHandler : IDisposable
 {
   private SchemaDefinition SchemaDef = null!;
@@ -132,14 +150,15 @@ public class DBHandler : IDisposable
       return;
     }
 
-    foreach (KeyValuePair<string, object?> kvp in qParams)
+    foreach (KeyValuePair<string, QueryParamValue> kvp in qParams)
     {
       // Accept keys with or without '@'
       string name = kvp.Key.StartsWith("@", StringComparison.Ordinal) ? kvp.Key : "@" + kvp.Key;
 
       DbParameter p = cmd.CreateParameter();
       p.ParameterName = name;
-      p.Value = kvp.Value ?? DBNull.Value;
+      p.Value = kvp.Value.Value ?? DBNull.Value;
+      p.DbType = kvp.Value.DataType;
       cmd.Parameters.Add(p);
     }
   }
