@@ -2,6 +2,7 @@
 using drewCo.Tools;
 using Npgsql;
 using Dapper;
+using drewCo.Tools.Logging;
 
 namespace DataHelpers.SqlFlavors.Postgres
 {
@@ -81,23 +82,23 @@ namespace DataHelpers.SqlFlavors.Postgres
     // --------------------------------------------------------------------------------------------------------------------------
     public override void Transaction(Action<IDataAccess<TSchema>> action)
     {
-      throw new NotImplementedException();
+      using (var dataAccess = new PostgresDataAccess<TSchema>(ConnectionString, Schema))
+      {
+        var tx = dataAccess.BeginTransaction();
+        try
+        {
+          action(dataAccess);
+        }
+        catch (Exception ex)
+        {
+          Log.Exception(ex);
+          Log.Warning("The transaction will be rolled back!");
 
-      //using (var dataAccess = new PostgresDataAccess<TSchema>(ConnectionString))
-      //{
-      //  var tx = dataAccess.BeginTransaction();
-      //  try
-      //  {
-      //    action(dataAccess);
-      //  }
-      //  catch (Exception ex)
-      //  {
-      //    Log.Exception(ex);
-      //    Log.Warning("The transaction will be rolled back!");
+          dataAccess.Rollback();
 
-      //    tx.Rollback();
-      //  }
-      //}
+          throw;
+        }
+      }
     }
 
     // --------------------------------------------------------------------------------------------------------------------------

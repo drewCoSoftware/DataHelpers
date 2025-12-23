@@ -6,6 +6,7 @@ using System.Text;
 using NpgsqlTypes;
 using System.Diagnostics;
 using Microsoft.Data.Sqlite;
+using System.Data.Common;
 
 
 // ========================================================================== 
@@ -66,6 +67,11 @@ public class PostgresDataAccess<TSchema> : IDataAccess<TSchema>
     // Complete transactions + connections here!
     DBHandler.Dispose();
     // Debug.WriteLine("Complete the implementation please!");
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public DbTransaction BeginTransaction() {
+    return DBHandler.BeginTransaction();
   }
 
   // --------------------------------------------------------------------------------------------------------------------------

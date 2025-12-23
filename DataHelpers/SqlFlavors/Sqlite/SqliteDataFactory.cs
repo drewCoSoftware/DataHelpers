@@ -49,7 +49,6 @@ public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
   // --------------------------------------------------------------------------------------------------------------------------
   public override void Transaction(Action<IDataAccess<TSchema>> action)
   {
-
     using (var dataAccess = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory))
     {
       var tx = dataAccess.BeginTransaction();

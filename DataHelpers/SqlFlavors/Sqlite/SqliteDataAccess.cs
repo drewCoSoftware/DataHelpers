@@ -65,8 +65,6 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   public DbTransaction BeginTransaction()
   {
     return DBHandler.BeginTransaction();
-    //Transaction = Connection.BeginTransaction();
-    //return Transaction;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
