@@ -38,7 +38,12 @@ public interface IManyRelation : IRelation
 /// </summary>
 public class ManyRelation<T> : IManyRelation
 {
-  private List<T>? _Data = null!;
+  public ManyRelation() { }
+  public ManyRelation(IEnumerable<T> data)
+  {
+    this.Data = data.ToList();
+  }
+  private List<T>? _Data = null;
   public List<T> Data { get { return _Data; } internal set { _Data = value; } }
 }
 
