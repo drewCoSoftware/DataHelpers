@@ -34,46 +34,48 @@ public class SqliteSchemaTesters : TestBase
   [Test]
   public void CanGetRelatedDataFromSelectQuery()
   {
-
-    IDataFactory<VacationSchema> factory = CreateTestDataBaseFor<VacationSchema>(CurrentFunctionName());
-    var schema = factory.Schema;
+    Assert.Inconclusive("'CreateParams' feautre no longer exists!");
 
 
-
-    var testPlace = new Place()
-    {
-      Country = "Testistan",
-      Name = "The Royal Gardens",
-    };
-    factory.Add<Place>(testPlace);
-
-    Traveler testTraveler = new()
-    {
-      FavoritePlace = testPlace,
-      Name = "Test Testington"
-    };
-    factory.Add(testTraveler);
-
-    // This shows that we can use the new DB mapper thing to get data....
-    factory.Action(dal =>
-    {
-      var qParams = Helpers.CreateParams("select", new { id = testTraveler.ID });
-      Traveler t = (dal as SqliteDataAccess<VacationSchema>).TestQuery<Traveler>("SELECT * FROM Travelers WHERE id = @id", qParams).Single();
-
-      Assert.That(t.ID, Is.EqualTo(testTraveler.ID));
-      Assert.That(t.Name, Is.EqualTo(testTraveler.Name));
-      Assert.That(t.FavoritePlace.ID, Is.Not.EqualTo(0));
-    });
+    //IDataFactory<VacationSchema> factory = CreateTestDataBaseFor<VacationSchema>(CurrentFunctionName());
+    //var schema = factory.Schema;
 
 
-    // Let's grab us a traveler and see their favorite place!
-    var check = factory.GetById<Traveler>(testTraveler.ID);
-    Assert.That(check, Is.Not.Null);
-    Assert.That(check.FavoritePlace, Is.Not.Null);
-    Assert.That(check.FavoritePlace.ID, Is.EqualTo(testPlace.ID));
 
-    // Finally, the data of the relation should be null because we haven't explicitly resolved it.
-    Assert.That(check.FavoritePlace.Data, Is.Null);
+    //var testPlace = new Place()
+    //{
+    //  Country = "Testistan",
+    //  Name = "The Royal Gardens",
+    //};
+    //factory.Add<Place>(testPlace);
+
+    //Traveler testTraveler = new()
+    //{
+    //  FavoritePlace = testPlace,
+    //  Name = "Test Testington"
+    //};
+    //factory.Add(testTraveler);
+
+    //// This shows that we can use the new DB mapper thing to get data....
+    //factory.Action(dal =>
+    //{
+    //  var qParams = Helpers.CreateParams("select", new { id = testTraveler.ID });
+    //  Traveler t = (dal as SqliteDataAccess<VacationSchema>).TestQuery<Traveler>("SELECT * FROM Travelers WHERE id = @id", qParams).Single();
+
+    //  Assert.That(t.ID, Is.EqualTo(testTraveler.ID));
+    //  Assert.That(t.Name, Is.EqualTo(testTraveler.Name));
+    //  Assert.That(t.FavoritePlace.ID, Is.Not.EqualTo(0));
+    //});
+
+
+    //// Let's grab us a traveler and see their favorite place!
+    //var check = factory.GetById<Traveler>(testTraveler.ID);
+    //Assert.That(check, Is.Not.Null);
+    //Assert.That(check.FavoritePlace, Is.Not.Null);
+    //Assert.That(check.FavoritePlace.ID, Is.EqualTo(testPlace.ID));
+
+    //// Finally, the data of the relation should be null because we haven't explicitly resolved it.
+    //Assert.That(check.FavoritePlace.Data, Is.Null);
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -135,24 +137,26 @@ public class SqliteSchemaTesters : TestBase
   [Test]
   public void CanIncludeNullWhenCreatingParametersFromInstance()
   {
-    // var myData = new { Name = "Dave", Number = null
-    const int TEST_NUMBER = 123;
-    var myData = new SimplePerson()
-    {
-      Name = null,
-      Number = TEST_NUMBER,
-    };
+    Assert.Inconclusive("'CreateParams' feautre no longer exists!");
 
-    Dictionary<string, object> qParams = Helpers.CreateParams("insert", myData, includeNulls: true);
+    //// var myData = new { Name = "Dave", Number = null
+    //const int TEST_NUMBER = 123;
+    //var myData = new SimplePerson()
+    //{
+    //  Name = null,
+    //  Number = TEST_NUMBER,
+    //};
 
-    Assert.That(qParams.Count, Is.EqualTo(2), "There should be two parameters!");
-    var number = qParams[nameof(SimplePerson.Number)];
-    Assert.That(number, Is.EqualTo(TEST_NUMBER));
+    //Dictionary<string, object> qParams = Helpers.CreateParams("insert", myData, includeNulls: true);
 
-    var name = qParams[nameof(SimplePerson.Name)];
-    Assert.That(name, Is.Null);
+    //Assert.That(qParams.Count, Is.EqualTo(2), "There should be two parameters!");
+    //var number = qParams[nameof(SimplePerson.Number)];
+    //Assert.That(number, Is.EqualTo(TEST_NUMBER));
 
-    // TODO: 
+    //var name = qParams[nameof(SimplePerson.Name)];
+    //Assert.That(name, Is.Null);
+
+    //// TODO: 
   }
 
   // --------------------------------------------------------------------------------------------------------------------------

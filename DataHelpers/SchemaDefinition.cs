@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using System.Linq.Expressions;
 using drewCo.Tools.Logging;
 using System.Reflection;
+using System.Formats.Asn1;
 
 namespace DataHelpers.Data;
 
@@ -673,6 +674,12 @@ public class TableDef
         relAttr.TargetProperty = p;
       }
 
+      // We want to warn when single/multi-relations don't have the proper attribute.
+      bool isRelationType = IsRelationType(p.PropertyType);
+      if (isRelationType && relAttr == null) { 
+        Log.Warning($"The property: {p.Name} is a relation type, but doesn't have a {nameof(RelationAttribute)}!  It will not be included in the output set!");
+      }
+
       string colName = this.Schema.Flavor.GetDataStoreName(p.Name);
 
       // This is a normal property.
@@ -688,6 +695,20 @@ public class TableDef
                                  p));
 
     }
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private bool IsRelationType(Type t)
+  {
+    //if (t.Name.StartsWith("Single"))
+    //{
+    //  int x = 10;
+    //}
+    if (t.Name.StartsWith(typeof(SingleRelation<>).Name) || t.Name.StartsWith(typeof(ManyRelation<>).Name))
+    {
+      return true;
+    }
+    return false;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
