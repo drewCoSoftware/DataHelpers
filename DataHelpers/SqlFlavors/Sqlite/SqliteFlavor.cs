@@ -73,6 +73,10 @@ public class SqliteDataTypeResolver : IDataTypeResolver
       // lol, no boolean type either!
       res = "INTEGER";
     }
+    else if (t == typeof(decimal))
+    {
+      res = "DECIMAL(10,8)";
+    }
     else
     {
       throw new NotSupportedException($"The data type {t} is not supported!");
