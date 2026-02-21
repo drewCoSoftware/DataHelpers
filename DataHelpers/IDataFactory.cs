@@ -32,7 +32,7 @@ public interface IDataFactory<TSchema>
     string query = td.GetInsertQuery();
     int res = Action(dal =>
     {
-      var qParams =  Schema.Flavor.CreateParams("insert", entity, true);
+      var qParams = Schema.Flavor.CreateParams("insert", entity, true);
       int qr = dal.RunSingleQuery<int>(query, qParams);
       return qr;
     });
@@ -46,7 +46,7 @@ public interface IDataFactory<TSchema>
   /// Get the entity of the given type by its ID
   /// </summary>
   T? GetById<T>(int id)
-  where T : IHasPrimary
+    where T : IHasPrimary
   {
     T? res = Action(dal =>
     {
@@ -55,6 +55,22 @@ public interface IDataFactory<TSchema>
       return dal.RunSingleQuery<T>(query, new { id = id });
     });
     return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Get all instances of the given type that exists in the repository.
+  /// DANGER: This can be very inefficient in certain cases.  Use cursors / pagination in those cases!
+  /// </summary>
+  T[] GetAll<T>()
+  {
+    return Action(dal =>
+    {
+      var td = Schema.GetTableDef<T>();
+      string query = $"SELECT * FROM {td.Name}";
+      var res = dal.RunQuery<T>(query);
+      return res.ToArray();
+    });
   }
 }
 
