@@ -1,0 +1,4 @@
+{
+  "IsApproved": true,
+  "SQL": "INSERT INTO Places (name,country) VALUES (@Name,@Country)"
+}

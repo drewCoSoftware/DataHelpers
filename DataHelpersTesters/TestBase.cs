@@ -1,14 +1,28 @@
 
 // ==========================================================================
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using DataHelpers;
 using DataHelpers.Data;
+using DataHelpersTesters;
 using drewCo.Tools;
 using NUnit.Framework;
 
 public class TestBase
 {
+
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  protected static IDataFactory<TSchema> CreateTestDataBaseFor<TSchema>(string dbName)
+  {
+    string dir = FileTools.GetLocalDir("test-db");
+    var factory = new SqliteDataFactory<TSchema>(dir, dbName);
+    FileTools.DeleteExistingFile(factory.DBFilePath);
+    factory.SetupDatabase();
+    return factory;
+  }
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// Check the given sql against the current known good sql by test name.
@@ -46,8 +60,7 @@ public class TestBase
       }
       else
       {
-        Console.WriteLine("The reference SQL is not approved!");
-        Assert.That(false);
+        Assert.That(false, "The reference SQL is not approved!");
       }
     }
     else
@@ -80,6 +93,45 @@ public class TestBase
     var factory = new SqliteDataFactory<T>(dataDir, dbFilePath);
     SqliteDataAccess<T> res = factory.GetDataAccess() as SqliteDataAccess<T>;
     return res;
+  }
+
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  protected void PopulateVacationDB(IDataFactory<VacationSchema> factory)
+  {
+    string[] placeNames = new[] {
+      "Testistan,Royal Gardens",
+      "USA, St. Louis"
+    };
+    var places = new List<Place>();
+    foreach (var p in placeNames)
+    {
+      string[] parts = p.Split(',');
+      var testPlace = new Place()
+      {
+        Country = parts[0].Trim(),
+        Name = parts[1].Trim(),
+      };
+      factory.Add(testPlace);
+
+      places.Add(testPlace);
+    }
+
+    string[] names = new[] {
+    "Dave Smith","Brad Wright","Don Juan"
+    };
+    int index = 0;
+    foreach (var n in names)
+    {
+      Traveler testTraveler = new()
+      {
+        FavoritePlace = places[index],
+        Name = n
+      };
+      factory.Add(testTraveler);
+
+      index = (index + 1) % places.Count;
+    }
   }
 }
 

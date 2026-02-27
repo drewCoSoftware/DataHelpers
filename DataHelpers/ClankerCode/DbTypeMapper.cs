@@ -1,5 +1,8 @@
-﻿using System;
+﻿using DataHelpers;
+using drewCo.Tools;
+using System;
 using System.Data;
+using System.Reflection;
 
 namespace ClankerCode;
 
@@ -15,6 +18,11 @@ public interface IDbTypeMapper
     }
 
     Type underlyingType = Nullable.GetUnderlyingType(type) ?? type;
+
+    // Single Relations are represented as integers b/c of ID.
+    if (ReflectionTools.HasInterface<ISingleRelation>(underlyingType)) { 
+      return DbType.Int32;
+    }
 
     if (underlyingType.IsEnum)
     {

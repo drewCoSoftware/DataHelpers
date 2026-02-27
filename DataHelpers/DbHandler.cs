@@ -313,35 +313,35 @@ public class DBHandler : IDisposable
     return converted;
   }
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  private PropMap GetColumnMap<T>()
-  {
-    // NOTE: I'm thinking that the property maps can even come from 'SchemaDef'!
-    var td = SchemaDef.GetTableDef<T>();
-    return td.PropMap;
+  //// --------------------------------------------------------------------------------------------------------------------------
+  //private PropMap GetColumnMap<T>()
+  //{
+  //  // NOTE: I'm thinking that the property maps can even come from 'SchemaDef'!
+  //  var td = SchemaDef.GetTableDef<T>();
+  //  return td.PropMap;
 
-    //lock (_PropMapLock)
-    //{
-    //  if (_Generated.TryGetValue(typeof(T), out var res))
-    //  {
-    //    return res;
-    //  }
+  //  //lock (_PropMapLock)
+  //  //{
+  //  //  if (_Generated.TryGetValue(typeof(T), out var res))
+  //  //  {
+  //  //    return res;
+  //  //  }
 
-    //  PropertyInfo[] props = typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public);
-    //  Dictionary<string, PropertyInfo> propMap = new Dictionary<string, PropertyInfo>();
-    //  foreach (PropertyInfo pi in props)
-    //  {
-    //    if (pi.CanWrite)
-    //    {
-    //      propMap[pi.Name] = pi;
-    //    }
-    //  }
+  //  //  PropertyInfo[] props = typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public);
+  //  //  Dictionary<string, PropertyInfo> propMap = new Dictionary<string, PropertyInfo>();
+  //  //  foreach (PropertyInfo pi in props)
+  //  //  {
+  //  //    if (pi.CanWrite)
+  //  //    {
+  //  //      propMap[pi.Name] = pi;
+  //  //    }
+  //  //  }
 
-    //  _Generated.Add(typeof(T), propMap);
-    //  return propMap;
-    //}
+  //  //  _Generated.Add(typeof(T), propMap);
+  //  //  return propMap;
+  //  //}
 
-  }
+  //}
 
   private static object? ConvertValue(object value, Type targetType)
   {

@@ -41,12 +41,6 @@ public class VacationSchema
 // ==============================================================================================================================
 public class Traveler : IHasPrimary
 {
-
-  public Traveler() { }
-  //public Traveler(int id, string name, int favoriteplace_id) { 
-  //  int x=  10;
-  //}
-
   public int ID { get; set; }
   public string Name { get; set; }
 

@@ -11,9 +11,6 @@ using DataHelpers;
 using System.Linq;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using NUnit.Framework.Interfaces;
-using Dapper;
-using static Dapper.SqlMapper;
 using System.Data;
 
 namespace DataHelpersTesters;
@@ -24,6 +21,19 @@ namespace DataHelpersTesters;
 // a way to generate test data for the query generation tests, I think this is very possible.
 public class SqliteSchemaTesters : TestBase
 {
+//  // --------------------------------------------------------------------------------------------------------------------------
+//  [Test]
+//  public void CanCreateSelectQueryWithCriteria()
+//  {
+//    IDataFactory<VacationSchema> factory = CreateTestDataBaseFor<VacationSchema>(CurrentFunctionName());
+//    var schema = factory.Schema;
+
+//    PopulateVacationDB(factory);
+
+
+
+//  }
+
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
@@ -37,9 +47,9 @@ public class SqliteSchemaTesters : TestBase
     Assert.Inconclusive("'CreateParams' feautre no longer exists!");
 
 
-    //IDataFactory<VacationSchema> factory = CreateTestDataBaseFor<VacationSchema>(CurrentFunctionName());
-    //var schema = factory.Schema;
-
+    IDataFactory<VacationSchema> factory = CreateTestDataBaseFor<VacationSchema>(CurrentFunctionName());
+    var schema = factory.Schema;
+    PopulateVacationDB(factory);
 
 
     //var testPlace = new Place()
@@ -378,20 +388,6 @@ public class SqliteSchemaTesters : TestBase
 
   }
 
-
-  // --------------------------------------------------------------------------------------------------------------------------
-  protected static IDataFactory<TSchema> CreateTestDataBaseFor<TSchema>(string dbName)
-  {
-    string dir = FileTools.GetLocalDir("test-db");
-    var factory = new SqliteDataFactory<TSchema>(dir, dbName);
-    FileTools.DeleteExistingFile(factory.DBFilePath);
-    factory.SetupDatabase();
-    return factory;
-  }
-
-
-
-
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// This shows that properties with the 'Relation' attribute will automatically have FK relations setup in the schema / defs.
@@ -612,42 +608,6 @@ public class SqliteSchemaTesters : TestBase
 
 
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  /// <summary>
-  /// Shows that a schema with a circular dependency (parent -> child -> child(parent)) is not valid and will crash.
-  /// </summary>
-  [IgnoreTest("This test is no longer valid after changing how we do parent / child relationships.")]
-  public void CantCreateSchemaWithCircularDependency()
-  {
-    // BONK!
-    Assert.Throws<InvalidOperationException>(() =>
-    {
-      var schema = new SchemaDefinition(new SqliteFlavor(), typeof(SchemaWithCircularDependency));
-    });
-  }
-
-
-  // NOTE: We need some kind of test schema for this.  It can be something from this test library.
-  // -------------------------------------------------------------------------------------------------------------------------- 
-  /// <summary>
-  /// Shows that we can automatically create an insert query for a table.
-  /// </summary>
-  [Test]
-  public void CanCreateInsertQuery()
-  {
-    var schema = new SchemaDefinition(new SqliteFlavor(), typeof(BusinessSchema));
-    TableDef? memberTable = schema.GetTableDef(nameof(BusinessSchema.People));
-    Assert.That(memberTable, Is.Not.Null);
-
-    string insertQuery = memberTable!.GetInsertQuery();
-
-    // UPDATE: Use the 'checksql' function!
-
-    CheckSQL(nameof(CanCreateInsertQuery), insertQuery);
-
-    //const string EXPECTED = "INSERT INTO People (name,createdate) VALUES (@Name,@CreateDate) RETURNING id";
-    //Assert.That(EXPECTED, Is.EqualTo(insertQuery));
-  }
 }
 
 

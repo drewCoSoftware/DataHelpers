@@ -27,27 +27,3 @@ namespace DataHelpers.Data;
       parameter.Value = value;
     }
   }
-
-//// ============================================================================================================================
-///// <summary>
-///// This is a special handler so that we can use DateTimeOffset types with SQLite.
-///// </summary>
-//public class ISingleRelationHandler : TypeHandler<ISingleRelation>
-//{
-//  // --------------------------------------------------------------------------------------------------------------------------
-//  public override ISingleRelation? Parse(object value)
-//  {
-//    if (value == null) { return null; }
-//    if (DateTimeOffset.TryParse(value as string, out DateTimeOffset res))
-//    {
-//      return null;
-//    }
-//    throw new InvalidOperationException($"Input value: '{value as string}' is not a valid DateTimeOffset type!");
-//  }
-
-//  // --------------------------------------------------------------------------------------------------------------------------
-//  public override void SetValue(IDbDataParameter parameter, ISingleRelation value)
-//  {
-//    parameter.Value = value;
-//  }
-//}
