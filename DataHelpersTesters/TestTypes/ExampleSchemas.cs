@@ -1,11 +1,66 @@
 // ==========================================================================   
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
 using DataHelpers;
 using DataHelpers.Data;
 
 namespace DataHelpersTesters;
 
+
+// ==============================================================================================================================
+public enum ESomeEnum
+{
+  Val_0 = 0,
+  Val_1 = 1,
+  Val_2 = 2,
+}
+
+
+
+// ==============================================================================================================================
+public class CompositeType : ICompositeSerializer
+{
+  public string Name { get; set; }
+  public int Number { get; set; }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public object Deserialize(string data)
+  {
+    object res = JsonSerializer.Deserialize<CompositeType>(data);
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public string Serialize()
+  {
+    string res = JsonSerializer.Serialize<CompositeType>(this);
+    return res;
+  }
+}
+
+// ==============================================================================================================================
+public class TypeWithComposite : IHasPrimary
+{
+  public int ID { get; set; }
+
+  public CompositeType CompositeData { get; set; }
+}
+
+// ==============================================================================================================================
+public class TypeWithEnum : IHasPrimary
+{
+  public int ID { get; set; }
+  public ESomeEnum SomeEnum { get; set; }
+}
+
+// ==============================================================================================================================
+public class AdvancedFeaturesSchema
+{
+  public List<TypeWithComposite> TypesWithComposites { get; set; }
+  public List<TypeWithEnum> TypeWithEnum { get; set; }
+}
 
 // ==============================================================================================================================
 /// <summary>

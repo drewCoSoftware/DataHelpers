@@ -1,5 +1,6 @@
 ﻿using DataHelpers.Data;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 
 namespace DataHelpers;
 
@@ -46,6 +47,8 @@ public class ManyRelation<T> : IManyRelation
   private List<T>? _Data = null;
   public List<T> Data { get { return _Data; } internal set { _Data = value; } }
 }
+
+
 
 // ==========================================================================
 /// <summary>
@@ -114,6 +117,30 @@ where T : class, IHasPrimary
 
 }
 
-//public class Relations<T> : IHasPrimary {
-//  public int 
+
+// ==============================================================================================================================
+public interface ICompositeSerializer { 
+ object Deserialize(string data);
+ string Serialize();
+}
+
+//// ==============================================================================================================================
+//public interface ICompositeSerializer<T> : ICompositeSerializer
+//{
+//  //Type ICompositeSerializer.GetCompositeType() { return typeof(T); }
+
+//  //T From(string data)
+//  //{
+//  //  T res = JsonSerializer.Deserialize<T>(data);
+//  //  return res;
+//  //}
+//  //string To()
+//  //{
+//  //  string res = JsonSerializer.Serialize(this);
+//  //  return res;
+//  //}
 //}
+
+////public class Relations<T> : IHasPrimary {
+////  public int 
+////}

@@ -139,6 +139,14 @@ namespace DataHelpers.Data
             continue;
           }
 
+          bool isComposite = ReflectionTools.HasInterface<ICompositeSerializer>(item.PropertyType);
+          if (isComposite) { 
+            // var cs = useVal as ICompositeSerializer;
+            // var genFunc = typeof(ICompositeSerializer<>).MakeGenericType(new[] { cs.GetCompositeType() }).GetMethod("To");
+            useVal =  (useVal as ICompositeSerializer).Serialize(); // (string)genFunc.Invoke(useVal, null);
+
+            // useVal = cs.ToS
+          }
           res.Add(item.Name, new QueryParamValue(useVal, ToDbType(item.PropertyType)));
         }
       }
@@ -152,6 +160,9 @@ namespace DataHelpers.Data
   // ============================================================================================================================
   public interface IDataTypeResolver
   {
+    public const string INTEGER = "INTEGER";
+    public const string TEXT = "TEXT";
+
     // NOTE: Sometimes we have to know if we are dealing with a primary key or not.
     string GetDataTypeName(Type t, bool isPrimaryCol);
   }

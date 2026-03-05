@@ -15,24 +15,84 @@ using System.Data;
 
 namespace DataHelpersTesters;
 
-// ==========================================================================   
+// ==============================================================================================================================
 // NOTE: All of these test cases could be written in a way that we could run each of them against
 // multiple SQL flavors.  I am not 100% sure how that would work ATM, but given that we already have
 // a way to generate test data for the query generation tests, I think this is very possible.
 public class SqliteSchemaTesters : TestBase
 {
-//  // --------------------------------------------------------------------------------------------------------------------------
-//  [Test]
-//  public void CanCreateSelectQueryWithCriteria()
-//  {
-//    IDataFactory<VacationSchema> factory = CreateTestDataBaseFor<VacationSchema>(CurrentFunctionName());
-//    var schema = factory.Schema;
 
-//    PopulateVacationDB(factory);
+  // --------------------------------------------------------------------------------------------------------------------------  [Test]
+  /// <summary>
+  /// This test was provided to show that composite types can be placed into single fields.
+  /// </summary>
+  [Test]
+  public void CanUseCompositeDataTypesInFields()
+  {
+    IDataFactory<AdvancedFeaturesSchema> factory = CreateTestDataBaseFor<AdvancedFeaturesSchema>(CurrentFunctionName());
+
+    var data = new TypeWithComposite()
+    {
+      CompositeData = new CompositeType()
+      {
+        Name = "Test",
+        Number = 123
+      }
+    };
+
+    string serialized = data.CompositeData.Serialize();
+
+    int id = factory.Add(data);
+
+    var check = factory.GetById<TypeWithComposite>(id);
+    Assert.That(data.CompositeData.Name, Is.EqualTo(data.CompositeData.Name));
+    Assert.That(data.CompositeData.Number, Is.EqualTo(data.CompositeData.Number));
+  }
 
 
+  // --------------------------------------------------------------------------------------------------------------------------  [Test]
+  /// <summary>
+  /// This test case was provided to show that we can use enums as fields.
+  /// </summary>
+  [Test]
+  public void CanUseEnumInDataType()
+  {
+    IDataFactory<AdvancedFeaturesSchema> factory = CreateTestDataBaseFor<AdvancedFeaturesSchema>(CurrentFunctionName());
 
-//  }
+    // Let's add some data...
+    var data = new TypeWithEnum()
+    {
+      SomeEnum = ESomeEnum.Val_2
+    };
+    int id = factory.Add(data);
+
+    // Show that the data can be saved + retrieved.
+    var check = factory.GetById<TypeWithEnum>(id);
+    Assert.That(check.SomeEnum, Is.EqualTo(data.SomeEnum));
+  }
+
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// This test case was provided to show that 
+  /// </summary>
+  [Test]
+  public void CanUseOptionalRelation()
+  {
+
+    IDataFactory<VacationSchema> factory = CreateTestDataBaseFor<VacationSchema>(CurrentFunctionName());
+    var schema = factory.Schema;
+
+    TableDef td = schema.GetTableDef<Traveler>();
+    Assert.That(td, Is.Not.Null);
+
+    var opRelation = td.GetColumn("FavoritePlace_ID");
+    Assert.That(opRelation, Is.Not.Null);
+    Assert.That(opRelation.IsNullable, "This property should be marked as nullable!");
+
+
+  }
+
 
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -101,26 +161,6 @@ public class SqliteSchemaTesters : TestBase
     Assert.Fail("complete this test!  See comment / SoccerClub.Contact for tips/examples.");
   }
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  /// <summary>
-  /// This test case was provided to show that 
-  /// </summary>
-  [Test]
-  public void CanUseOptionalRelation()
-  {
-
-    IDataFactory<VacationSchema> factory = CreateTestDataBaseFor<VacationSchema>(CurrentFunctionName());
-    var schema = factory.Schema;
-
-    TableDef td = schema.GetTableDef<Traveler>();
-    Assert.That(td, Is.Not.Null);
-
-    var opRelation = td.GetColumn("FavoritePlace_ID");
-    Assert.That(opRelation, Is.Not.Null);
-    Assert.That(opRelation.IsNullable, "This property should be marked as nullable!");
-
-
-  }
 
   // --------------------------------------------------------------------------------------------------------------------------
   // Thanks internet!

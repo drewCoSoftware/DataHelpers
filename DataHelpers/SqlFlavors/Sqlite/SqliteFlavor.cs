@@ -33,14 +33,20 @@ public class SqliteFlavor : ISqlFlavor
 // ============================================================================================================================
 public class SqliteDataTypeResolver : IDataTypeResolver
 {
-  // private PairDictionary<Type, string> TypeMappings = new PairDictionary<Type, string>()
-  // {
-  //     { typeof(Int32), ""
-  // }
+
 
   // --------------------------------------------------------------------------------------------------------------------------
   public string GetDataTypeName(Type t, bool isPrimaryCol)
   {
+    if (t.IsEnum) { 
+      return IDataTypeResolver.INTEGER;
+    }
+
+    if (ReflectionTools.HasInterface<ICompositeSerializer>(t))
+    {
+      return IDataTypeResolver.TEXT;
+    }
+
     if (ReflectionTools.HasInterface<IRelation>(t))
     {
       // Annotated type.  The corresponding column def will be replaced or removed, depending.
@@ -51,7 +57,7 @@ public class SqliteDataTypeResolver : IDataTypeResolver
 
     if (t == typeof(Int32) || t == typeof(Int64) || t == typeof(Int32?))
     {
-      res = "INTEGER";
+      res = IDataTypeResolver.INTEGER;
     }
     else if (t == typeof(float) || t == typeof(double))
     {
@@ -59,7 +65,7 @@ public class SqliteDataTypeResolver : IDataTypeResolver
     }
     else if (t == typeof(string))
     {
-      res = "TEXT";
+      res = IDataTypeResolver.TEXT;
     }
     else if (t == typeof(DateTimeOffset) ||
              t == typeof(DateTimeOffset?))
@@ -71,7 +77,7 @@ public class SqliteDataTypeResolver : IDataTypeResolver
     else if (t == typeof(bool))
     {
       // lol, no boolean type either!
-      res = "INTEGER";
+      res = IDataTypeResolver.INTEGER;
     }
     else if (t == typeof(decimal))
     {

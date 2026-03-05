@@ -308,8 +308,20 @@ public class DBHandler : IDisposable
     object? raw = reader.IsDBNull(value) ? null : reader.GetValue(value);
     if (raw == null) { return null; }
 
+    object? converted = null!;
     Type targetType = Nullable.GetUnderlyingType(dataType) ?? dataType;
-    object? converted = ConvertValue(raw, targetType);
+    if (ReflectionTools.HasInterface<ICompositeSerializer>(targetType))
+    {
+      // NOTE: We shouldn't have to create an instance of the class to deserialize it.
+      // The interface should instead give us a 'strategy' that points to a singleton
+      // that actually does the work.
+      var cs = Activator.CreateInstance(targetType) as ICompositeSerializer;
+      converted = cs.Deserialize(raw as string);
+    }
+    else
+    {
+      converted = ConvertValue(raw, targetType);
+    }
     return converted;
   }
 

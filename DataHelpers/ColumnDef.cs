@@ -9,19 +9,21 @@ public class ColumnDef
   /// Special DataType name used for placeholder relation defs during schema generation.
   /// </summary>
   public const string RELATION_PLACEHOLDER = "@_RELATION";
+  public const string COMPOSITE_PLACEHOLDER = "@_COMPOSITE";
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// The name of the property from the source type.  For example the property name for MyClass.TheName is 'TheName', but the data store
   /// name may be different, i.e. 'the_name'.  Nested property names (OtherTable.ID) will be mapped to (OtherTable_ID)
   /// </summary>
-  public string? PropertyName { get; private set; }                 
+  public string? PropertyName { get; private set; }
   public string DataStoreName { get; private set; }                 // The name that is used in the data-store (SQL for example)
   public Type RuntimeType { get; private set; }
   public string DataType { get; private set; }
   public bool IsPrimary { get; private set; }
   public bool IsUnique { get; private set; }
   public bool IsNullable { get; private set; }
+  public bool IsComposite { get; private set; }
 
   public PropertyInfo? PropInfo { get; private set; } = null;
 
@@ -37,7 +39,7 @@ public class ColumnDef
   internal RelationAttribute? RelationDef { get; set; } = null;
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public ColumnDef(string propName, string dataStoreName, Type runtimeType, string dataType, bool isPrimary, bool isUnique, bool isNullable, RelationAttribute? relationDef_, PropertyInfo? propInfo_)
+  public ColumnDef(string propName, string dataStoreName, Type runtimeType, string dataType, bool isPrimary, bool isUnique, bool isNullable, RelationAttribute? relationDef_, PropertyInfo? propInfo_, bool isComposite_)
   {
     PropertyName = propName;
     DataStoreName = dataStoreName;
@@ -48,6 +50,8 @@ public class ColumnDef
     IsNullable = isNullable;
     RelationDef = relationDef_;
     PropInfo = propInfo_;
+
+    IsComposite = isComposite_;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------

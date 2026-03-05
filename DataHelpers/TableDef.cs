@@ -99,6 +99,7 @@ public class TableDef
         }
       }
 
+
       bool isUnique = ReflectionTools.HasAttribute<UniqueAttribute>(p);
 
       // TODO: The property type should also be checked for nullable!
@@ -126,17 +127,21 @@ public class TableDef
 
       string colName = this.Schema.Flavor.GetDataStoreName(p.Name);
 
+      string dataTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(p.PropertyType, isPrimary);
+      bool isComposite = ReflectionTools.HasInterface<ICompositeSerializer>(p.PropertyType);
+
       // This is a normal property.
       // NOTE: Non-related lists can't be represented.... should we make it so that lists are always included?
       _Columns.Add(new ColumnDef(p.Name,
                                  colName,
                                  p.PropertyType,
-                                 Schema.Flavor.TypeResolver.GetDataTypeName(p.PropertyType, isPrimary),
+                                 dataTypeName,
                                  isPrimary,
                                  isUnique,
                                  isNullable,
                                  relAttr,
-                                 p));
+                                 p,
+                                 isComposite));
 
     }
   }
@@ -204,6 +209,7 @@ public class TableDef
     foreach (var col in Columns)
     {
       string useName = col.DataStoreName;
+      string useColType = col.DataType;
 
       string def = $"{useName} {col.DataType}";
       if (col.RelatedDataSet != null && Schema.Flavor.UsesInlineFKDeclaration)
@@ -700,7 +706,7 @@ public class TableDef
           {
             // Create the new def.....
             string dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
-            var cd = new ColumnDef(propName, colName, typeof(int), dbTypeName, false, col.IsUnique, col.IsNullable, rd, null);
+            var cd = new ColumnDef(propName, colName, typeof(int), dbTypeName, false, col.IsUnique, col.IsNullable, rd, null, false);
             toAdd.Add(cd);
           }
         }
@@ -775,7 +781,7 @@ public class TableDef
               int x = 10;
             }
 
-            var colDef = new ColumnDef(useName, sqlName, typeof(int), dbTypeName, false, false, false, useRelation, null);
+            var colDef = new ColumnDef(useName, sqlName, typeof(int), dbTypeName, false, false, false, useRelation, null, false);
             targetSet.AddColumn(colDef);
           }
         }
@@ -831,7 +837,7 @@ public class TableDef
     string sqlName = Schema.Flavor.GetDataStoreName(useName);
 
     var td = new TableDef(null, mtName, this.Schema);
-    td.AddColumn(new ColumnDef(useName, sqlName, intType, intTypeName, true, false, false, null, null));
+    td.AddColumn(new ColumnDef(useName, sqlName, intType, intTypeName, true, false, false, null, null, false));
 
     // Now the id refs for each of the data sets.
     string idCol1 = $"{relSet.Name}_{nameof(IHasPrimary.ID)}";
@@ -847,7 +853,7 @@ public class TableDef
         DataSetName = index == 0 ? relSet.Name : mutualRelation.DataSetName,
         LocalIDPropertyName = c,
         RelationType = ERelationType.Single
-      }, null);
+      }, null, false);
       td.AddColumn(cd);
       ++index;
     }
