@@ -40,10 +40,10 @@ public class TableDef
   /// <summary>
   /// Return the ColumnDef with the corresponding name, or null if it doesn't exist.
   /// </summary>
-  public ColumnDef? GetColumn(string name)
+  public ColumnDef? GetColumn(string propName)
   {
     var res = (from x in _Columns
-               where x.PropertyName == name
+               where x.PropertyName == propName
                select x).FirstOrDefault();
     return res;
   }

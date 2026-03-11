@@ -6,6 +6,35 @@ namespace DataHelpers.Data
 {
 
   // ============================================================================================================================
+  public class QueryParamsBuilder
+  {
+    private ISqlFlavor Flavor = null!;
+    private  QueryParams QParams = new Dictionary<string, QueryParamValue>();
+
+    // --------------------------------------------------------------------------------------------------------------------------
+    public QueryParamsBuilder(ISqlFlavor flavor_)
+    {
+      Flavor = flavor_;
+    }
+
+    // --------------------------------------------------------------------------------------------------------------------------
+    public void Add(string key, object value, Type? t = null)
+    {
+      if (t == null)
+      {
+        t = value.GetType();
+      }
+      var qp = new QueryParamValue(value, Flavor.ToDbType(t));
+      this.QParams.Add(key, qp);
+    }
+
+    // --------------------------------------------------------------------------------------------------------------------------
+    public QueryParams Build() { 
+      return QParams;
+    }
+  }
+
+  // ============================================================================================================================
   /// <summary>
   /// Interface to help us deal with the difference between different SQL languages.
   /// Ideally we want a single API in our applications so that we can swap data providers on the fly.
@@ -102,7 +131,7 @@ namespace DataHelpers.Data
 
             int useId = (relVal as ISingleRelation).ID;
 
-            res.Add(useName, new QueryParamValue(useId, ToDbType(typeof(int)))); 
+            res.Add(useName, new QueryParamValue(useId, ToDbType(typeof(int))));
           }
           else if (ReflectionTools.HasInterface<IManyRelation>(item.PropertyType))
           {
@@ -140,10 +169,11 @@ namespace DataHelpers.Data
           }
 
           bool isComposite = ReflectionTools.HasInterface<ICompositeSerializer>(item.PropertyType);
-          if (isComposite) { 
+          if (isComposite)
+          {
             // var cs = useVal as ICompositeSerializer;
             // var genFunc = typeof(ICompositeSerializer<>).MakeGenericType(new[] { cs.GetCompositeType() }).GetMethod("To");
-            useVal =  (useVal as ICompositeSerializer).Serialize(); // (string)genFunc.Invoke(useVal, null);
+            useVal = (useVal as ICompositeSerializer).Serialize(); // (string)genFunc.Invoke(useVal, null);
 
             // useVal = cs.ToS
           }
