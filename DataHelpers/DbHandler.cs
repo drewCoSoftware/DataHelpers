@@ -203,6 +203,8 @@ public class DBHandler : IDisposable
       var td = SchemaDef.GetTableDef<T>();
       foreach (KeyValuePair<string, int> kvp in ordinals)
       {
+        // We will need to do some extra inspection to handle the joins.....
+        // We will look for a '.' in the name to figure out what class instance it should go to.
         var col = td.GetColumnByDataStoreName(kvp.Key);
         if (col == null)
         {
