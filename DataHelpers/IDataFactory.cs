@@ -68,6 +68,7 @@ public interface IDataFactory<TSchema>
     {
       var td = Schema.GetTableDef<T>();
       string query = $"SELECT * FROM {td.Name}";
+
       var res = dal.RunQuery<T>(query);
       return res.ToArray();
     });
