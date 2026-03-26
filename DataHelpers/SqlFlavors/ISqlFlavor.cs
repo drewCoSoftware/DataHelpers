@@ -46,7 +46,7 @@ namespace DataHelpers.Data
       sb.Append("WHERE ");
       foreach (var item in QParams)
       {
-        sb.Append($"{item.Key} = @{item.Value}");
+        sb.Append($"{item.Key} = @{item.Key}");
       }
 
       string res = sb.ToString(); 
