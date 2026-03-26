@@ -1,6 +1,8 @@
 ﻿using drewCo.Tools.Logging;
 using drewCo.Tools;
 using ClankerCode;
+using System.Text;
+using System.Runtime.CompilerServices;
 
 namespace DataHelpers.Data
 {
@@ -9,7 +11,7 @@ namespace DataHelpers.Data
   public class QueryParamsBuilder
   {
     private ISqlFlavor Flavor = null!;
-    private  QueryParams QParams = new Dictionary<string, QueryParamValue>();
+    private QueryParams QParams = new Dictionary<string, QueryParamValue>();
 
     // --------------------------------------------------------------------------------------------------------------------------
     public QueryParamsBuilder(ISqlFlavor flavor_)
@@ -29,9 +31,28 @@ namespace DataHelpers.Data
     }
 
     // --------------------------------------------------------------------------------------------------------------------------
-    public QueryParams Build() { 
+    public QueryParams Build()
+    {
       return QParams;
     }
+
+    // --------------------------------------------------------------------------------------------------------------------------
+    /// <summary>
+    /// Return the names of all items as a WHERE clause.
+    /// </summary>
+    public string AsWhereClause()
+    {
+      var sb = new StringBuilder();
+      sb.Append("WHERE ");
+      foreach (var item in QParams)
+      {
+        sb.Append($"{item.Key} = @{item.Value}");
+      }
+
+      string res = sb.ToString(); 
+      return res;
+    }
+
   }
 
   // ============================================================================================================================
@@ -100,7 +121,8 @@ namespace DataHelpers.Data
       {
         // Don't attempt to include ids.
         if (item.Name == nameof(IHasPrimary.ID) && !includeID) { continue; }
-        
+        if (ReflectionTools.HasAttribute<IgnoreAttribute>(item)) { continue; }
+
         var relAttr = ReflectionTools.GetAttribute<RelationAttribute>(item);
         if (relAttr != null)
         {
