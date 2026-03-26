@@ -100,7 +100,7 @@ namespace DataHelpers.Data
       {
         // Don't attempt to include ids.
         if (item.Name == nameof(IHasPrimary.ID) && !includeID) { continue; }
-
+        
         var relAttr = ReflectionTools.GetAttribute<RelationAttribute>(item);
         if (relAttr != null)
         {

@@ -116,27 +116,6 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
     return res;
   }
 
-
-  //// --------------------------------------------------------------------------------------------------------------------------
-  //protected IEnumerable<T> RunQuery<T>(SqliteConnection conn, string query, QueryParams? qParams)
-  //{
-  //  DynamicParameters? useParams = null;
-  //  if (qParams != null)
-  //  {
-  //    useParams = new DynamicParameters();
-  //    foreach (var item in qParams)
-  //    {
-  //      useParams.Add(item.Key, item.Value);
-  //    }
-  //  }
-
-  //  var res = conn.Query<T>(query, useParams);
-
-  //  return res;
-  //}
-
-
-
   // --------------------------------------------------------------------------------------------------------------------------
   public int RunExecute(string query, object? qParams = null)
   {
