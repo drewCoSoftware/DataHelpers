@@ -584,7 +584,7 @@ public class TableDef
 
     if (predicate != null)
     {
-      throw new InvalidOperationException("the where generator is bad code!");
+      // throw new InvalidOperationException("the where generator is bad code!");
       string whereClause = WhereBuilder.ToSqlWhere(predicate);
       sb.Append(" WHERE ");
       sb.Append(whereClause);

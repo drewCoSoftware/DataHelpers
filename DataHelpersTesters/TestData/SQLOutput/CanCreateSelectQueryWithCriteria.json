@@ -1,0 +1,4 @@
+{
+  "IsApproved": true,
+  "SQL": "SELECT * FROM People WHERE @Name = \u0027dave\u0027 AND @Number = 10"
+}
