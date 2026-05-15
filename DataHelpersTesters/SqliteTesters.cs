@@ -37,7 +37,7 @@ namespace DataHelpersTesters
           {
             // Simluate long running action...
             Thread.Sleep(100);
-            int added = dal.RunExecute($"INSERT INTO {nameof(SimpleSchema.People)} (Name) VALUES (\"xxx\")");
+            int added = dal.RunExecute($"INSERT INTO {nameof(SimpleSchema.People)} (Name, Number) VALUES ('xxx', 123)");
           });
         });
         tasks[i] = t;
