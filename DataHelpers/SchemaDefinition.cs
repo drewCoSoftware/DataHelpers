@@ -174,53 +174,58 @@ public class SchemaDefinition
   /// </summary>
   public QueryParams ComputeParametersFor<T>(T obj)
   {
-    var td = this.GetTableDef(typeof(T));
-    if (td == null)
-    {
-      throw new InvalidOperationException($"There is no data set for type: {typeof(T)}");
-    }
-
-    var builder = new QueryParamsBuilder(this.Flavor);
-    foreach (var item in td.Columns)
-    {
-      // OPTIONS:
-      if (item.IsPrimary) { continue; }
-      object? val = null;
-      string useName = item.PropertyName;
-
-      if (item.RelationDef != null)
-      {
-        var rd = item.RelationDef;
-        switch (rd.RelationType)
-        {
-          case ERelationType.Single:
-            val = GetRelationId(item, obj);
-            useName = item.RelatedDataSet.PropertyPath;
-            break;
-
-          default:
-            throw new InvalidOperationException($"relation type: {rd.RelationType} is not supported!");
-        }
-      }
-      else
-      {
-        val = item.PropInfo.GetValue(obj);
-      }
-
-
-      if (val == null)
-      {
-        if (!item.IsNullable)
-        {
-          throw new InvalidOperationException($"Value for column: {item.PropertyName} is null, but null is not allowed!");
-        }
-        continue;
-      }
-      builder.Add(item.PropertyName, val);
-    }
-
-    var res = builder.Build();
+    var res = Flavor.CreateParams(obj!);
     return res;
+
+    // NOTE: This is a bit more concise, but maybe doesn't cover as many cases.  Perhaps we should look into
+    // the function call above to see if we can get the best of both worlds.
+    //var td = this.GetTableDef(typeof(T));
+    //if (td == null)
+    //{
+    //  throw new InvalidOperationException($"There is no data set for type: {typeof(T)}");
+    //}
+
+    //var builder = new QueryParamsBuilder(this.Flavor);
+    //foreach (var item in td.Columns)
+    //{
+    //  // OPTIONS:
+    //  if (item.IsPrimary) { continue; }
+    //  object? val = null;
+    //  string useName = item.PropertyName;
+
+    //  if (item.RelationDef != null)
+    //  {
+    //    var rd = item.RelationDef;
+    //    switch (rd.RelationType)
+    //    {
+    //      case ERelationType.Single:
+    //        val = GetRelationId(item, obj);
+    //        useName = item.RelatedDataSet.PropertyPath;
+    //        break;
+
+    //      default:
+    //        throw new InvalidOperationException($"relation type: {rd.RelationType} is not supported!");
+    //    }
+    //  }
+    //  else
+    //  {
+    //    val = item.PropInfo.GetValue(obj);
+    //  }
+
+
+    //  if (val == null)
+    //  {
+    //    if (!item.IsNullable)
+    //    {
+    //      throw new InvalidOperationException($"Value for column: {item.PropertyName} is null, but null is not allowed!");
+    //    }
+    //    continue;
+    //  }
+    //  builder.Add(item.PropertyName, val);
+    //}
+
+    //var res = builder.Build();
+    //return res;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------

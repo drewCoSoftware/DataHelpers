@@ -86,7 +86,7 @@ namespace DataHelpers.Data
 
     // --------------------------------------------------------------------------------------------------------------------------
     // REFACTOR -> 'CreateParams'
-    public QueryParams? ResolveQueryParams(object? qParams, string queryType)
+    public QueryParams? ResolveQueryParams(object? qParams)
     {
       QueryParams? useParams = null;
       if (qParams != null)
@@ -97,7 +97,7 @@ namespace DataHelpers.Data
         }
         else
         {
-          useParams = CreateParams(queryType, qParams);
+          useParams = CreateParams(qParams);
         }
       }
 
@@ -109,7 +109,7 @@ namespace DataHelpers.Data
     /// Create a set of dynamic query parameters from the given object.
     /// This allows us to use some of our conventions for mapping relationships to types.
     /// </summary>
-    QueryParams CreateParams(string queryType, object fromInstance, bool includeNulls = false, bool includeID = false)
+    QueryParams CreateParams(object fromInstance, bool includeNulls = false, bool includeID = false)
     {
       if (fromInstance == null) { throw new ArgumentNullException($"Please provide an instance for {nameof(fromInstance)}"); }
 

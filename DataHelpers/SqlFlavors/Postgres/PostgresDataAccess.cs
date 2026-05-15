@@ -206,7 +206,7 @@ public class PostgresDataAccess<TSchema> : IDataAccess<TSchema>
   {
 
     string queryType = Helpers.GetFirstWord(query).ToLower();
-    QueryParams? useParams = SchemaDef.Flavor.ResolveQueryParams(qParams, queryType);
+    QueryParams? useParams = SchemaDef.Flavor.ResolveQueryParams(qParams);
 
 
     var res = DBHandler.Query<T>(query, useParams);
@@ -258,7 +258,7 @@ public class PostgresDataAccess<TSchema> : IDataAccess<TSchema>
   public int RunExecute(string query, object? qParams)
   {
     string queryType = Helpers.GetFirstWord(query);
-    var useParams = SchemaDef.Flavor.ResolveQueryParams(qParams, queryType);
+    var useParams = SchemaDef.Flavor.ResolveQueryParams(qParams);
     int res = DBHandler.Execute(query, useParams);
     return res;
 

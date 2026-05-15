@@ -14,6 +14,31 @@ namespace DataHelpersTesters
   public class QueryGenerationTesters : TestBase
   {
 
+    // -------------------------------------------------------------------------------------------------------------------------- 
+    /// <summary>
+    /// This test case was provided to show that we can leverage some of our newer tech for
+    /// building out QueryParameter objects + generating queries with them.  This provides us 
+    /// with much easier 'Add (insert)' and other CRUD type functionality.
+    /// </summary>
+    [Test]
+    public void CanDirectInsertObject()
+    {
+      const string TEST_NAME = nameof(CanDirectInsertObject);
+
+      var schema = new SchemaDefinition(new SqliteFlavor(), typeof(BusinessSchema));
+      IDataFactory<BusinessSchema> factory = CreateTestDataBaseFor<BusinessSchema>(TEST_NAME);
+
+      const string TEST_TOWN = "TheTown";
+      var town = new Town()
+      {
+        Name = TEST_TOWN
+      };
+
+      int newId = factory.Add(town);
+      Assert.That(newId, Is.Not.EqualTo(0));
+      Assert.That(newId, Is.EqualTo(town.ID));
+    }
+
     // --------------------------------------------------------------------------------------------------------------------------
     [Test]
     public void CanCreateQueryParamsFromObjectInstance()
@@ -131,6 +156,7 @@ namespace DataHelpersTesters
       string insertQuery = memberTable!.GetInsertQuery();
       CheckSQL(nameof(CanCreateInsertQuery), insertQuery);
     }
+
 
 
   }
