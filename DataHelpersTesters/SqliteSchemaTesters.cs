@@ -420,10 +420,9 @@ public class SqliteSchemaTesters : TestBase
     {
       var td = dal.SchemaDef.GetTableDef<Person>();
 
-      // HACK: This is here to deal with optional fields being included in the query
-      // even tho the entity we are trying to insert does not....
-      string query = td.GetInsertQuery(new[] { nameof(Person.Name), nameof(Person.Number), "Addresses_ID" });
-
+      // NOTE: We can update more of the API to use this kind of pattern!
+      var qParams = dal.SchemaDef.ComputeParametersFor(testPerson);
+      string query = td.GetInsertQuery(qParams.Keys.ToArray());
 
       int newId = dal.RunSingleQuery<int>(query, testPerson);
       testPerson.ID = newId;

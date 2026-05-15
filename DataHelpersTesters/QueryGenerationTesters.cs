@@ -49,6 +49,10 @@ namespace DataHelpersTesters
       {
         var qParams = schema.ComputeParametersFor(p1);
         Assert.That(qParams.Count, Is.EqualTo(3), "Invalid number of parameters! [1]");
+
+        // Check some parameter names to be sure that we are using the ones that are compatible
+        // with what we would see in a query.....
+        Assert.That(qParams.ContainsKey("Name"));
       }
 
       // Let's set the hometown relation to see if we still get the correct number of params.

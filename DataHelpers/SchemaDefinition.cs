@@ -186,6 +186,7 @@ public class SchemaDefinition
       // OPTIONS:
       if (item.IsPrimary) { continue; }
       object? val = null;
+      string useName = item.PropertyName;
 
       if (item.RelationDef != null)
       {
@@ -193,11 +194,10 @@ public class SchemaDefinition
         switch (rd.RelationType)
         {
           case ERelationType.Single:
-
             val = GetRelationId(item, obj);
-
-            int x = 10;
+            useName = item.RelatedDataSet.PropertyPath;
             break;
+
           default:
             throw new InvalidOperationException($"relation type: {rd.RelationType} is not supported!");
         }
@@ -216,7 +216,7 @@ public class SchemaDefinition
         }
         continue;
       }
-      builder.Add(item.DataStoreName, val);
+      builder.Add(item.PropertyName, val);
     }
 
     var res = builder.Build();
