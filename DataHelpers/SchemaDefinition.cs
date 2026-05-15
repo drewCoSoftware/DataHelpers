@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Linq.Expressions;
 using System.Formats.Asn1;
 using drewCo.Tools.Logging;
+using System.Reflection;
 
 namespace DataHelpers.Data;
 
@@ -167,10 +168,76 @@ public class SchemaDefinition
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public object GetParamatersObject<T>(T child)
+  /// <summary>
+  /// Creates a QueryParameters instance based on the given object.
+  /// The object must be an instance of a type defined in the schema.
+  /// </summary>
+  public QueryParams ComputeParametersFor<T>(T obj)
   {
-    // NOTE: We should probably use 'Helpers.CreateDynamicParameters'!
-    throw new InvalidOperationException("This function is currently not working and breaking some tests.  review its use + write some standalone test cases, please");
+    var td = this.GetTableDef(typeof(T));
+    if (td == null)
+    {
+      throw new InvalidOperationException($"There is no data set for type: {typeof(T)}");
+    }
+
+    var builder = new QueryParamsBuilder(this.Flavor);
+    foreach (var item in td.Columns)
+    {
+      // OPTIONS:
+      if (item.IsPrimary) { continue; }
+      object? val = null;
+
+      if (item.RelationDef != null)
+      {
+        var rd = item.RelationDef;
+        switch (rd.RelationType)
+        {
+          case ERelationType.Single:
+
+            val = GetRelationId(item, obj);
+
+            int x = 10;
+            break;
+          default:
+            throw new InvalidOperationException($"relation type: {rd.RelationType} is not supported!");
+        }
+      }
+      else
+      {
+        val = item.PropInfo.GetValue(obj);
+      }
+
+
+      if (val == null)
+      {
+        if (!item.IsNullable)
+        {
+          throw new InvalidOperationException($"Value for column: {item.PropertyName} is null, but null is not allowed!");
+        }
+        continue;
+      }
+      builder.Add(item.DataStoreName, val);
+    }
+
+    var res = builder.Build();
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Gets the ID value for the given relationship, or null if it isn't set.
+  /// </summary>
+  private object? GetRelationId(ColumnDef col, object? obj)
+  {
+    var relInstance = col.RelationDef!.TargetProperty!.GetValue(obj) as ISingleRelation;
+    if (relInstance == null) { return null; }
+
+    int res = relInstance.ID;
+    if (res == 0)
+    {
+      return null;
+    }
+    return res;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------

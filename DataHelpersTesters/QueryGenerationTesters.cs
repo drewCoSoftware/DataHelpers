@@ -16,6 +16,52 @@ namespace DataHelpersTesters
 
     // --------------------------------------------------------------------------------------------------------------------------
     [Test]
+    public void CanCreateQueryParamsFromObjectInstance()
+    {
+      const string TEST_NAME = nameof(CanCreateQueryParamsFromObjectInstance);
+
+      var schema = new SchemaDefinition(new SqliteFlavor(), typeof(BusinessSchema));
+      IDataFactory<BusinessSchema> factory = CreateTestDataBaseFor<BusinessSchema>(TEST_NAME);
+
+      var town = new Town()
+      {
+        Name = "BigTown",
+      };
+      factory.Add(town);
+      var addr = new Address()
+      {
+        Street = "123 Street",
+        State = "VA",
+        City = "Bigtown",
+        Town = town
+      };
+      int addrId = factory.Add(addr);
+
+      var p1 = new Person()
+      {
+        Name = "Dave",
+        Number = 123,
+        Address = addr,
+      };
+
+
+      // Now we can create the paramters object...
+      {
+        var qParams = schema.ComputeParametersFor(p1);
+        Assert.That(qParams.Count, Is.EqualTo(3), "Invalid number of parameters! [1]");
+      }
+
+      // Let's set the hometown relation to see if we still get the correct number of params.
+      {
+        p1.HomeTown = town;
+        var qParams = schema.ComputeParametersFor(p1);
+        Assert.That(qParams.Count, Is.EqualTo(4), "Invalid number of parameters! [2]");
+      }
+
+    }
+
+    // --------------------------------------------------------------------------------------------------------------------------
+    [Test]
     public void CanCreateInsertQueries()
     {
       const string TEST_NAME = nameof(CanCreateInsertQueries);

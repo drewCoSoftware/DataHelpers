@@ -25,7 +25,7 @@ public class ColumnDef
   public bool IsNullable { get; private set; }
   public bool IsComposite { get; private set; }
 
-  public PropertyInfo? PropInfo { get; private set; } = null;
+  public PropertyInfo PropInfo { get; private set; } = null!;
 
   //// NOTE: This has a non-private setter b/c we have to update them sometimes, after the fact,
   //// because of the sloppy way that we are currently creating the table defs.
@@ -49,6 +49,10 @@ public class ColumnDef
     IsUnique = isUnique;
     IsNullable = isNullable;
     RelationDef = relationDef_;
+
+    //if (propInfo_ == null) { 
+    //  throw new NullReferenceException("property info is null!");
+    //}
     PropInfo = propInfo_;
 
     IsComposite = isComposite_;

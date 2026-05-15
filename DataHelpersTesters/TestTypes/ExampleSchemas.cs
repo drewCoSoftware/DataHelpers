@@ -143,7 +143,13 @@ public class Person : IHasPrimary
   /// This data comes from the 'People' dataset of the schema.
   /// </summary>
   [Relation(nameof(BusinessSchema.Addresses))]
-  public SingleRelation<Address> Address { get; set; }
+  public SingleRelation<Address> Address { get; set; } = new SingleRelation<Address>();
+
+  [Relation(nameof(BusinessSchema.Towns))]
+  public SingleRelation<Town>? HomeTown { get; set; } = null;
+
+  //[Relation(nameof(BusinessSchema.Addresses))]
+  //public SingleRelation<Address>? HomeAddress { get; set; } = null;
 
   ///// <summary>
   ///// Shows that we can use an explicit name for the data set that this is related to.
