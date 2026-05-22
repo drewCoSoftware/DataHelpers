@@ -36,11 +36,28 @@ public class PostgresDataTypeResolver : IDataTypeResolver
   // NOTE: We might actually want to have more information about the column so we can get the right name...
   public string GetDataTypeName(Type t, bool isPrimaryCol)
   {
+
+    if (t.IsEnum)
+    {
+      return IDataTypeResolver.INTEGER;
+    }
+
+    if (ReflectionTools.HasInterface<ICompositeSerializer>(t))
+    {
+      return IDataTypeResolver.TEXT;
+    }
+
     if (ReflectionTools.HasInterface<IRelation>(t))
     {
       // Annotated type.  The corresponding column def will be replaced or removed, depending.
       return ColumnDef.RELATION_PLACEHOLDER;
     }
+
+    //if (ReflectionTools.HasInterface<IRelation>(t))
+    //{
+    //  // Annotated type.  The corresponding column def will be replaced or removed, depending.
+    //  return ColumnDef.RELATION_PLACEHOLDER;
+    //}
 
     string res = string.Empty;
 

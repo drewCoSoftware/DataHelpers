@@ -29,10 +29,10 @@ public interface IDataFactory<TSchema>
     if (entity.ID != 0) { throw new InvalidOperationException($"The entity already has an assigned ID and can't be added to the set!  Use 'AddOrUpdate' or 'Update' calls instead!"); }
 
     var td = Schema.GetTableDef<T>();
-    string query = td.GetInsertQuery();
+    var qParams = Schema.ComputeParametersFor(entity); // Schema.Flavor.CreateParams("insert", entity, true);
+    string query = td.GetInsertQuery(qParams.Keys.ToArray());
     int res = Action(dal =>
     {
-      var qParams = Schema.ComputeParametersFor(entity); // Schema.Flavor.CreateParams("insert", entity, true);
       int qr = dal.RunSingleQuery<int>(query, qParams);
       return qr;
     });

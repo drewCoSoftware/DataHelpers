@@ -26,6 +26,7 @@ namespace DataHelpers.Data
       {
         t = value.GetType();
       }
+
       var qp = new QueryParamValue(value, Flavor.ToDbType(t));
       this.QParams.Add(key, qp);
     }
@@ -113,26 +114,27 @@ namespace DataHelpers.Data
     {
       if (fromInstance == null) { throw new ArgumentNullException($"Please provide an instance for {nameof(fromInstance)}"); }
 
-      var res = new QueryParams();
+      // var res = new QueryParams();
+      var qpb = new QueryParamsBuilder(this);
 
       var t = fromInstance.GetType();
       var props = ReflectionTools.GetProperties(t);
-      foreach (var item in props)
+      foreach (var prop in props)
       {
         // Don't attempt to include ids.
-        if (item.Name == nameof(IHasPrimary.ID) && !includeID) { continue; }
-        if (ReflectionTools.HasAttribute<IgnoreAttribute>(item)) { continue; }
+        if (prop.Name == nameof(IHasPrimary.ID) && !includeID) { continue; }
+        if (ReflectionTools.HasAttribute<IgnoreAttribute>(prop)) { continue; }
 
-        var relAttr = ReflectionTools.GetAttribute<RelationAttribute>(item);
+        var relAttr = ReflectionTools.GetAttribute<RelationAttribute>(prop);
         if (relAttr != null)
         {
-          if (ReflectionTools.HasInterface<ISingleRelation>(item.PropertyType))
+          if (ReflectionTools.HasInterface<ISingleRelation>(prop.PropertyType))
           {
             string setName = relAttr.DataSetName;
             string useName = relAttr.LocalIDPropertyName ?? setName + "_" + nameof(IHasPrimary.ID);
 
-            var relType = item.PropertyType.GetGenericArguments()[0];
-            var relVal = item.GetValue(fromInstance);
+            var relType = prop.PropertyType.GetGenericArguments()[0];
+            var relVal = prop.GetValue(fromInstance);
             if (relVal == null || (relVal as ISingleRelation).ID == 0)
             {
               // TODO: If the property isn't nullable, we should raise a flag here!
@@ -145,17 +147,18 @@ namespace DataHelpers.Data
               // This is null, or unset:
               if (includeNulls)
               {
-                res.Add(useName, new QueryParamValue(null, ToDbType(typeof(int))));
+                qpb.Add(useName, null, typeof(int)); 
+                // res.Add(useName, new QueryParamValue(null, ToDbType(typeof(int))));
               }
               continue;
             }
 
 
             int useId = (relVal as ISingleRelation).ID;
-
-            res.Add(useName, new QueryParamValue(useId, ToDbType(typeof(int))));
+            qpb.Add(useName, useId, typeof(int));
+            // res.Add(useName, new QueryParamValue(useId, ToDbType(typeof(int))));
           }
-          else if (ReflectionTools.HasInterface<IManyRelation>(item.PropertyType))
+          else if (ReflectionTools.HasInterface<IManyRelation>(prop.PropertyType))
           {
             // TODO: Decide what to do about this.  In this case, there could be many related instances
             // each with their own ID, etc.....
@@ -165,7 +168,7 @@ namespace DataHelpers.Data
             // In that case, there is nothing for us to include, esp. if this is an INSERT query.
             // TODO: We don't have any indication as to what type of query we are creating params for,
             // so we should look into it at some point.
-            var manyVal = item.GetValue(fromInstance);
+            var manyVal = prop.GetValue(fromInstance);
             if (manyVal == null)
             {
               // There is no data anyway, so we can skip.
@@ -182,7 +185,21 @@ namespace DataHelpers.Data
         }
         else
         {
-          object? useVal = item.GetValue(fromInstance);
+          object? useVal = prop.GetValue(fromInstance);
+
+          // NOTE: Why does the value work for sqlite....
+          if (useVal != null && prop.PropertyType.IsEnum)
+          {
+            if (useVal.GetType() == typeof(string))
+            {
+              useVal = Enum.Parse(prop.PropertyType, (string)useVal);
+            }
+            else
+            {
+              useVal = (int)useVal;
+            }
+          }
+
           if (!includeNulls && useVal == null)
           {
             // NOTE: Depending on what we are doing, and what data set / type we are targeting, we may
@@ -190,7 +207,7 @@ namespace DataHelpers.Data
             continue;
           }
 
-          bool isComposite = ReflectionTools.HasInterface<ICompositeSerializer>(item.PropertyType);
+          bool isComposite = ReflectionTools.HasInterface<ICompositeSerializer>(prop.PropertyType);
           if (isComposite)
           {
             // var cs = useVal as ICompositeSerializer;
@@ -199,10 +216,12 @@ namespace DataHelpers.Data
 
             // useVal = cs.ToS
           }
-          res.Add(item.Name, new QueryParamValue(useVal, ToDbType(item.PropertyType)));
+          qpb.Add(prop.Name, useVal, prop.PropertyType);
+          // res.Add(prop.Name, new QueryParamValue(useVal, ToDbType(prop.PropertyType)));
         }
       }
 
+      var res = qpb.Build();
       return res;
     }
 

@@ -6,6 +6,7 @@ using System.Linq.Expressions;
 using System.Formats.Asn1;
 using drewCo.Tools.Logging;
 using System.Reflection;
+using System.Net.WebSockets;
 
 namespace DataHelpers.Data;
 
@@ -587,25 +588,61 @@ public class SchemaDefinition
     // throw new NotImplementedException();
   }
 
-  //// --------------------------------------------------------------------------------------------------------------------------
-  ///// <summary>
-  ///// NOTE: This should happen when we are building out our defs.
-  ///// NOTE: It should also be part of the current sql flavor too!
-  ///// </summary>
-  //public static string FormatColumnName(string name)
-  //{
-  //  return name.ToLower();
-  //}
-
   // --------------------------------------------------------------------------------------------------------------------------
   private List<TableDef> SortDependencies(Dictionary<string, TableDef> tableDefs)
   {
-    var res = new List<TableDef>(tableDefs.Values.ToList());
+    var candidates = new List<TableDef>(tableDefs.Values.ToList());
+
+    // All tables with no relations go at the top.
+    // Then we can do them one by one...
+    // NOTE: There is certainly a way better way to do this, but we will live with it for now....
+    var used=  new HashSet<TableDef>();  
+    var res = new List<TableDef>();
+
+    // NOTE: This can be folded in to the main loop...
+    var zeroDeps = (from x in candidates where x.RelatedDataSets.Count == 0 select x).ToList();
+    foreach (var item in zeroDeps)
+    {
+      candidates.Remove(item);
+      used.Add(item);
+      res.Add(item);
+    }
+
+    while (candidates.Count > 0)
+    {
+      var nextBatch = new List<TableDef>();
+      foreach (var item in candidates)
+      {
+        bool hasAll = true;
+        foreach (var rel in item.RelatedDataSets)
+        {
+          if (!used.Contains(rel.TargetSet))
+          {
+            hasAll = false;
+            break;
+          }
+        }
+        if (hasAll)
+        {
+          nextBatch.Add(item);
+        }
+      }
+
+      // Remove identified items from the list of candidates.
+      if (nextBatch.Count == 0) { throw new Exception("something went wrong!"); }
+      foreach (var item in nextBatch)
+      {
+        used.Add(item);
+        candidates.Remove(item);
+        res.Add(item);
+      }
+      nextBatch.Clear();
+    }
+
 
     // LOL, this probably won't work!
     // It would be nice if it was just a matter of counting.  This will suffice for now.
-    res.Sort((l, r) => l.RelatedDataSets.Count.CompareTo(r.RelatedDataSets.Count));
-
+    // candidates.Sort((l, r) => l.RelatedDataSets.Count.CompareTo(r.RelatedDataSets.Count));
     return res;
   }
 
