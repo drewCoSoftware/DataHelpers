@@ -10,6 +10,9 @@ public class SqliteFlavor : ISqlFlavor
   public IDataTypeResolver TypeResolver { get { return _TypeResolver; } }
 
 
+  public string TrueValue { get { return "1"; } }
+  public string FalseValue { get { return "0"; } }
+
   public bool UsesInlineFKDeclaration { get { return false; } }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -33,8 +36,6 @@ public class SqliteFlavor : ISqlFlavor
 // ============================================================================================================================
 public class SqliteDataTypeResolver : IDataTypeResolver
 {
-
-
   // --------------------------------------------------------------------------------------------------------------------------
   public string GetDataTypeName(Type t, bool isPrimaryCol)
   {

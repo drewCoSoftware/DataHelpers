@@ -20,6 +20,9 @@ public class PostgresFlavor : ISqlFlavor
     }
     return string.Empty;
   }
+
+  public string TrueValue { get { return "true"; } }
+  public string FalseValue { get { return "false"; } }
 }
 
 

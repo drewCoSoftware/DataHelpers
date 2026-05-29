@@ -2,7 +2,6 @@
 using drewCo.Tools;
 using ClankerCode;
 using System.Text;
-using System.Runtime.CompilerServices;
 
 namespace DataHelpers.Data
 {
@@ -83,7 +82,8 @@ namespace DataHelpers.Data
 
     public string GetIdentitySyntax(ColumnDef col);
 
-
+    public string TrueValue { get; }
+    public string FalseValue { get; }
 
     // --------------------------------------------------------------------------------------------------------------------------
     // REFACTOR -> 'CreateParams'
