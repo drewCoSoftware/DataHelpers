@@ -21,15 +21,6 @@ public class SqliteFlavor : ISqlFlavor
   {
     return string.Empty;
   }
-
-
-
-  // // --------------------------------------------------------------------------------------------------------------------------
-  // public string GetIdentitySyntax(ColumnDef col)
-  // {
-  //   Console.WriteLine("This function (GetIdentitySyntax) is not fully implemented for sqlite!");
-  //   return string.Empty;
-  // }
 }
 
 
@@ -39,7 +30,8 @@ public class SqliteDataTypeResolver : IDataTypeResolver
   // --------------------------------------------------------------------------------------------------------------------------
   public string GetDataTypeName(Type t, bool isPrimaryCol)
   {
-    if (t.IsEnum) { 
+    if (t.IsEnum)
+    {
       return IDataTypeResolver.INTEGER;
     }
 

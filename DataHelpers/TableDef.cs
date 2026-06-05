@@ -42,6 +42,24 @@ public class TableDef
   /// </summary>
   public ColumnDef? GetColumn(string propName)
   {
+    int colCount = _Columns.Count;
+    for (int i = 0; i < colCount; i++)
+    {
+      var col = _Columns[i];
+      if (col.PropertyName == propName) { return col; }
+
+      // It might be from a related column....
+      var relDef = col.RelationDef;
+      if (relDef != null) { 
+        if (relDef.TargetProperty?.Name == propName) { 
+          return col;
+        }
+      }
+    }
+
+    return null;
+
+
     var res = (from x in _Columns
                where x.PropertyName == propName
                select x).FirstOrDefault();
@@ -563,6 +581,38 @@ public class TableDef
     return res;
 
   }
+
+  //// ---------------------------------------------------------------------------------------------------
+  //public string GetSelectQuery<T>(string[]? useCols = null)
+  //{
+  //  NamesAndValues namesAndVals = GetNamesAndValues(this.Columns, useCols);
+
+  //  StringBuilder sb = new StringBuilder(0x400);
+  //  sb.Append($"SELECT {string.Join(", ", namesAndVals.ColNames)} FROM"
+  //  string colPart = string.Join(",", namesAndVals.ColNames);
+
+
+
+  //  string insertPart = GetInsertPart(namesAndVals);
+
+
+  //  sb.Append(insertPart);
+
+  //  sb.Append(" VALUES (");
+  //  sb.Append(string.Join(",", namesAndVals.ColValues));
+
+  //  sb.Append(")");
+
+  //  // OPTIONS:
+  //  const bool RETURN_ID = true;
+  //  if (RETURN_ID && namesAndVals.PrimaryKeyName != null || returnId)
+  //  {
+  //    sb.Append($" RETURNING {namesAndVals.PrimaryKeyName ?? nameof(IHasPrimary.ID)}");
+  //  }
+
+  //  string res = sb.ToString();
+  //  return res;
+  //}
 
   // TODO: We should be able to use a non-generic select query for mapping tables.....
   // ---------------------------------------------------------------------------------------------------

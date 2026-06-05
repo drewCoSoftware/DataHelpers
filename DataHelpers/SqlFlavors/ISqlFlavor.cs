@@ -40,14 +40,13 @@ namespace DataHelpers.Data
     /// <summary>
     /// Return the names of all items as a WHERE clause.
     /// </summary>
-    public string AsWhereClause()
+    public string GetWhereClause()
     {
       var sb = new StringBuilder();
       sb.Append("WHERE ");
-      foreach (var item in QParams)
-      {
-        sb.Append($"{item.Key} = @{item.Key}");
-      }
+
+      string args = string.Join(" AND ", from x in QParams select $"{x.Key} = @{x.Key}");
+      sb.Append(args);
 
       string res = sb.ToString(); 
       return res;
