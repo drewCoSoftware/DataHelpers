@@ -1,4 +1,5 @@
 using Dapper;
+using System.Security.Cryptography.X509Certificates;
 
 namespace DataHelpers.Data;
 
@@ -7,12 +8,17 @@ public interface IDataAccess<TSchema> : IDisposable
 {
   SchemaDefinition SchemaDef { get; }
 
-
   /// <param name="qParams">
   /// Options: Any object instance or a QueryParams instance.  Any object that is
   /// not a QueryParams instance will be converted to one internally.
   /// </param>
   IEnumerable<T> RunQuery<T>(string query, object? qParams = null);
+
+  /// <summary>
+  /// Get the count of items of the given type.
+  /// </summary>
+  /// <param name="critera">a where clause to filter the items counted.  Leave it null to count everything.</param>
+  int GetCount<T>(string? critera = null, object? qParams = null);
 
   /// <param name="qParams">
   /// Options: Any object instance or a QueryParams instance.  Any object that is

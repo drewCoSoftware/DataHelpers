@@ -43,8 +43,9 @@ public class DBHandler : IDisposable
   private static Dictionary<Type, PropMap> _Generated = new Dictionary<Type, PropMap>();
   private static object _PropMapLock = new object();
 
-
   private static Dictionary<Type, List<BindCallback>> _BindCallbacks = new Dictionary<Type, List<BindCallback>>();
+
+
 
   // --------------------------------------------------------------------------------------------------------------------------
   public DBHandler(DbProviderFactory dbProvider_, string connectionString_, SchemaDefinition schemaDef_)

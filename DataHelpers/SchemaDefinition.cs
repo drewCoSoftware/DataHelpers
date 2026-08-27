@@ -688,6 +688,34 @@ public class SchemaDefinition
     string query = $"DELETE FROM {mtable.Name} WHERE {forIdName} IN {idsList}";
     return query;
   }
+
+  // ------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Get a query clause that will allow for a sub-selection of the data.
+  /// Useful for pagination.
+  /// </summary>
+  public string GetPaginationClause(int pageNumber, int pageSize)
+  {
+    // This will work for both postgres and sqlite I believe...
+    string res = $"LIMIT {pageSize} OFFSET {(pageNumber - 1)*pageSize}";
+
+    return res;
+  }
+
+  // ------------------------------------------------------------------------------------------
+  public string GetCountQuery<T>(string? criteria = null)
+  {
+    // This should work for all flavors....
+    var td = GetTableDef<T>();
+    string res = $"SELECT COUNT(*) FROM {td.Name}";
+    if (criteria != null)  {
+      if (!criteria.StartsWith("where", StringComparison.OrdinalIgnoreCase)) { 
+        criteria = "WHERE " + criteria;
+      }
+      res += " " + criteria;
+    }
+    return res;
+}
 }
 
 // ============================================================================================================================

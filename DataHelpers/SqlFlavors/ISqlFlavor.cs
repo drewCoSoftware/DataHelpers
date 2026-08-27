@@ -21,6 +21,10 @@ namespace DataHelpers.Data
     // --------------------------------------------------------------------------------------------------------------------------
     public void Add(string key, object value, Type? t = null)
     {
+      if (key == null) { 
+        throw new ArgumentNullException("key may not be null!");
+      }
+
       if (t == null)
       {
         t = value.GetType();
@@ -29,6 +33,13 @@ namespace DataHelpers.Data
       var qp = new QueryParamValue(value, Flavor.ToDbType(t));
       this.QParams.Add(key, qp);
     }
+
+    //// --------------------------------------------------------------------------------------------------------------------------
+    //public void AddBy<T>(object obj)
+    //  where T: IHasPrimary
+    //{
+    //  throw new NotImplementedException();
+    //}
 
     // --------------------------------------------------------------------------------------------------------------------------
     public QueryParams Build()

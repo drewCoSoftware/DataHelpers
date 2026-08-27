@@ -20,21 +20,55 @@ public class PagedData<T>
   }
 
   // --------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Use this version when srcItems is ALL items in the set.
+  /// </summary>
   public PagedData(IEnumerable<T> srcItems, int pageNumber)
     : this(srcItems, pageNumber, PaginationArgs.DEFAULT_PAGE_SIZE)
   { }
 
   // --------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Use this version when srcItems is ALL items in the set.
+  /// </summary>
   public PagedData(IEnumerable<T> srcItems, int pageNumber_, int pageSize_)
   {
     PageNumber = pageNumber_;
     RequestedPageSize = pageSize_;
 
     Items = srcItems.Skip((pageNumber_ - 1) * pageSize_).Take(pageSize_).ToArray();
+    PageSize = Items.Count();
 
     TotalItems = srcItems.Count();
     TotalPages = (TotalItems / pageSize_) + Math.Sign(TotalItems % pageSize_);
   }
+
+  // --------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Use this version when items is a single page of data, and total items != items.count
+  /// </summary>
+  public PagedData(IEnumerable<T> items, int pageNumber_, int pageSize_, int totalItems)
+  {
+    Items = items;
+    PageNumber = pageNumber_;
+    RequestedPageSize = pageSize_;
+    PageSize = items.Count();
+    TotalItems = totalItems;
+    TotalPages = (totalItems / pageSize_) + Math.Sign(totalItems % pageSize_);
+  }
+
+  // --------------------------------------------------------------------------------------------------------
+  public PaginationArgs AsPaginationArgs() { 
+    var res = new PaginationArgs() { 
+      CurPage = this.PageNumber,
+      PageSize = this.PageSize,
+      MaxPage = this.TotalPages,
+      TotalCount = this.TotalItems,
+    };
+
+    return res;
+  }
+
 
 
   // --------------------------------------------------------------------------------------------------------
@@ -43,17 +77,19 @@ public class PagedData<T>
   /// Use this when you only have a single page of data handy, typically this will happen when you are
   /// pulling single pages from a database.
   /// </summary>
+  [Obsolete("Use constructor version instead!")]
   public static PagedData<T> FromSinglePage(IEnumerable<T> items, int pageNumber, int pageSize, int totalItems)
   {
-    var res = new PagedData<T>()
-    {
-      Items = items.ToArray(),
-      PageNumber = pageNumber,
-      RequestedPageSize = pageSize,
-      TotalItems = totalItems,
-      TotalPages = (totalItems / pageSize) + Math.Sign(totalItems % pageSize),
-    };
-    return res;
+    return new PagedData<T>(items, pageNumber, pageSize, totalItems);
+    //var res = new PagedData<T>()
+    //{
+    //  Items = items,
+    //  PageNumber = pageNumber,
+    //  RequestedPageSize = pageSize,
+    //  TotalItems = totalItems,
+    //  TotalPages = (totalItems / pageSize) + Math.Sign(totalItems % pageSize),
+    //};
+    //return res;
   }
 
   /// <summary>
@@ -64,7 +100,7 @@ public class PagedData<T>
   /// <summary>
   /// All the entries.
   /// </summary>
-  public IList<T> Items { get; set; } = new List<T>();
+  public IEnumerable<T> Items { get; set; } = new List<T>();
 
   /// <summary>
   /// The current page number.
@@ -85,7 +121,7 @@ public class PagedData<T>
   /// <summary>
   /// The actual page size.
   /// </summary>
-  public int PageSize { get { return Items.Count; } }
+  public int PageSize { get; private set; }
 
   /// <summary>
   /// The total number of entries across all pages.
@@ -123,12 +159,15 @@ public class PaginationArgs
   /// <summary>
   /// The current page number to return results for.
   /// </summary>
-  public int Page { get; set; } = 1;
+  public int CurPage { get; set; } = 1;
 
   /// <summary>
   /// The maxinum number of results to return.
   /// </summary>
   public int PageSize { get; set; } = DEFAULT_PAGE_SIZE;
+
+  public int MaxPage { get; set; } = 0;
+  public int TotalCount { get; set; } = 0;
 
   // ------------------------------------------------------------------------------------------------------------
   public PaginationArgs() { }
@@ -136,7 +175,7 @@ public class PaginationArgs
   // ------------------------------------------------------------------------------------------------------------
   public PaginationArgs(int page_, int pageSize_)
   {
-    this.Page = page_;
+    this.CurPage = page_;
     this.PageSize = pageSize_;
   }
 }

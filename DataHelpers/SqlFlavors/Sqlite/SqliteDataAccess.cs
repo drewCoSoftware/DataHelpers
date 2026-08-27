@@ -100,6 +100,15 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
     return res;
   }
 
+  // --------------------------------------------------------------------------------------------------------------------------
+  public int GetCount<T>(string criteria, object? qParams = null)
+  {
+    QueryParams? useParams = SchemaDef.Flavor.ResolveQueryParams(qParams);
+
+    string query = SchemaDef.GetCountQuery<T>(criteria);
+    int count = DBHandler.QuerySingle<int>(query, useParams);
+    return count;
+  }
 
 
   // --------------------------------------------------------------------------------------------------------------------------

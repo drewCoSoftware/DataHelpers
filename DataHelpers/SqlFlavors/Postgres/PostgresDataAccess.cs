@@ -56,6 +56,16 @@ public class PostgresDataAccess<TSchema> : IDataAccess<TSchema>
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
+  public int GetCount<T>(string criteria, object? qParams = null)
+  {
+    QueryParams? useParams = SchemaDef.Flavor.ResolveQueryParams(qParams);
+
+    string query = SchemaDef.GetCountQuery<T>(criteria);
+    int count = DBHandler.QuerySingle<int>(query, useParams);
+    return count;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
   public void Rollback()
   {
     throw new NotImplementedException("Please complete this code...");
@@ -70,7 +80,8 @@ public class PostgresDataAccess<TSchema> : IDataAccess<TSchema>
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public DbTransaction BeginTransaction() {
+  public DbTransaction BeginTransaction()
+  {
     return DBHandler.BeginTransaction();
   }
 
