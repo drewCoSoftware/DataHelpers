@@ -72,11 +72,22 @@ public class SchemaDefinition
 
     PopulateRelationships();
 
+    PopulateIndexes();
 
     ValidateSchema();
 
     CreatePropertyMap();
 
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private void PopulateIndexes()
+  {
+    foreach (var def in _TableDefs.Values)
+    {
+      // Now we can populate all of the members.
+      def.PopulateIndexes();
+    }
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -430,7 +441,6 @@ public class SchemaDefinition
 
     // Add the generated sets to the Schema def.
     // We filter them first because at time of writing it is possible to double-define them (no way to detect that one has been created in prior step)
-    // allGeneratedSets.DistinctBy(x=>x.Name
     allGeneratedSets = GetUniqueSets(allGeneratedSets);
 
 

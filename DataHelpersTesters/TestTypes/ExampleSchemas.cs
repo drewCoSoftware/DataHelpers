@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using DataHelpers;
 using DataHelpers.Data;
 
@@ -18,6 +19,30 @@ public enum ESomeEnum
 }
 
 
+// ==============================================================================================================================
+public class MultiColUnique : IHasPrimary
+{
+  public int ID {get; set; }
+
+  [Unique(Group="NameNumber")]
+  public string Name { get; set; }
+
+  [Unique(Group = "NameNumber")]
+  public int Number { get; set; }
+}
+
+// ==============================================================================================================================
+/// <summary>
+/// This type has an invalid group specification for a multi-column unique index.
+/// It will cause exceptions when we attempt to use it.
+/// </summary>
+public class InvalidMutiColUnique : IHasPrimary
+{
+  public int ID { get; set; }
+
+  [Unique(Group = "NameNumber")]
+  public string Name { get; set; }
+}
 
 // ==============================================================================================================================
 public class CompositeType : ICompositeSerializer
@@ -60,6 +85,7 @@ public class AdvancedFeaturesSchema
 {
   public List<TypeWithComposite> TypesWithComposites { get; set; }
   public List<TypeWithEnum> TypeWithEnum { get; set; }
+  public List<MultiColUnique> TypeWithMulticolumnUnique { get; set; }
 }
 
 // ==============================================================================================================================

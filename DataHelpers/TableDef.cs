@@ -6,6 +6,7 @@ using System.Linq.Expressions;
 using drewCo.Tools.Logging;
 using System.Reflection;
 using System.Data;
+using System.Diagnostics.Contracts;
 
 namespace DataHelpers.Data;
 
@@ -26,6 +27,10 @@ public class TableDef
   private List<ColumnDef> _Columns = new List<ColumnDef>();
   public ReadOnlyCollection<ColumnDef> Columns { get { return new ReadOnlyCollection<ColumnDef>(_Columns); } }
 
+  /// <summary>
+  /// All indexes that are defined on the dataset.
+  /// </summary>
+  public List<Index> Indexes { get; set; } = null!;
 
   // --------------------------------------------------------------------------------------------------------------------------
   public TableDef(Type type_, string name_, SchemaDefinition schema_)
@@ -50,8 +55,10 @@ public class TableDef
 
       // It might be from a related column....
       var relDef = col.RelationDef;
-      if (relDef != null) { 
-        if (relDef.TargetProperty?.Name == propName) { 
+      if (relDef != null)
+      {
+        if (relDef.TargetProperty?.Name == propName)
+        {
           return col;
         }
       }
@@ -72,7 +79,7 @@ public class TableDef
     // Naive: related tables are not condsidered....
     // var res = (from x in this.Columns where x.PropertyName == p.Name select x).SingleOrDefault();
 
-    string matchName = p.Name;  
+    string matchName = p.Name;
     if (ReflectionTools.HasInterface<ISingleRelation>(p.PropertyType))
     {
       matchName = p.Name + "_ID";
@@ -117,8 +124,11 @@ public class TableDef
         }
       }
 
-
+      // TODO: We might populate indexes differently in the future....
+      // In fact, we probably will....
+      var uniqueAttr = ReflectionTools.GetAttribute<UniqueAttribute>(p);
       bool isUnique = ReflectionTools.HasAttribute<UniqueAttribute>(p);
+
 
       // TODO: The property type should also be checked for nullable!
       // TODO: ReflectionTools needs to be updated to include all of this so that nullables can be correctly detected!
@@ -249,10 +259,10 @@ public class TableDef
         def += " NULL";
       }
 
-      if (col.IsUnique)
-      {
-        def += " UNIQUE";
-      }
+      //if (col.IsUnique)
+      //{
+      //  def += " UNIQUE";
+      //}
 
       colDefs.Add(def);
 
@@ -269,9 +279,25 @@ public class TableDef
     {
       sb.AppendLine(fk);
     }
-
-
     sb.AppendLine(");");
+
+
+    // Add all indexex now.
+    foreach (var item in this.Indexes)
+    {
+      sb.AppendLine();
+      switch (item.Type)
+      {
+        case EIndexType.Unique:
+          string cols = string.Join(", ", from x in item.Columns select x.DataStoreName);
+          sb.AppendLine($"CREATE UNIQUE INDEX {item.Name} ON {this.Name}({cols})");
+          break;
+
+        default:
+          throw new ArgumentOutOfRangeException($"The index type: {item.Type} is not valid!");
+      }
+    }
+
 
     string res = sb.ToString();
     return res;
@@ -944,47 +970,96 @@ public class TableDef
     this._Columns.Remove(colDef);
   }
 
-  //public PropMap PropMap { get; private set; } = null!;
-  //// --------------------------------------------------------------------------------------------------------------------------
-  //internal void CreatePropertyMap()
-  //{
-  //  PropMap = new PropMap();
+  // ------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Setup all index definitions.
+  /// </summary>
+  internal void PopulateIndexes()
+  {
+    this.Indexes = new List<Index>();
 
-  //  foreach (var colDef in this.Columns)
-  //  {
-  //    // For the most part, only scalars get added to the property map!
-  //    //if (colDef.PropInfo != null && ReflectionTools.IsSimpleType(colDef.RuntimeType))
-  //    //{
-  //    //  PropMap.Add(colDef.DataStoreName, colDef);
-  //    //}
-  //    // colDef.RuntimeType
-  //  }
-  //}
+    var uniqueSets = new Dictionary<string, List<ColumnDef>>();
+    foreach (var col in Columns)
+    {
+      // if(col.RelationDef != null) { cont
+      if (col.PropInfo != null)
+      {
+        var attr = ReflectionTools.GetAttribute<UniqueAttribute>(col.PropInfo);
+        if (attr != null)
+        {
+          string group = attr.Group ?? string.Empty;
+          if (!uniqueSets.TryGetValue(group, out var cols))
+          {
+            cols = new List<ColumnDef>();
+            uniqueSets[group] = cols;
+          }
+          cols.Add(col);
+        }
+      }
+    }
 
+    foreach (var item in uniqueSets)
+    {
+      // Validate!
+      if (item.Value.Count < 2 && item.Key != string.Empty)
+      {
+        throw new InvalidOperationException($"The unqiue column group: {item.Key} only has one column and requires at least two!");
+      }
 
-  //// ------------------------------------------------------------------------------------------------
-  ///// <summary>
-  ///// Creates an insert query using the given object as a model.
-  ///// This function, in particular, will leave out optional/null params.
-  ///// </summary>
-  //public string GetInsertQueryFor<T>(T addr)
-  //{
-  //  var props = ReflectionTools.GetProperties<T>();
-  //  var qParams = Helpers.CreateParams("insert", addr, true);
+      var idx = new Index(item.Key, EIndexType.Unique);
+      idx.Columns = item.Value;
 
-  //  foreach (var c in this.Columns)
-  //  {
-  //    if (qParams.TryGetValue(c.Name, out var value)) {
-  //      if (value == null && c.IsNullable) { 
-  //        // We won't include this, as it isn't needed!
-  //      }
-  //    }
-  //  }
+      this.Indexes.Add(idx);
+    }
 
-  //  //return "";
-  //  // var map = from x in props select new {Key = x.Name,  Value = x.GetValue(addr)}).ToDictionary();
-  //  throw new NotImplementedException();
-  //}
+  }
+
+}
+
+// ==============================================================================================================================
+/// <summary>
+/// Defines an index on the dataset.
+/// </summary>
+public class Index
+{
+  // ---------------------------------------------------------------------------------------------------------------------
+  public Index(string name_, EIndexType type_)
+  {
+    Name = name_;
+    Type = type_;
+  }
+
+  /// <summary>
+  /// The name of the index.
+  /// </summary>
+  public string Name { get; private set; } = default!;
+
+  /// <summary>
+  /// What type of index is this?
+  /// </summary>
+  public EIndexType Type { get; private set; } = EIndexType.Invalid;
+
+  /// <summary>
+  /// All columns that are included in the index.
+  /// </summary>
+  public List<ColumnDef> Columns { get; set; } = null!;
+}
+
+// ==============================================================================================================================
+/// <summary>
+/// Describest the type of an index.
+/// </summary>
+public enum EIndexType
+{
+  /// <summary>
+  /// Invalid index type.
+  /// </summary>
+  Invalid = 0,
+
+  /// <summary>
+  /// A unique index.
+  /// </summary>
+  Unique = 1
 }
 
 // ==============================================================================================================================

@@ -6,7 +6,14 @@ namespace DataHelpers.Data;
 /// </summary>
 [AttributeUsage(AttributeTargets.Property)]
 public class UniqueAttribute : Attribute
-{ }
+{
+  /// <summary>
+  /// If set, all columns marked with the same group name will be used to
+  /// define a unique index.
+  /// If there aren't at least two members of the group, an exception will be thrown.
+  /// </summary>
+  public string? Group { get; set; } = null;
+}
 
 
 // ==========================================================================

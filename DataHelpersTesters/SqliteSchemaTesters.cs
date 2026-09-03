@@ -12,6 +12,7 @@ using System.Linq;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Data;
+using Microsoft.Data.Sqlite;
 
 namespace DataHelpersTesters;
 
@@ -21,6 +22,46 @@ namespace DataHelpersTesters;
 // a way to generate test data for the query generation tests, I think this is very possible.
 public class SqliteSchemaTesters : TestBase
 {
+  // --------------------------------------------------------------------------------------------------------------------------  [Test]
+  /// <summary>
+  /// This shows that we can define a unique index that encompasses multiple columns.
+  /// </summary>
+  [Test]
+  public void CanCreateMultiColumnUniqueIndex()
+  {
+    IDataFactory<AdvancedFeaturesSchema> factory = CreateTestDataBaseFor<AdvancedFeaturesSchema>(CurrentFunctionName());
+    var td = factory.Schema.GetTableDef<MultiColUnique>();
+
+    Assert.That(td.Indexes.Count, Is.EqualTo(1));
+
+    var idx = td.Indexes[0];
+    Assert.That(idx.Type, Is.EqualTo(EIndexType.Unique));
+    Assert.That(idx.Columns.Count, Is.EqualTo(2));
+
+    // Adding an instance with the same name / number combo will blow up!
+    int addedCount = 0;
+    Assert.Throws<SqliteException>(() =>
+    {
+      const int MAX = 2;
+      for (int i = 0; i < MAX; i++)
+      {
+        var multi = new MultiColUnique();
+        multi.Name = "MyName";
+        multi.Number = 1;
+
+        using (var dal = factory.GetDataAccess())
+        {
+          string insert = td.GetInsertQuery();
+          int newId = dal.RunSingleQuery<int>(insert, multi);
+          Assert.That(newId, Is.Not.EqualTo(0));
+          ++addedCount;
+        }
+      }
+    });
+
+    // Show that we were able to add at least one row!
+    Assert.That(addedCount, Is.EqualTo(1), "Only one column shouls have been added!");
+  }
 
   // --------------------------------------------------------------------------------------------------------------------------  [Test]
   /// <summary>

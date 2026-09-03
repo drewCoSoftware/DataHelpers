@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Security.Cryptography;
 
 namespace DataHelpers.Data;
 
@@ -21,6 +22,8 @@ public class ColumnDef
   public Type RuntimeType { get; private set; }
   public string DataType { get; private set; }
   public bool IsPrimary { get; private set; }
+
+  [Obsolete("This will be removed in favor of adding indexes to the table.  We may end up providing convenience functions to resolve this however.")]
   public bool IsUnique { get; private set; }
   public bool IsNullable { get; private set; }
   public bool IsComposite { get; private set; }
@@ -63,9 +66,55 @@ public class ColumnDef
   {
     bool res = (colDef.PropertyName == match.PropertyName &&
                 colDef.IsPrimary == match.IsPrimary &&
-                colDef.DataType == match.DataType &&
+                colDef.DataType == match.DataType &&                
                 colDef.IsUnique == match.IsUnique);
 
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Tells us if the combination of indexes are the same.
+  /// </summary>
+  public static bool AreSame(IList<Index> l, IList<Index> r)
+  {
+    if (l.Count != r.Count) { return false; }
+    int len = l.Count;
+
+    // NOTE: Won't a span work better / use less garbage here?
+    var matched = new int[len];
+    int matchCount = 0;
+    for (int i = 0; i < len; i++)
+    {
+      matched[i] = -1;
+    }
+    for (int i = 0; i < len; i++)
+    {
+      for (int j = 0; j < len; j++)
+      {
+        if (i == j || matched[j] != -1) { continue; }
+        bool isMatch = AreSame(l[i], r[j]);
+        if (isMatch) { 
+          matched[j] = i;
+          ++matchCount;
+        }
+      }
+    }
+
+    bool res = matchCount == len;
+    return res;
+
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Tells us if the two index definitions are the same.
+  /// </summary>
+  public static bool AreSame(Index l, Index r)
+  {
+    if (l.Type != r.Type) { return false; }
+
+    bool res = Enumerable.SequenceEqual(l.Columns.OrderBy(t => t), r.Columns.OrderBy(t => t));
     return res;
   }
 }

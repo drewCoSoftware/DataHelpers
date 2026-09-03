@@ -353,3 +353,6 @@ MigrationBackup/
 **/gitlog.txt
 
 nuget-build/
+
+# ANNOYING FUCKING VS TRYING TO MAKE ME USE COPILOT
+.github/
