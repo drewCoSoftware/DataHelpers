@@ -18,13 +18,27 @@ public enum ESomeEnum
   Val_2 = 2,
 }
 
+// ==============================================================================================================================
+public class DataTypesSchema
+{
+  public List<XtraDataTypes> TheEntities { get; set; } = new List<XtraDataTypes>();
+}
+
+// ==============================================================================================================================
+public class XtraDataTypes : IHasPrimary
+{
+  public int ID { get; set; }
+
+  public Guid UserTag { get; set; }
+  public DateTimeOffset CreatedOn { get; set; }
+}
 
 // ==============================================================================================================================
 public class MultiColUnique : IHasPrimary
 {
-  public int ID {get; set; }
+  public int ID { get; set; }
 
-  [Unique(Group="NameNumber")]
+  [Unique(Group = "NameNumber")]
   public string Name { get; set; }
 
   [Unique(Group = "NameNumber")]

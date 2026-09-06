@@ -22,6 +22,28 @@ namespace DataHelpersTesters;
 // a way to generate test data for the query generation tests, I think this is very possible.
 public class SqliteSchemaTesters : TestBase
 {
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  [Test]
+  public void CanUseGUIDInSchema() {
+    IDataFactory<DataTypesSchema> factory = CreateTestDataBaseFor<DataTypesSchema>(CurrentFunctionName());
+
+    DateTimeOffset testDate= DateTimeOffset.Now;
+    Guid testGuid = Guid.NewGuid();
+    var i1 = new XtraDataTypes(){
+      CreatedOn = testDate,
+      UserTag  = testGuid,
+    };
+
+    factory.Add(i1);
+    Assert.That(i1.ID, Is.Not.EqualTo(0));
+
+    var check = factory.GetById<XtraDataTypes>(i1.ID);
+    Assert.That(check.UserTag, Is.EqualTo(testGuid));
+    Assert.That(check.CreatedOn, Is.EqualTo(testDate));
+
+  }
+
   // --------------------------------------------------------------------------------------------------------------------------  [Test]
   /// <summary>
   /// This shows that we can define a unique index that encompasses multiple columns.

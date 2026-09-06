@@ -76,6 +76,9 @@ public class SqliteDataTypeResolver : IDataTypeResolver
     {
       res = "DECIMAL(10,8)";
     }
+    else if (t == typeof(Guid)) { 
+      res = "BLOB";
+    }
     else
     {
       throw new NotSupportedException($"The data type {t} is not supported!");
