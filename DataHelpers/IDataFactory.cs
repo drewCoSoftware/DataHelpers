@@ -24,20 +24,39 @@ public interface IDataFactory<TSchema>
   /// Add a new entity to the database.
   /// </summary>
   int Add<T>(T entity)
-    where T : IHasPrimary
+    where T : IPrimaryKey
   {
-    if (entity.ID != 0) { throw new InvalidOperationException($"The entity already has an assigned ID and can't be added to the set!  Use 'AddOrUpdate' or 'Update' calls instead!"); }
+    if (!entity.HasDefaultPrimary())
+    {
+      throw new InvalidOperationException($"The entity already has an assigned ID and can't be added to the set!  Use 'AddOrUpdate' or 'Update' calls instead!");
+    }
+    // if (entity.ID != 0) { throw new InvalidOperationException($"The entity already has an assigned ID and can't be added to the set!  Use 'AddOrUpdate' or 'Update' calls instead!"); }
+
+    // NOTE: This can come directly from the schema....
+    bool includeID = false;
+    if (entity.PrimaryKeyType == typeof(Guid))
+    {
+      includeID = true;
+      Guid pkVal = Guid.NewGuid();
+      entity.SetPrimaryKeyValue(pkVal); 
+    //  qParams.Add(IPrimaryKey.DEFAULT_NAME, new QueryParamValue(pkVal, System.Data.DbType.Binary));
+    }
+
 
     var td = Schema.GetTableDef<T>();
-    var qParams = Schema.ComputeParametersFor(entity); // Schema.Flavor.CreateParams("insert", entity, true);
+    QueryParams qParams = Schema.ComputeParametersFor(entity, includeID);
     string query = td.GetInsertQuery(qParams.Keys.ToArray());
+
+
+
     int res = Action(dal =>
     {
       int qr = dal.RunSingleQuery<int>(query, qParams);
       return qr;
     });
 
-    entity.ID = res;
+    entity.SetPrimaryKeyValue(res);
+    // entity.ID = res;
     return res;
   }
 
@@ -46,7 +65,7 @@ public interface IDataFactory<TSchema>
   /// Get the entity of the given type by its ID
   /// </summary>
   T? GetById<T>(int id)
-    where T : IHasPrimary
+    where T : IPrimaryKey
   {
     T? res = Action(dal =>
     {
@@ -89,6 +108,7 @@ public abstract class IDataFactory<TSchema, TFlavor> : IDataFactory<TSchema>
 
     SqlMapper.RemoveTypeMap(typeof(DateTimeOffset));
     SqlMapper.AddTypeHandler(new DateTimeOffsetHandler());
+    SqlMapper.AddTypeHandler(new GuidHandler());
   }
 
   // --------------------------------------------------------------------------------------------------------------------------

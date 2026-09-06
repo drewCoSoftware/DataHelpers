@@ -184,9 +184,9 @@ public class SchemaDefinition
   /// Creates a QueryParameters instance based on the given object.
   /// The object must be an instance of a type defined in the schema.
   /// </summary>
-  public QueryParams ComputeParametersFor<T>(T obj)
+  public QueryParams ComputeParametersFor<T>(T obj, bool includeID = false)
   {
-    var res = Flavor.CreateParams(obj!);
+    var res = Flavor.CreateParams(obj!, false, includeID);
     return res;
 
     // NOTE: This is a bit more concise, but maybe doesn't cover as many cases.  Perhaps we should look into

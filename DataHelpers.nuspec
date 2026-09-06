@@ -1,14 +1,14 @@
 <package>
   <metadata>
     <id>DataHelpers</id>
-    <version>0.1.0.1</version>
+    <version>0.1.1.0</version>
     <title>DataHelpers</title>
     <authors>Andrew A. Ritz</authors>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <license type="expression">MIT</license>
     
     <description>Helps with dealing with different data sources.</description>
-    <copyright>2022-2023 Andrew A. Ritz</copyright>
+    <copyright>2022-2026 Andrew A. Ritz</copyright>
     
     <dependencies>
       <group targetFramework="net8.0">

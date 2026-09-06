@@ -108,6 +108,8 @@ public class TableDef
   // --------------------------------------------------------------------------------------------------------------------------
   internal void PopulateMembers()
   {
+    bool hasDefaultPrimary = ReflectionTools.HasInterface(DataType, typeof(IPrimaryKey));
+
     var allProps = ReflectionTools.GetProperties(DataType);
     foreach (var p in allProps)
     {
@@ -136,7 +138,10 @@ public class TableDef
                         ReflectionTools.HasAttribute<System.Runtime.CompilerServices.NullableAttribute>(p) ||
                         p.PropertyType.Name.StartsWith("Nullable`1");
 
-      bool isPrimary = p.Name == nameof(IHasPrimary.ID) || ReflectionTools.HasAttribute<PrimaryKey>(p);
+
+      // This is where we will get the name / type of the primary key...
+      // Technically we need an instance, so how to get around that.....
+      bool isPrimary = (hasDefaultPrimary && p.Name == IPrimaryKey.DEFAULT_NAME) || ReflectionTools.HasAttribute<PrimaryKey>(p);
 
       // NOTE: TODO: We should be assigning the relation type here!
       var relAttr = ReflectionTools.GetAttribute<RelationAttribute>(p);
@@ -312,7 +317,7 @@ public class TableDef
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  internal NamesAndValues GetNamesAndValues(IEnumerable<ColumnDef> columns, IEnumerable<string>? useCols = null)
+  internal NamesAndValues GetNamesAndValues(IEnumerable<ColumnDef> columns, IEnumerable<string>? useCols = null, bool includePrimaryKey)
   {
     var colNames = new List<string>();
     var colVals = new List<string>();

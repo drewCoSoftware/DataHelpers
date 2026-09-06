@@ -1,7 +1,6 @@
 // ==========================================================================   
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using DataHelpers;
@@ -78,6 +77,31 @@ public class TypeWithEnum : IHasPrimary
 {
   public int ID { get; set; }
   public ESomeEnum SomeEnum { get; set; }
+}
+
+// ==============================================================================================================================
+public class PrimaryKeysExampleSchema {
+  // public List<PrimaryInt> PrimaryInts { get; set; }
+  public List<PrimaryGuid> PrimaryGuids { get; set; }
+  //public List<PrimaryString> PrimaryStrings { get; set; }
+}
+
+
+// ==============================================================================================================================
+public class PrimaryInt : PrimaryKey<int> {
+  public int Data { get; set; }
+}
+
+// ==============================================================================================================================
+public class PrimaryGuid : PrimaryKey<Guid>
+{
+  public int Data { get; set; }
+}
+
+// ==============================================================================================================================
+public class PrimaryString : PrimaryKey<string>
+{
+  public int Data { get; set; }
 }
 
 // ==============================================================================================================================

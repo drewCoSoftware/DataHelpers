@@ -65,6 +65,34 @@ public class SqliteSchemaTesters : TestBase
 
   // --------------------------------------------------------------------------------------------------------------------------  [Test]
   /// <summary>
+  /// This shows that we can use guids and other data as primary keys for our schema items.
+  /// </summary>
+  [Test]
+  public void CanUseTypesOtherThanIntAsPrimaryKey()
+  {
+
+    IDataFactory<PrimaryKeysExampleSchema> factory = CreateTestDataBaseFor<PrimaryKeysExampleSchema>(CurrentFunctionName());
+
+    var g1 = new PrimaryGuid()
+    {
+      // ID = Guid.NewGuid(),
+      Data = 1
+    };
+    var g2 = new PrimaryGuid()
+    {
+      // ID = Guid.NewGuid(),
+      Data = 2
+    };
+    factory.Add(g1);
+    factory.Add(g2);
+
+
+    Assert.Fail("please finish this test!");
+  }
+
+
+  // --------------------------------------------------------------------------------------------------------------------------  [Test]
+  /// <summary>
   /// This test was provided to show that composite types can be placed into single fields.
   /// </summary>
   [Test]

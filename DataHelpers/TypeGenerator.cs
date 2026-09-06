@@ -3,10 +3,55 @@ using System.Reflection;
 
 namespace DataHelpers.Data;
 
+
+// ==============================================================================================================================
+/// <summary>
+/// Indicates that the type has a primary key.  Reports the type / name of the key.
+/// </summary>
+public interface IPrimaryKey
+{
+  public const string DEFAULT_NAME = "ID";
+
+  bool HasDefaultPrimary();
+  void SetPrimaryKeyValue(object value);
+  Type PrimaryKeyType { get; }
+}
+
 // ============================================================================================================================
-public interface IHasPrimary
+[Obsolete("Use a PrimaryKey<T> base class!  This interface will be removed!")]
+public interface IHasPrimary : IPrimaryKey
 {
   int ID { get; set; }
+
+  bool IPrimaryKey.HasDefaultPrimary() { return ID == 0; }
+  void IPrimaryKey.SetPrimaryKeyValue(object value) { ID = (int)value; }
+  Type IPrimaryKey.PrimaryKeyType { get { return typeof(int); } }
+}
+
+// ==============================================================================================================================
+/// <summary>
+/// Base class to use a primary key of the given type.
+/// </summary>
+public abstract class PrimaryKey<T> : IPrimaryKey
+{
+  public T ID { get; set; }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public bool HasDefaultPrimary()
+  {
+    bool res = ID.Equals(default(T));
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public void SetPrimaryKeyValue(object value)
+  {
+    ID = (T)value;
+  }
+
+  [Ignore]
+  public Type PrimaryKeyType { get { return typeof(T); } }
+
 }
 
 
@@ -120,10 +165,12 @@ public enum ERelType
 }
 
 // ============================================================================================================================
+/// <summary>
+/// Indicates that the given member is the primary key.
+/// </summary>
 [AttributeUsage(AttributeTargets.Property)]
 public class PrimaryKey : Attribute
-{
-}
+{ }
 
 
 // ============================================================================================================================
