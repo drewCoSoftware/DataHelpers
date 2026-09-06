@@ -1,4 +1,3 @@
-using Dapper;
 using drewCo.Tools;
 using drewCo.Tools.Logging;
 using Microsoft.Data.Sqlite;
@@ -103,7 +102,8 @@ public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
     conn.Open();
     using (var tx = conn.BeginTransaction())
     {
-      conn.Execute(query);
+      DBHandler.Execute(conn, query);
+      
       tx.Commit();
     }
     conn.Close();
@@ -153,8 +153,12 @@ public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
     conn.Open();
     string query = $"SELECT * from sqlite_schema where type = 'table' AND tbl_name=@tableName";
 
-    var qr = conn.Query(query, new { tableName = tableName });
-    bool res = qr.Count() > 0;
+    var qParams = new QueryParams();
+    qParams.Add(nameof(tableName), new QueryParamValue(tableName, System.Data.DbType.String));
+    var qr = DBHandler.Query(conn, query, qParams);
+
+    // var qr = conn.Query(query, new { tableName = tableName });
+    bool res = qr.Rows.Count > 0;
     conn.Close();
 
     return res;

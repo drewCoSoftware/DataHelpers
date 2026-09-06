@@ -1,4 +1,3 @@
-using Dapper;
 using DataHelpers.Data;
 
 namespace DataHelpers;
@@ -86,9 +85,6 @@ public abstract class IDataFactory<TSchema, TFlavor> : IDataFactory<TSchema>
   public IDataFactory()
   {
     Schema = new SchemaDefinition(new TFlavor(), typeof(TSchema));
-
-    SqlMapper.RemoveTypeMap(typeof(DateTimeOffset));
-    SqlMapper.AddTypeHandler(new DateTimeOffsetHandler());
   }
 
   // --------------------------------------------------------------------------------------------------------------------------

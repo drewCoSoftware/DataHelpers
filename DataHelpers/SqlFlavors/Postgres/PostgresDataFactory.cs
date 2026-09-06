@@ -1,7 +1,6 @@
 ﻿using DataHelpers.Data;
 using drewCo.Tools;
 using Npgsql;
-using Dapper;
 using drewCo.Tools.Logging;
 
 namespace DataHelpers.SqlFlavors.Postgres
@@ -158,12 +157,13 @@ namespace DataHelpers.SqlFlavors.Postgres
       {
         using (var tx = conn.BeginTransaction())
         {
-          conn.Execute(query);
+          DBHandler.Execute(conn, query);
           tx.Commit();
         }
         conn.Close();
       }
     }
+
 
 
     // --------------------------------------------------------------------------------------------------------------------------
@@ -251,8 +251,12 @@ namespace DataHelpers.SqlFlavors.Postgres
       {
         string query = $"SELECT * from sqlite_schema where type = 'table' AND tbl_name=@tableName";
 
-        var qr = conn.Query(query, new { tableName = tableName });
-        bool res = qr.Count() > 0;
+        // var qp = new QueryParamsBuilder(this.fla
+        var qParams = new QueryParams();
+        qParams.Add(nameof(tableName), new QueryParamValue(tableName, System.Data.DbType.String));
+        var qr = DBHandler.Query(conn, query, qParams);
+        // var qr = conn.Query(query, new { tableName = tableName });
+        bool res = qr.Rows.Count > 0; // Count() > 0;
         conn.Close();
 
         return res;

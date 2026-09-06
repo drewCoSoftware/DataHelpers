@@ -2,11 +2,10 @@
 using DataHelpers.Data;
 using drewCo.Tools;
 using drewCo.Tools.Logging;
+using Microsoft.Data.Sqlite;
+using Npgsql;
 using System.Data;
 using System.Data.Common;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using BindCallback = System.Action<object>;
 
 // ==============================================================================================================================
@@ -124,6 +123,7 @@ public class DBHandler : IDisposable
     }
   }
 
+
   // --------------------------------------------------------------------------------------------------------------------------
   public T? QuerySingle<T>(string query, QueryParams? qParams = null)
   {
@@ -132,19 +132,104 @@ public class DBHandler : IDisposable
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public int Execute(string sql, QueryParams qParams)
+  public int Execute(string query, QueryParams qParams)
   {
     var conn = ResolveConnection();
     using (DbCommand cmd = conn.CreateCommand())
     {
-      cmd.CommandText = sql;
+      cmd.CommandText = query;
       AddParameters(cmd, qParams);
       return cmd.ExecuteNonQuery();
     }
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  private static void AddParameters(DbCommand cmd, QueryParams? qParams)
+  // REFACTOR: Move this to the call site.
+  public static int Execute(NpgsqlConnection conn, string query, QueryParams? qParams = null)
+  {
+    using (DbCommand cmd = conn.CreateCommand())
+    {
+      cmd.CommandText = query;
+      AddParameters(cmd, qParams);
+      return cmd.ExecuteNonQuery();
+    }
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  // REFACTOR: Move this to the call site.
+  public static int Execute(SqliteConnection conn, string query, QueryParams? qParams = null)
+  {
+    using (DbCommand cmd = conn.CreateCommand())
+    {
+      cmd.CommandText = query;
+      AddParameters(cmd, qParams);
+      return cmd.ExecuteNonQuery();
+    }
+  }
+  //public class DbRow
+  //{
+  //  public Dictionary<string, object> Fields { get; set; }
+  //}
+
+  // ==============================================================================================================================
+  public class QueryResult
+  {
+    public List<Dictionary<string, object>> Rows { get; set; } = new List<Dictionary<string, object>>();
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public static QueryResult Query(NpgsqlConnection conn, string query, QueryParams? qParams = null)
+  {
+    using (DbCommand cmd = conn.CreateCommand())
+    {
+      var res = Query(cmd, query, qParams);
+      return res;
+    }
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public static QueryResult Query(SqliteConnection conn, string query, QueryParams? qParams = null)
+  {
+    using (DbCommand cmd = conn.CreateCommand())
+    {
+      var res = Query(cmd, query, qParams);
+      return res;
+    }
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public static QueryResult Query(DbCommand cmd, string query, QueryParams? qParams = null)
+  {
+    cmd.CommandText = query;
+    AddParameters(cmd, qParams);
+
+    var res = new QueryResult();
+
+    using (IDataReader rdr = cmd.ExecuteReader())
+    {
+      var colNames = new List<string>();
+      for (int i = 0; i < rdr.FieldCount; i++)
+      {
+        colNames.Add(rdr.GetName(i));
+      }
+
+      while (rdr.NextResult())
+      {
+        var row = new Dictionary<string, object>();
+        for (int i = 0; i < rdr.FieldCount; i++)
+        {
+          row.Add(colNames[i], rdr.GetValue(i));
+        }
+
+        res.Rows.Add(row);
+      }
+    }
+
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public static void AddParameters(DbCommand cmd, QueryParams? qParams)
   {
     if (qParams == null)
     {

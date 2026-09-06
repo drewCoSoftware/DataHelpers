@@ -2,7 +2,6 @@ using System.Data.Common;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Net.Http.Headers;
-using Dapper;
 using drewCo.Tools;
 using Microsoft.Data.Sqlite;
 
@@ -136,14 +135,14 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
     //return res;
   }
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  // We pass the connection in here so that we can keep a transaction open?
-  [Obsolete]
-  protected int RunExecute(SqliteConnection conn, string query, object? qParams = null)
-  {
-    int res = conn.Execute(query, qParams);
-    return res;
-  }
+  //// --------------------------------------------------------------------------------------------------------------------------
+  //// We pass the connection in here so that we can keep a transaction open?
+  //[Obsolete]
+  //protected int RunExecute(SqliteConnection conn, string query, object? qParams = null)
+  //{
+  //  int res = conn.Execute(query, qParams);
+  //  return res;
+  //}
 
   //// --------------------------------------------------------------------------------------------------------------------------
   //public TableAccess<TSchema> Table(string name)
