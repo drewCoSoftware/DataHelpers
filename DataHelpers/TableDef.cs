@@ -289,8 +289,20 @@ public class TableDef
       switch (item.Type)
       {
         case EIndexType.Unique:
-          string cols = string.Join(", ", from x in item.Columns select x.DataStoreName);
-          sb.AppendLine($"CREATE UNIQUE INDEX {item.Name} ON {this.Name}({cols})");
+          if (item.Name == string.Empty)
+          {
+            // Single columns.
+            foreach (var c in item.Columns)
+            {
+              sb.AppendLine($"CREATE UNIQUE INDEX unique_{c.DataStoreName} ON {this.Name}({c.DataStoreName});");
+            }
+          }
+          else
+          {
+            // Multiple columns.
+            string cols = string.Join(", ", from x in item.Columns select x.DataStoreName);
+            sb.AppendLine($"CREATE UNIQUE INDEX {item.Name} ON {this.Name}({cols});");
+          }
           break;
 
         default:
