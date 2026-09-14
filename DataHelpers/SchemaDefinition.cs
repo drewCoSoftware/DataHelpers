@@ -446,7 +446,7 @@ public class SchemaDefinition
 
     foreach (var item in allGeneratedSets)
     {
-      this.AddMappingSet(item);
+      this._TableDefs.Add(item.Name, item);
     }
 
   }
@@ -541,12 +541,12 @@ public class SchemaDefinition
 
   }
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  internal void AddMappingSet(TableDef def)
-  {
-    // TOOD: Can the def be setup to denote that it is for mapping?
-    this._TableDefs.Add(def.Name, def);
-  }
+  //// --------------------------------------------------------------------------------------------------------------------------
+  //internal void AddMappingSet(TableDef def)
+  //{
+  //  // TOOD: Can the def be setup to denote that it is for mapping?
+  //  this._TableDefs.Add(def.Name, def);
+  //}
 
   // --------------------------------------------------------------------------------------------------------------------------
   private void InitTableDef(string name, Type useType)

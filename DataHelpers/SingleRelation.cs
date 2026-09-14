@@ -32,12 +32,14 @@ public interface IManyRelation : IRelation
 }
 
 
+// ==========================================================================
 /// <summary>
 /// Represents an FK relation to different data set where there can be one or more
 /// matches.  The ID property is set on the related table, and may be bi-directional
 /// through the use of a 'SingleRelation' instance.
 /// </summary>
 public class ManyRelation<T> : IManyRelation
+where T : class, new()
 {
   public ManyRelation() { }
   public ManyRelation(IEnumerable<T> data)
@@ -46,6 +48,14 @@ public class ManyRelation<T> : IManyRelation
   }
   private List<T>? _Data = null;
   public List<T> Data { get { return _Data; } internal set { _Data = value; } }
+
+
+  /// <summary>
+  /// This isn't really an instance, it is a way for us to be able to use the type
+  /// in lambda functions.
+  /// See test case: CanSelectViaMappingTables for an example of this:
+  /// </summary>
+  public T Prop { get; set; } = new T();
 }
 
 
@@ -119,9 +129,10 @@ where T : class, IHasPrimary
 
 
 // ==============================================================================================================================
-public interface ICompositeSerializer { 
- object Deserialize(string data);
- string Serialize();
+public interface ICompositeSerializer
+{
+  object Deserialize(string data);
+  string Serialize();
 }
 
 //// ==============================================================================================================================

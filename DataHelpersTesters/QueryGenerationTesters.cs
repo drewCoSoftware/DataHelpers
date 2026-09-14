@@ -1,11 +1,8 @@
 ﻿using DataHelpers;
 using DataHelpers.Data;
 using NUnit.Framework;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DataHelpersTesters
 {
@@ -13,6 +10,74 @@ namespace DataHelpersTesters
   // =========================================================================================================
   public class QueryGenerationTesters : TestBase
   {
+
+    // -------------------------------------------------------------------------------------------------------------------------- 
+    /// <summary>
+    /// This test shows us that our facilities to generate join / mapping table type queries.
+    /// </summary>
+    [Test]
+    public void CanSelectViaMappingTables()
+    {
+      const string TEST_NAME = nameof(CanSelectViaMappingTables);
+
+      var schema = new SchemaDefinition(new SqliteFlavor(), typeof(SchemaWithMappedTypes));
+      IDataFactory<SchemaWithMappedTypes> factory = CreateTestDataBaseFor<SchemaWithMappedTypes>(TEST_NAME);
+
+      // Show that the mapping table was created and we can reference it:
+      var td = factory.Schema.GetMappingTable<Player, Team>();
+      Assert.That(td, Is.Not.Null);
+      Assert.That(td.IsMappingTable, Is.True);
+
+
+      // column name by the mapped type, like: td.GetMappingColumn<Team>();
+      // string colName = td.GetColumn(nameof(Player.Team)).DataStoreName;
+
+
+      // Let's add some data...
+      var players = new List<Player>();
+      const int MAX_PLAYERS = 3;
+      for (int i = 0; i < MAX_PLAYERS; i++)
+      {
+        Player p = new Player()
+        {
+          Name = $"PLAYER_{i + 1}",
+          Position = $"position #: {i}"
+        };
+        factory.Add(p);
+        players.Add(p);
+      }
+
+      const int MAX_TEAMS = 3;
+      for (int i = 0; i < MAX_TEAMS; i++)
+      {
+        var t = new Team()
+        {
+          Name = $"TEAM_{i + 1}",
+
+          // Players are added so the teams have 1-2-3 players.
+          // This is simply to show some variance.
+          Players = new ManyRelation<Player>(from x in players where x.ID <= i select x)
+        };
+        factory.Add(t);
+      }
+
+      // NOTE: We should be able to show that the teams->player mappings are setup automatically
+      // since we are using the add function with the players already set.
+
+      // Let's get the list of players for each of the teams.
+      // factory.Get<Player>(x => x.ID == 1 && x.Name == "Dave");
+      factory.Get<Player>(x=>x.ID == 1);
+
+      factory.Get<Player>(x => x.Teams.Prop.ID == 0); // // -- where team.id = x --> how do we easily represent this....
+
+      // This looks at both the player table, and (through) the mapping table.
+      factory.Get<Player>(x => x.ID == 1 && x.Teams.Prop.ID == 1);
+
+      // queryparams works, of course, but how do we use expressions...?
+
+      Assert.Inconclusive("please finish this test case!");
+    }
+
 
     // -------------------------------------------------------------------------------------------------------------------------- 
     /// <summary>

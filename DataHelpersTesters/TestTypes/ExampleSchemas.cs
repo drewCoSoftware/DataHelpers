@@ -11,6 +11,36 @@ namespace DataHelpersTesters;
 
 
 // ==============================================================================================================================
+public class Player : IHasPrimary
+{
+  public int ID { get; set; }
+  public string Name { get; set; }
+  public string Position { get; set; }
+
+  [Relation(nameof(SchemaWithMappedTypes.Teams))]
+  public ManyRelation<Team> Teams { get; set; }
+}
+
+// ==============================================================================================================================
+public class Team : IHasPrimary
+{
+  public int ID { get; set; }
+  public string Name { get; set; }
+
+  [Relation(nameof(SchemaWithMappedTypes.Players))]
+  public ManyRelation<Player> Players { get; set; } = new ManyRelation<Player>();
+}
+
+// ==============================================================================================================================
+public class SchemaWithMappedTypes
+{
+  public List<Player> Players { get; set; }
+  public List<Team> Teams { get; set; }
+}
+
+
+
+// ==============================================================================================================================
 public enum ESomeEnum
 {
   Val_0 = 0,

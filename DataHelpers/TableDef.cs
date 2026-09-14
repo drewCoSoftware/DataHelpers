@@ -32,6 +32,11 @@ public class TableDef
   /// </summary>
   public List<Index> Indexes { get; set; } = null!;
 
+  /// <summary>
+  /// If set, then this table is used to map two tables, as seen in many->many scenarios.
+  /// </summary>
+  public bool IsMappingTable { get; set; } = false;
+
   // --------------------------------------------------------------------------------------------------------------------------
   public TableDef(Type type_, string name_, SchemaDefinition schema_)
   {
@@ -925,6 +930,7 @@ public class TableDef
     string sqlName = Schema.Flavor.GetDataStoreName(useName);
 
     var td = new TableDef(null, mtName, this.Schema);
+    td.IsMappingTable = true;
     td.AddColumn(new ColumnDef(useName, sqlName, intType, intTypeName, true, false, false, null, null, false));
 
     // Now the id refs for each of the data sets.
