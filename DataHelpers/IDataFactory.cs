@@ -93,8 +93,16 @@ public interface IDataFactory<TSchema>
       if (predicate.Parameters.Count > 1) { 
         throw new NotSupportedException("no support for multiple parameters!"); 
       }
+
+
+
         var param = predicate.Parameters[0];
         var body = predicate.Body;
+
+        // We will want to split the body into all of sub-expressions so we can
+        // figure out what tables, etc. are being used.
+
+
 
         // Decide what to do about the body....
         if (body.NodeType == ExpressionType.Equal) { 
@@ -104,6 +112,11 @@ public interface IDataFactory<TSchema>
           // What we want to see if it is from a manyrelation/mapped table.
           if (exp.Left.NodeType == ExpressionType.Parameter) { 
             // We are doing a select on the table directly.
+
+          }
+          else
+          {
+            throw new NotImplementedException();
           }
           var l = exp.Left;
 
