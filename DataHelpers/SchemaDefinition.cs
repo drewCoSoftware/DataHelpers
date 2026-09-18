@@ -741,13 +741,10 @@ public class RelatedDatasetInfo
   /// <summary>
   /// The name of the property that contains the table in question.
   /// </summary>
-  /// <value></value>
-  /// <remarks>This only applies to child tables.</remarks>
-  public string PropertyPath { get; set; } = string.Empty;
+  /// <remarks>This only applies to child data sets.</remarks>
+  public string DataStoreName { get; set; } = string.Empty;
 
   public ColumnDef TargetIDColumn { get; set; } = null!;
-
-  // public MappingTableAttribute? MappingTableData { get; set; } = null;
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>

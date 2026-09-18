@@ -576,6 +576,7 @@ public class TableDef
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
+  [Obsolete("Use 'UpdateEntity' instead of building out a new query!")]
   public string GetUpdateQuery()
   {
     var useCols = (from x in this.Columns
@@ -705,7 +706,7 @@ public class TableDef
         {
           TargetSet = targetSet,
           TargetIDColumn = targetSet.GetColumn(nameof(IHasPrimary.ID)),
-          PropertyPath = col.PropertyName,
+          DataStoreName = col.DataStoreName,
           RelationType = col.RelationDef.RelationType,
         };
         this.RelatedDataSets.Add(ddsInfo);
@@ -1032,13 +1033,33 @@ public class TableDef
 
   }
 
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Get the related dataset by type.
+  /// This will fail if there is no association, or if the association is ambiguous.
+  /// </summary>
+  public RelatedDatasetInfo? GetAssociatedSet<T>()
+  {
+    var match = (from  x in this.RelatedDataSets where x.TargetSet.DataType == typeof(T) select x).SingleOrDefault();
+    return match;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Get the name of the field for the associated data set.  This is a foreign key in SQL.
+  /// </summary>
+  public string GetAssociatedFieldNameFor<T>()
+  {
+    var match = (from x in this.RelatedDataSets where x.TargetSet.DataType == typeof(T) select x).SingleOrDefault();
+    return match.DataStoreName;
+  }
 }
 
-// ==============================================================================================================================
-/// <summary>
-/// Defines an index on the dataset.
-/// </summary>
-public class Index
+  // ==============================================================================================================================
+  /// <summary>
+  /// Defines an index on the dataset.
+  /// </summary>
+  public class Index
 {
   // ---------------------------------------------------------------------------------------------------------------------
   public Index(string name_, EIndexType type_)
