@@ -19,7 +19,7 @@ namespace DataHelpers.Data
     }
 
     // --------------------------------------------------------------------------------------------------------------------------
-    public void Add(string key, object value, Type? t = null)
+    public void Add(string key, object? value, Type? t = null)
     {
       if (key == null) { 
         throw new ArgumentNullException("key may not be null!");
@@ -27,19 +27,15 @@ namespace DataHelpers.Data
 
       if (t == null)
       {
+        if (value == null) { 
+          throw new InvalidOperationException("Illegal! The value and type argument are null!");
+        }
         t = value.GetType();
       }
 
       var qp = new QueryParamValue(value, Flavor.ToDbType(t));
       this.QParams.Add(key, qp);
     }
-
-    //// --------------------------------------------------------------------------------------------------------------------------
-    //public void AddBy<T>(object obj)
-    //  where T: IHasPrimary
-    //{
-    //  throw new NotImplementedException();
-    //}
 
     // --------------------------------------------------------------------------------------------------------------------------
     public QueryParams Build()

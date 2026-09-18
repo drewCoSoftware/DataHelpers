@@ -34,10 +34,10 @@ public class PagedData<T>
   public PagedData(IEnumerable<T> srcItems, int pageNumber_, int pageSize_)
   {
     PageNumber = pageNumber_;
-    RequestedPageSize = pageSize_;
+    PageSize = pageSize_;
 
     Items = srcItems.Skip((pageNumber_ - 1) * pageSize_).Take(pageSize_).ToArray();
-    PageSize = Items.Count();
+    CurPageSize = Items.Count();
 
     TotalItems = srcItems.Count();
     TotalPages = (TotalItems / pageSize_) + Math.Sign(TotalItems % pageSize_);
@@ -51,8 +51,8 @@ public class PagedData<T>
   {
     Items = items;
     PageNumber = pageNumber_;
-    RequestedPageSize = pageSize_;
-    PageSize = items.Count();
+    PageSize = pageSize_;
+    CurPageSize = items.Count();
     TotalItems = totalItems;
     TotalPages = (totalItems / pageSize_) + Math.Sign(totalItems % pageSize_);
   }
@@ -116,12 +116,12 @@ public class PagedData<T>
   /// The page size that was requested.
   /// This may be more than the number of actual items.
   /// </summary>
-  public int RequestedPageSize { get; set; }
+  public int PageSize { get; set; }
 
   /// <summary>
   /// The actual page size.
   /// </summary>
-  public int PageSize { get; private set; }
+  public int CurPageSize { get; private set; }
 
   /// <summary>
   /// The total number of entries across all pages.
