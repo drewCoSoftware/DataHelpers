@@ -1,15 +1,16 @@
-﻿using System.Reflection;
-using System.Security.Cryptography;
+﻿using System.Diagnostics;
+using System.Reflection;
 
 namespace DataHelpers.Data;
 
 // ============================================================================================================================
+[DebuggerDisplay("{PropertyName} : {DataStoreName}")]
 public class ColumnDef
 {
   /// <summary>
-  /// Special DataType name used for placeholder relation defs during schema generation.
+  /// Special DataType name used for placeholder associations defs during schema generation.
   /// </summary>
-  public const string RELATION_PLACEHOLDER = "@_RELATION";
+  public const string ASSOCIATION_PLACEHOLDER = "@_ASSOCIATON";
   public const string COMPOSITE_PLACEHOLDER = "@_COMPOSITE";
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -32,17 +33,17 @@ public class ColumnDef
 
   //// NOTE: This has a non-private setter b/c we have to update them sometimes, after the fact,
   //// because of the sloppy way that we are currently creating the table defs.
-  //// we should have it so that the columns are added to the def BEFORE we attempt resolve the relationships.
-  public RelatedDatasetInfo? RelatedDataSet { get; internal set; }
+  //// we should have it so that the columns are added to the def BEFORE we attempt resolve the associations.
+  public AssociatedDatasetInfo? AssociatedDataSet { get; internal set; }
 
   /// <summary>
-  /// The relationship that is defined for this column.
+  /// The association that is defined for this column.
   /// This data is really only useful when the SchemaDefs are being computed.
   /// </summary>
-  internal RelationAttribute? RelationDef { get; set; } = null;
+  internal AssociationAttribute? AssociationDef { get; set; } = null;
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public ColumnDef(string propName, string dataStoreName, Type runtimeType, string dataType, bool isPrimary, bool isUnique, bool isNullable, RelationAttribute? relationDef_, PropertyInfo? propInfo_, bool isComposite_)
+  public ColumnDef(string propName, string dataStoreName, Type runtimeType, string dataType, bool isPrimary, bool isUnique, bool isNullable, AssociationAttribute? assocDef_, PropertyInfo? propInfo_, bool isComposite_)
   {
     PropertyName = propName;
     DataStoreName = dataStoreName;
@@ -51,7 +52,7 @@ public class ColumnDef
     IsPrimary = isPrimary;
     IsUnique = isUnique;
     IsNullable = isNullable;
-    RelationDef = relationDef_;
+    AssociationDef = assocDef_;
 
     //if (propInfo_ == null) { 
     //  throw new NullReferenceException("property info is null!");

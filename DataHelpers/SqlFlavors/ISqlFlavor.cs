@@ -131,17 +131,17 @@ namespace DataHelpers.Data
         if (prop.Name == nameof(IHasPrimary.ID) && !includeID) { continue; }
         if (ReflectionTools.HasAttribute<IgnoreAttribute>(prop)) { continue; }
 
-        var relAttr = ReflectionTools.GetAttribute<RelationAttribute>(prop);
+        var relAttr = ReflectionTools.GetAttribute<AssociationAttribute>(prop);
         if (relAttr != null)
         {
-          if (ReflectionTools.HasInterface<ISingleRelation>(prop.PropertyType))
+          if (ReflectionTools.HasInterface<ISingleAssociation>(prop.PropertyType))
           {
             string setName = relAttr.DataSetName;
             string useName = relAttr.LocalIDPropertyName ?? setName + "_" + nameof(IHasPrimary.ID);
 
             var relType = prop.PropertyType.GetGenericArguments()[0];
             var relVal = prop.GetValue(fromInstance);
-            if (relVal == null || (relVal as ISingleRelation).ID == 0)
+            if (relVal == null || (relVal as ISingleAssociation).ID == 0)
             {
               // TODO: If the property isn't nullable, we should raise a flag here!
               // Not sure if we should blow it up, but I will for now....
@@ -160,11 +160,11 @@ namespace DataHelpers.Data
             }
 
 
-            int useId = (relVal as ISingleRelation).ID;
+            int useId = (relVal as ISingleAssociation).ID;
             qpb.Add(useName, useId, typeof(int));
             // res.Add(useName, new QueryParamValue(useId, ToDbType(typeof(int))));
           }
-          else if (ReflectionTools.HasInterface<IManyRelation>(prop.PropertyType))
+          else if (ReflectionTools.HasInterface<IManyAssociation>(prop.PropertyType))
           {
             // TODO: Decide what to do about this.  In this case, there could be many related instances
             // each with their own ID, etc.....
@@ -185,7 +185,7 @@ namespace DataHelpers.Data
           }
           else
           {
-            throw new InvalidOperationException($"All relations should be represented with a {nameof(ISingleRelation)} OR {nameof(IManyRelation)} instance!");
+            throw new InvalidOperationException($"All associations should be represented with a {nameof(ISingleAssociation)} OR {nameof(IManyAssociation)} instance!");
           }
 
         }

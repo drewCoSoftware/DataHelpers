@@ -91,7 +91,9 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   // --------------------------------------------------------------------------------------------------------------------------
   public IEnumerable<T> RunQuery<T>(string query, object? qParams)
   {
-    string queryType = Helpers.GetFirstWord(query).ToLower();
+    string queryType = StringTools.GetFirstWord(query).ToLower();
+
+    // TODO: We will have to resolve the queryparams from the def itself so that we can map the names correctly!
     QueryParams? useParams = SchemaDef.Flavor.ResolveQueryParams(qParams);
 
     var res = DBHandler.Query<T>(query, useParams);
@@ -127,7 +129,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   // --------------------------------------------------------------------------------------------------------------------------
   public int RunExecute(string query, object? qParams = null)
   {
-    string queryType = Helpers.GetFirstWord(query);
+    string queryType = StringTools.GetFirstWord(query);
     var useParams = SchemaDef.Flavor.ResolveQueryParams(qParams);
     int res = DBHandler.Execute(query, useParams);
     return res;

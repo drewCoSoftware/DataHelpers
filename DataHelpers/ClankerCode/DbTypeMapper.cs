@@ -23,8 +23,8 @@ public interface IDbTypeMapper
 
     Type underlyingType = Nullable.GetUnderlyingType(type) ?? type;
 
-    // Single Relations are represented as integers b/c of ID.
-    if (ReflectionTools.HasInterface<ISingleRelation>(underlyingType)) { 
+    // Single Associations are represented as integers b/c of ID.
+    if (ReflectionTools.HasInterface<ISingleAssociation>(underlyingType)) { 
       return DbType.Int32;
     }
 

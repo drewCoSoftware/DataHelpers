@@ -6,7 +6,7 @@ namespace DataHelpers;
 
 
 // ==========================================================================
-public enum ERelationType
+public enum EAssociationType
 {
   Invalid = 0,
   Single,
@@ -20,25 +20,25 @@ public interface IRelation
 
 // ==========================================================================
 // Used for easy type detection.
-public interface ISingleRelation : IRelation
+public interface ISingleAssociation : IRelation
 {
   int ID { get; set; }
 }
 
 // ==========================================================================
 // Used for easy type detection.
-public interface IManyRelation : IRelation
+public interface IManyAssociation : IRelation
 {
 }
 
 
 // ==========================================================================
 /// <summary>
-/// Represents an FK relation to different data set where there can be one or more
+/// Represents an FK association to different data set where there can be one or more
 /// matches.  The ID property is set on the related table, and may be bi-directional
 /// through the use of a 'SingleRelation' instance.
 /// </summary>
-public class ManyRelation<T> : IManyRelation
+public class ManyRelation<T> : IManyAssociation
 where T : class, new()
 {
   public ManyRelation() { }
@@ -62,9 +62,9 @@ where T : class, new()
 
 // ==========================================================================
 /// <summary>
-/// Represents an FK relation to a different data set....
+/// Represents an FK association to a different data set....
 /// </summary>
-public class SingleRelation<T> : IHasPrimary, ISingleRelation
+public class SingleRelation<T> : IHasPrimary, ISingleAssociation
 where T : class, IHasPrimary
 {
   public SingleRelation() { }

@@ -38,7 +38,7 @@
 //  public string Flavor { get; set; }
 //  public int Version { get; set; } = 1;
 
-//  // NOTE: We need an actual description of the types + their relationship.
+//  // NOTE: We need an actual description of the types + their association.
 //  // SchemaDefinition *might* work, but we will have to find a proper way to serialize its data
 //  // if that is true.  
 //  // ?? Is there some way to create a custom serializer for certian types using jsonSErializer ??

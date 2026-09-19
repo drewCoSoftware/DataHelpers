@@ -216,7 +216,7 @@ public class PostgresDataAccess<TSchema> : IDataAccess<TSchema>
   public IEnumerable<T> RunQuery<T>(string query, object? qParams)
   {
 
-    string queryType = Helpers.GetFirstWord(query).ToLower();
+    string queryType = StringTools.GetFirstWord(query).ToLower();
     QueryParams? useParams = SchemaDef.Flavor.ResolveQueryParams(qParams);
 
 
@@ -268,7 +268,7 @@ public class PostgresDataAccess<TSchema> : IDataAccess<TSchema>
   // -----------------------------------------------------------------------------------------------
   public int RunExecute(string query, object? qParams)
   {
-    string queryType = Helpers.GetFirstWord(query);
+    string queryType = StringTools.GetFirstWord(query);
     var useParams = SchemaDef.Flavor.ResolveQueryParams(qParams);
     int res = DBHandler.Execute(query, useParams);
     return res;

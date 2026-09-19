@@ -56,7 +56,7 @@ public class SchemaDefinition
       // probably would not work in the first place......
       // Such a system would have to be aware of name groupings?
       // --> OK, so multi-tenancy is way overkill, let's just make it so that the various members
-      // and relationships are all resolved by type.  Then the first pass of this resolver is made
+      // and association are all resolved by type.  Then the first pass of this resolver is made
       // simply to determine the type->name mappings....
       // Anything that doesn't appear at this parent level can't be used.  I am OK with that
       // because I don't really see the need to have sub-type resolvers at this point in time.
@@ -70,7 +70,7 @@ public class SchemaDefinition
 
     PopulateMembers();
 
-    PopulateRelationships();
+    PopulateAssociations();
 
     PopulateIndexes();
 
@@ -216,7 +216,7 @@ public class SchemaDefinition
     //        break;
 
     //      default:
-    //        throw new InvalidOperationException($"relation type: {rd.RelationType} is not supported!");
+    //        throw new InvalidOperationException($"association type: {rd.RelationType} is not supported!");
     //    }
     //  }
     //  else
@@ -246,7 +246,7 @@ public class SchemaDefinition
   /// </summary>
   private object? GetRelationId(ColumnDef col, object? obj)
   {
-    var relInstance = col.RelationDef!.TargetProperty!.GetValue(obj) as ISingleRelation;
+    var relInstance = col.AssociationDef!.TargetProperty!.GetValue(obj) as ISingleAssociation;
     if (relInstance == null) { return null; }
 
     int res = relInstance.ID;
@@ -403,12 +403,12 @@ public class SchemaDefinition
 
 
   // --------------------------------------------------------------------------------------------------------------------------
-  private void PopulateRelationships()
+  private void PopulateAssociations()
   {
     foreach (var def in _TableDefs.Values)
     {
       // Now we can populate all of the members.
-      def.PopulateRelationships();
+      def.PopulateAssociations();
     }
   }
 
@@ -425,14 +425,14 @@ public class SchemaDefinition
     foreach (var def in _TableDefs.Values)
     {
       // Now we can populate all of the members.
-      var generatedSets = def.PopulateRelationMembers();
+      var generatedSets = def.PopulateAssociationMembers();
       allGeneratedSets.AddRange(generatedSets);
     }
 
     // Now we can remove all of the temp, related columns from each of the sets:
     foreach (var def in _TableDefs.Values)
     {
-      var toRemove = (from x in def.Columns where x.DataType == ColumnDef.RELATION_PLACEHOLDER select x).ToList();
+      var toRemove = (from x in def.Columns where x.DataType == ColumnDef.ASSOCIATION_PLACEHOLDER select x).ToList();
       foreach (var item in toRemove)
       {
         def.RemoveCol(item);
@@ -603,7 +603,7 @@ public class SchemaDefinition
   {
     var candidates = new List<TableDef>(tableDefs.Values.ToList());
 
-    // All tables with no relations go at the top.
+    // All tables with no associations go at the top.
     // Then we can do them one by one...
     // NOTE: There is certainly a way better way to do this, but we will live with it for now....
     var used=  new HashSet<TableDef>();  
@@ -733,10 +733,10 @@ public class SchemaDefinition
 /// Describes a table that another is dependent upon.
 /// This is your typical Foreign Key relationship in an RDBMS system.
 /// </summary>
-public class RelatedDatasetInfo
+public class AssociatedDatasetInfo
 {
   public TableDef TargetSet { get; set; }
-  public ERelationType RelationType { get; set; }
+  public EAssociationType RelationType { get; set; }
 
   /// <summary>
   /// The name of the property that contains the table in question.

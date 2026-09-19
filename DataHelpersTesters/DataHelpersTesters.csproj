@@ -26,12 +26,7 @@
 
   <ItemGroup>
     <Folder Include="TestData\SQLOutput\CanCreateForeignKeyFromRelation\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="TestData\SQLOutput\CanCreateUpdateQuery.json">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </None>
+    <Folder Include="TestData\SQLOutput\GenerateInsert\" />
   </ItemGroup>
 
 </Project>

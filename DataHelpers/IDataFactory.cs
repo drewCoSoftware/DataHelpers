@@ -39,7 +39,7 @@ public interface IDataFactory<TSchema>
 
     entity.ID = res;
 
-    // TODO: If there are manyrelations in the type, we want to update the mappings for them here!
+    // TODO: If there are manyassociations in the type, we want to update the mappings for them here!
 
     return res;
   }
@@ -109,7 +109,7 @@ public interface IDataFactory<TSchema>
           var exp = body as BinaryExpression;
 
           // The part on the left is the property that we are accessing....
-          // What we want to see if it is from a manyrelation/mapped table.
+          // What we want to see if it is from a many association/mapped table.
           if (exp.Left.NodeType == ExpressionType.Parameter) { 
             // We are doing a select on the table directly.
 

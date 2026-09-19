@@ -2,6 +2,7 @@
 using DataHelpers.Data;
 using NUnit.Framework;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
 namespace DataHelpersTesters
@@ -10,6 +11,30 @@ namespace DataHelpersTesters
   // =========================================================================================================
   public class QueryGenerationTesters : TestBase
   {
+
+    // -------------------------------------------------------------------------------------------------------------------------- 
+    /// <summary>
+    /// This test case was provided to solve a bug where we weren't generating the correct associations
+    /// for a data set when a dataset was associated to another set multiple times.
+    /// </summary>
+    [Test]
+    public void AssociationsAreGeneratedForMultipleLinkedDataSets()
+    {
+      const string TEST_NAME = nameof(AssociationsAreGeneratedForMultipleLinkedDataSets);
+
+      var schema = new SchemaDefinition(new SqliteFlavor(), typeof(SchemaWithMappedTypes));
+      IDataFactory<SchemaWithMappedTypes> factory = CreateTestDataBaseFor<SchemaWithMappedTypes>(TEST_NAME);
+
+      var td = factory.Schema.GetTableDef<Matchup>();
+      Assert.That(td.Columns.Count, Is.EqualTo(3), "There should be three columns!");
+
+      string[] cols = new[] { "favorite_ID", "other_ID" };
+      foreach (var cName in cols) { 
+        var col = td.GetColumn(cName);
+        Assert.That(col.AssociatedDataSet, Is.Not.Null, "There should be an associated dataset for this column!");
+      }
+    }
+
 
     // -------------------------------------------------------------------------------------------------------------------------- 
     /// <summary>
@@ -66,7 +91,7 @@ namespace DataHelpersTesters
 
       // Let's get the list of players for each of the teams.
       // factory.Get<Player>(x => x.ID == 1 && x.Name == "Dave");
-      factory.Get<Player>(x=>x.ID == 1);
+      factory.Get<Player>(x => x.ID == 1);
 
       factory.Get<Player>(x => x.Teams.Prop.ID == 0); // // -- where team.id = x --> how do we easily represent this....
 
@@ -145,7 +170,7 @@ namespace DataHelpersTesters
         Assert.That(qParams.ContainsKey("Name"));
       }
 
-      // Let's set the hometown relation to see if we still get the correct number of params.
+      // Let's set the hometown association to see if we still get the correct number of params.
       {
         p1.HomeTown = town;
         var qParams = schema.ComputeParametersFor(p1);

@@ -162,7 +162,7 @@ public class SqliteSchemaTesters : TestBase
   /// <summary>
   /// This test case was provided to show that when we select data with related members, the single relations
   /// will be populated and report ids.
-  /// NOTE: This might be a good place to look into adding 'many relation' selections as well.
+  /// NOTE: This might be a good place to look into adding 'many association' selections as well.
   /// </summary>
   [Test]
   public void CanGetRelatedDataFromSelectQuery()
@@ -207,7 +207,7 @@ public class SqliteSchemaTesters : TestBase
     //Assert.That(check.FavoritePlace, Is.Not.Null);
     //Assert.That(check.FavoritePlace.ID, Is.EqualTo(testPlace.ID));
 
-    //// Finally, the data of the relation should be null because we haven't explicitly resolved it.
+    //// Finally, the data of the association should be null because we haven't explicitly resolved it.
     //Assert.That(check.FavoritePlace.Data, Is.Null);
   }
 
@@ -288,7 +288,7 @@ public class SqliteSchemaTesters : TestBase
     var mappingTable = (from x in schema.TableDefs where x.Name.EndsWith("_map") select x).SingleOrDefault();
     Assert.That(mappingTable, Is.Not.Null, "We should have the mapping table!");
 
-    // We want to make sure that none of the first-class sets in the schema have a relation column.
+    // We want to make sure that none of the first-class sets in the schema have a association column.
     // We achieve this with a simple column count....
     var travelersSet = schema.GetTableDef(nameof(VacationSchema.Travelers));
     Assert.That(travelersSet.Columns.Count, Is.EqualTo(3));
@@ -300,12 +300,12 @@ public class SqliteSchemaTesters : TestBase
     // Make sure that the mapping table points to the other two:
     var toTravelers = mappingTable.GetColumn($"{nameof(VacationSchema.Travelers)}_ID");
     Assert.That(toTravelers, Is.Not.Null);
-    Assert.That(toTravelers.RelatedDataSet.TargetSet, Is.SameAs(travelersSet), $"This should be related to the {nameof(VacationSchema.Travelers)} dataset!");
+    Assert.That(toTravelers.AssociatedDataSet.TargetSet, Is.SameAs(travelersSet), $"This should be related to the {nameof(VacationSchema.Travelers)} dataset!");
 
 
     var toPlaces = mappingTable.GetColumn($"{nameof(VacationSchema.Places)}_ID");
     Assert.That(toPlaces, Is.Not.Null);
-    Assert.That(toPlaces.RelatedDataSet.TargetSet, Is.SameAs(placesSet), $"This should be related to the {nameof(VacationSchema.Places)} dataset!");
+    Assert.That(toPlaces.AssociatedDataSet.TargetSet, Is.SameAs(placesSet), $"This should be related to the {nameof(VacationSchema.Places)} dataset!");
 
 
     // Do some queries, I gues....
@@ -372,10 +372,10 @@ public class SqliteSchemaTesters : TestBase
     var td = schema.GetTableDef<Address>();
     Assert.That(td.Columns.Count, Is.EqualTo(5));    // One extra property for the FK.
 
-    var col = td.GetColumn("Towns_ID");
-    Assert.That(col, Is.Not.Null, "There should be a column for the town relation!");
-    var rel = col.RelatedDataSet;
-    Assert.That(rel, Is.Not.Null, "The column should have a relation!");
+    var col = td.GetColumn("town_ID");
+    Assert.That(col, Is.Not.Null, "There should be a column for the town association!");
+    var rel = col.AssociatedDataSet;
+    Assert.That(rel, Is.Not.Null, "The column should have a association!");
     // Assert.That(rel.data
 
     var t = new Town()
@@ -433,12 +433,12 @@ public class SqliteSchemaTesters : TestBase
     factory.SetupDatabase();
     var schema = factory.Schema;
 
-    // Show that we have a relation from people to addresses:
+    // Show that we have a association from people to addresses:
     var td = schema.GetTableDef<Person>();
-    var fkCol = td.GetColumn($"{nameof(BusinessSchema.Addresses)}_ID");
+    var fkCol = td.GetColumn($"address_ID");
     Assert.That(fkCol, Is.Not.Null);
 
-    var relatedSet = fkCol.RelatedDataSet;
+    var relatedSet = fkCol.AssociatedDataSet;
     Assert.That(relatedSet, Is.Not.Null, "There should be a relationship to a different data set!");
 
 
@@ -496,7 +496,7 @@ public class SqliteSchemaTesters : TestBase
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
-  /// This shows that properties with the 'Relation' attribute will automatically have FK relations setup in the schema / defs.
+  /// This shows that properties with the 'Relation' attribute will automatically have FK associations setup in the schema / defs.
   /// </summary>
   [Test]
   public void CanCreateForeignKeyFromRelation()
@@ -724,7 +724,7 @@ public class TypewithRelationToNonPrimary : IHasPrimary
   public int ID { get; set; }
   public int Number { get; set; }
 
-  [RelationAttribute(DataSetName = nameof(SchemaWithNonPrimaryType.DataSet1))]
+  [AssociationAttribute(DataSetName = nameof(SchemaWithNonPrimaryType.DataSet1))]
   public TypeWithoutPrimary Relation { get; set; }
 }
 
@@ -750,7 +750,7 @@ public class Parent2 : IHasPrimary
 {
   public int ID { get; set; }
 
-  [RelationAttribute]
+  [AssociationAttribute]
   public TypeWithInvalidChildRelationship Child { get; set; }
 }
 
@@ -764,7 +764,7 @@ public class TypeWithInvalidChildRelationship : IHasPrimary
   // We already have this type 'InvalidChild' listed as a child of parent.
   // By attempting to also list 'InvalidParent' as a child, we would create
   // a circular dependency.
-  [RelationAttribute]
+  [AssociationAttribute]
   public Parent2 InvalidParent { get; set; }
 }
 

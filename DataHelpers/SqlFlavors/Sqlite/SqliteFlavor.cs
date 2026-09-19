@@ -43,7 +43,7 @@ public class SqliteDataTypeResolver : IDataTypeResolver
     if (ReflectionTools.HasInterface<IRelation>(t))
     {
       // Annotated type.  The corresponding column def will be replaced or removed, depending.
-      return ColumnDef.RELATION_PLACEHOLDER;
+      return ColumnDef.ASSOCIATION_PLACEHOLDER;
     }
 
     string res = string.Empty;

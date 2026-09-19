@@ -37,9 +37,9 @@ public class DataSetAttribute : Attribute
 /// Describes a relationship to another set of data (table, list, etc.)
 /// </summary>
 [AttributeUsage(AttributeTargets.Property)]
-public class RelationAttribute : Attribute
+public class AssociationAttribute : Attribute
 {
-  // I want an easy way to indicate FK relations in a database, and even a way
+  // I want an easy way to indicate FK associations in a database, and even a way
   // to indicate many->many type relations....
   // In these cases, we need the name of a Set, or we can use the name of the datatype
   // that this property is attached to.
@@ -53,13 +53,13 @@ public class RelationAttribute : Attribute
   public string DataSetName { get; set; }
 
   /// <summary>
-  /// The name of the property on the defining type that represents the relation.
+  /// The name of the property on the defining type that represents the association.
   /// If null, a default value will be used.
   /// </summary>
   public string? LocalIDPropertyName { get; set; }
 
   /// <summary>
-  /// The name of the property on the target data set that represents the relation.
+  /// The name of the property on the target data set that represents the association.
   /// If null, a default value will be used.
   /// </summary>
   public string? TargetIDPropertyName { get; set; }
@@ -68,18 +68,18 @@ public class RelationAttribute : Attribute
   /// <summary>
   /// This is set internally, during schema computation.
   /// </summary>
-  internal ERelationType RelationType { get; set; }
+  internal EAssociationType AssociationType { get; set; }
 
   /// <summary>
-  /// The instance that stores the actualy relation data.  This may not always be set, depending on the scenario.
+  /// The instance that stores the actualy association data.  This may not always be set, depending on the scenario.
   /// </summary>
   public PropertyInfo? TargetProperty { get; set; }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public RelationAttribute() { }
+  public AssociationAttribute() { }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public RelationAttribute(string dataSet_)
+  public AssociationAttribute(string dataSet_)
   {
     DataSetName = dataSet_;
   }

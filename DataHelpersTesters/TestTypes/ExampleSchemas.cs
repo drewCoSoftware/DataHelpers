@@ -1,14 +1,24 @@
 // ==========================================================================   
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using DataHelpers;
 using DataHelpers.Data;
 
 namespace DataHelpersTesters;
 
+
+// ==============================================================================================================================
+public class Matchup : IHasPrimary
+{
+  public int ID { get; set; }
+
+  [Association(nameof(SchemaWithMappedTypes.Teams))]
+  public SingleRelation<Team> Favorite { get; set; } = new SingleRelation<Team>();
+
+  [Association(nameof(SchemaWithMappedTypes.Teams))]
+  public SingleRelation<Team>? Other { get; set; } = null;
+}
 
 // ==============================================================================================================================
 public class Player : IHasPrimary
@@ -17,7 +27,7 @@ public class Player : IHasPrimary
   public string Name { get; set; }
   public string Position { get; set; }
 
-  [Relation(nameof(SchemaWithMappedTypes.Teams))]
+  [Association(nameof(SchemaWithMappedTypes.Teams))]
   public ManyRelation<Team> Teams { get; set; }
 }
 
@@ -27,7 +37,7 @@ public class Team : IHasPrimary
   public int ID { get; set; }
   public string Name { get; set; }
 
-  [Relation(nameof(SchemaWithMappedTypes.Players))]
+  [Association(nameof(SchemaWithMappedTypes.Players))]
   public ManyRelation<Player> Players { get; set; } = new ManyRelation<Player>();
 }
 
@@ -36,6 +46,7 @@ public class SchemaWithMappedTypes
 {
   public List<Player> Players { get; set; }
   public List<Team> Teams { get; set; }
+  public List<Matchup> Matches { get; set; }
 }
 
 
@@ -134,7 +145,7 @@ public class AdvancedFeaturesSchema
 
 // ==============================================================================================================================
 /// <summary>
-/// This schema only contains sets that don't have any relations to one another.
+/// This schema only contains sets that don't have any associations to one another.
 /// </summary>
 public class SimpleSchema
 {
@@ -172,10 +183,10 @@ public class Traveler : IHasPrimary
   /// <summary>
   /// All of the places that this person has visited.
   /// </summary>
-  [Relation(DataSetName = nameof(VacationSchema.Places))]
+  [Association(DataSetName = nameof(VacationSchema.Places))]
   public ManyRelation<Place> PlacesVisited { get; set; }
 
-  [Relation(DataSetName = nameof(VacationSchema.Places), LocalIDPropertyName = "FavoritePlace_ID")]
+  [Association(DataSetName = nameof(VacationSchema.Places), LocalIDPropertyName = "FavoritePlace_ID")]
   public SingleRelation<Place>? FavoritePlace { get; set; } = null;
 }
 
@@ -189,7 +200,7 @@ public class Place : IHasPrimary
   /// <summary>
   /// All of the people that have visited this place.
   /// </summary>
-  [Relation(DataSetName = nameof(VacationSchema.Travelers))]
+  [Association(DataSetName = nameof(VacationSchema.Travelers))]
   public ManyRelation<Person> Visitors { get; set; }
 }
 
@@ -212,10 +223,10 @@ public class Person : IHasPrimary
   /// <summary>
   /// This data comes from the 'People' dataset of the schema.
   /// </summary>
-  [Relation(nameof(BusinessSchema.Addresses))]
+  [Association(nameof(BusinessSchema.Addresses))]
   public SingleRelation<Address> Address { get; set; } = new SingleRelation<Address>();
 
-  [Relation(nameof(BusinessSchema.Towns))]
+  [Association(nameof(BusinessSchema.Towns))]
   public SingleRelation<Town>? HomeTown { get; set; } = null;
 
   //[Relation(nameof(BusinessSchema.Addresses))]
@@ -256,8 +267,8 @@ public class Address : IHasPrimary
   // Should that be required?
   // --> Yes!
   // public int Towns_ID { get; set; }
-  [Relation(DataSetName = nameof(BusinessSchema.Towns))]
-  public SingleRelation<Town> Town { get; set; } // = new SingleRelation<Town>();
+  [Association(DataSetName = nameof(BusinessSchema.Towns))]
+  public SingleRelation<Town> Town { get; set; }
 }
 
 // ==========================================================================
@@ -271,7 +282,7 @@ public class Town : IHasPrimary
   /// but there doesn't need to be a bi-directional relationship.
   /// An FK to this will be created on the 'Address' table.
   /// </summary>
-  [Relation(DataSetName = nameof(BusinessSchema.Addresses))]
+  [Association(DataSetName = nameof(BusinessSchema.Addresses))]
   public ManyRelation<Address> Addresses { get; set; } // = new ManyRelation<Address>();
 }
 

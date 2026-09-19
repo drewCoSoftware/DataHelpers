@@ -300,13 +300,13 @@ public class DBHandler : IDisposable
         var prop = col.PropInfo;
         if (prop == null)
         {
-          if (col.RelationDef == null)
+          if (col.AssociationDef == null)
           {
-            Log.Verbose($"The column named: {kvp.Key} on type: {td.Name} does not have a PropertyInfo or Relation!");
+            Log.Verbose($"The column named: {kvp.Key} on type: {td.Name} does not have a PropertyInfo or Association!");
             continue;
           }
 
-          MapRelationData(reader, item, kvp, col);
+          MapAssociationData(reader, item, kvp, col);
 
           continue;
         }
@@ -344,28 +344,28 @@ public class DBHandler : IDisposable
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  private void MapRelationData<T>(IDataReader reader, T item, KeyValuePair<string, int> kvp, ColumnDef col)
+  private void MapAssociationData<T>(IDataReader reader, T item, KeyValuePair<string, int> kvp, ColumnDef col)
   {
-    // We have a relation, so this is where we can create / populate that id....
+    // We have a association, so this is where we can create / populate that id....
     // We can resolve the data type, but I also need to be able to point this to a property on the current type....
-    var rel = col.RelationDef;
-    if (rel.RelationType == ERelationType.Single)
+    var rel = col.AssociationDef;
+    if (rel.AssociationType == EAssociationType.Single)
     {
       if (rel.TargetProperty == null)
       {
-        throw new ArgumentNullException("A target property should be set on this relation!");
+        throw new ArgumentNullException("A target property should be set on this association!");
       }
     }
-    else if (rel.RelationType == ERelationType.Many)
+    else if (rel.AssociationType == EAssociationType.Many)
     {
       // NOTE: We aren't doing any specific checks here, but in the future when we want to do more
       // specific mappings we will definitely have to care about this stuff.
-      Log.Warning("There is no specific support or checks for ManyRelations at this point!");
+      Log.Warning("There is no specific support or checks for Manyassociations at this point!");
       //if (rel.TargetProperty != null)
       //{
       //  // This is probably a many->many, but I am not really sure if we want to do anything about that...
       //  // Umm.... this is a maybe, not sure what the conditions are ATM...
-      //  throw new Exception("There is apparently data for a many relation on this dataset?  Is that right?");
+      //  throw new Exception("There is apparently data for a many association on this dataset?  Is that right?");
       //}
     }
 
@@ -381,10 +381,10 @@ public class DBHandler : IDisposable
     object? idVal = ResolveValue(reader, kvp.Value, typeof(int));
     if (idVal != null)
     {
-      // Create the instance of the relation type + assign the ID.
+      // Create the instance of the association type + assign the ID.
       // TODO: At a later date we can decide if there is data in the result set (from a JOIN) where we would
       // populate the rest of the instance data.
-      var instance = Activator.CreateInstance(rel.TargetProperty.PropertyType) as ISingleRelation; //    Activator.CreateInstance(targetSet.DataType) as IHasPrimary;
+      var instance = Activator.CreateInstance(rel.TargetProperty.PropertyType) as ISingleAssociation; //    Activator.CreateInstance(targetSet.DataType) as IHasPrimary;
       instance.ID = (int)idVal;
       rel.TargetProperty.SetValue(item, instance);
     }

@@ -53,7 +53,7 @@ public class PostgresDataTypeResolver : IDataTypeResolver
     if (ReflectionTools.HasInterface<IRelation>(t))
     {
       // Annotated type.  The corresponding column def will be replaced or removed, depending.
-      return ColumnDef.RELATION_PLACEHOLDER;
+      return ColumnDef.ASSOCIATION_PLACEHOLDER;
     }
 
     //if (ReflectionTools.HasInterface<IRelation>(t))
