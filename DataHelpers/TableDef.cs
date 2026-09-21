@@ -24,6 +24,7 @@ public class TableDef
   public List<AssociatedDatasetInfo> RelatedDataSets { get; set; }
 
   // NOTE: This should probably be a dictionary.....
+  // REFACTOR: FIX: NOTE: We are making a new readonly instance each time.... this will make mucho garbagio!
   private List<ColumnDef> _Columns = new List<ColumnDef>();
   public ReadOnlyCollection<ColumnDef> Columns { get { return new ReadOnlyCollection<ColumnDef>(_Columns); } }
 
@@ -50,7 +51,7 @@ public class TableDef
   /// <summary>
   /// Return the ColumnDef with the corresponding name, or null if it doesn't exist.
   /// </summary>
-  public ColumnDef? GetColumn(string propName)
+  public ColumnDef? GetColumn(string propName, bool throwIfMissing = false)
   {
     int colCount = _Columns.Count;
     for (int i = 0; i < colCount; i++)
@@ -69,6 +70,9 @@ public class TableDef
       }
     }
 
+    if (throwIfMissing)  {
+      throw new NullReferenceException($"There is no column named: {propName}");
+    }
     return null;
 
 
@@ -789,7 +793,7 @@ public class TableDef
         {
           // In single associations we use a column from this type.
           // Because we are using one of our special data types, that defined column is mapped to it. <-- review this, does it make sense?
-          string propName = rd.LocalIDPropertyName ?? $"{col.DataStoreName}_{nameof(IHasPrimary.ID)}";
+          string propName = rd.LocalIDPropertyName ?? $"{col.DataStoreName}_{nameof(IHasPrimary.ID).ToLower()}";
           string colName = Schema.Flavor.GetDataStoreName(propName);
           rd.LocalIDPropertyName = propName;
 

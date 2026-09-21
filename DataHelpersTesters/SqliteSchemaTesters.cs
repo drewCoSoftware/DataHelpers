@@ -372,7 +372,7 @@ public class SqliteSchemaTesters : TestBase
     var td = schema.GetTableDef<Address>();
     Assert.That(td.Columns.Count, Is.EqualTo(5));    // One extra property for the FK.
 
-    var col = td.GetColumn("town_ID");
+    var col = td.GetColumn("town_id");
     Assert.That(col, Is.Not.Null, "There should be a column for the town association!");
     var rel = col.AssociatedDataSet;
     Assert.That(rel, Is.Not.Null, "The column should have a association!");
@@ -409,7 +409,7 @@ public class SqliteSchemaTesters : TestBase
     }
 
     // Now we will get the town with the included addresses back out from the DB:
-    string query = "SELECT * FROM Addresses WHERE Towns_ID = @townId";
+    string query = "SELECT * FROM Addresses WHERE town_id = @townId";
     factory.Action(dal =>
     {
       var addrs = dal.RunQuery<Address>(query, new { townId = t.ID }).ToList();
@@ -435,7 +435,7 @@ public class SqliteSchemaTesters : TestBase
 
     // Show that we have a association from people to addresses:
     var td = schema.GetTableDef<Person>();
-    var fkCol = td.GetColumn($"address_ID");
+    var fkCol = td.GetColumn($"address_id");
     Assert.That(fkCol, Is.Not.Null);
 
     var relatedSet = fkCol.AssociatedDataSet;

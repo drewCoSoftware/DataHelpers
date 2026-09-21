@@ -184,67 +184,18 @@ public class SchemaDefinition
   /// Creates a QueryParameters instance based on the given object.
   /// The object must be an instance of a type defined in the schema.
   /// </summary>
+  [Obsolete("Use 'ResolveQueryParams' or 'CreateParams'.  This version will be removed!")]
   public QueryParams ComputeParametersFor<T>(T obj)
   {
-    var res = Flavor.CreateParams(obj!);
+    var res = CreateParams(obj!);
     return res;
-
-    // NOTE: This is a bit more concise, but maybe doesn't cover as many cases.  Perhaps we should look into
-    // the function call above to see if we can get the best of both worlds.
-    //var td = this.GetTableDef(typeof(T));
-    //if (td == null)
-    //{
-    //  throw new InvalidOperationException($"There is no data set for type: {typeof(T)}");
-    //}
-
-    //var builder = new QueryParamsBuilder(this.Flavor);
-    //foreach (var item in td.Columns)
-    //{
-    //  // OPTIONS:
-    //  if (item.IsPrimary) { continue; }
-    //  object? val = null;
-    //  string useName = item.PropertyName;
-
-    //  if (item.RelationDef != null)
-    //  {
-    //    var rd = item.RelationDef;
-    //    switch (rd.RelationType)
-    //    {
-    //      case ERelationType.Single:
-    //        val = GetRelationId(item, obj);
-    //        useName = item.RelatedDataSet.PropertyPath;
-    //        break;
-
-    //      default:
-    //        throw new InvalidOperationException($"association type: {rd.RelationType} is not supported!");
-    //    }
-    //  }
-    //  else
-    //  {
-    //    val = item.PropInfo.GetValue(obj);
-    //  }
-
-
-    //  if (val == null)
-    //  {
-    //    if (!item.IsNullable)
-    //    {
-    //      throw new InvalidOperationException($"Value for column: {item.PropertyName} is null, but null is not allowed!");
-    //    }
-    //    continue;
-    //  }
-    //  builder.Add(item.PropertyName, val);
-    //}
-
-    //var res = builder.Build();
-    //return res;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// Gets the ID value for the given relationship, or null if it isn't set.
   /// </summary>
-  private object? GetRelationId(ColumnDef col, object? obj)
+  private object? GetAssociationID(ColumnDef col, object? obj)
   {
     var relInstance = col.AssociationDef!.TargetProperty!.GetValue(obj) as ISingleAssociation;
     if (relInstance == null) { return null; }
@@ -606,7 +557,7 @@ public class SchemaDefinition
     // All tables with no associations go at the top.
     // Then we can do them one by one...
     // NOTE: There is certainly a way better way to do this, but we will live with it for now....
-    var used=  new HashSet<TableDef>();  
+    var used = new HashSet<TableDef>();
     var res = new List<TableDef>();
 
     // NOTE: This can be folded in to the main loop...
@@ -707,7 +658,7 @@ public class SchemaDefinition
   public string GetPaginationClause(int pageNumber, int pageSize)
   {
     // This will work for both postgres and sqlite I believe...
-    string res = $"LIMIT {pageSize} OFFSET {(pageNumber - 1)*pageSize}";
+    string res = $"LIMIT {pageSize} OFFSET {(pageNumber - 1) * pageSize}";
 
     return res;
   }
@@ -718,52 +669,270 @@ public class SchemaDefinition
     // This should work for all flavors....
     var td = GetTableDef<T>();
     string res = $"SELECT COUNT(*) FROM {td.Name}";
-    if (criteria != null)  {
-      if (!criteria.StartsWith("where", StringComparison.OrdinalIgnoreCase)) { 
+    if (criteria != null)
+    {
+      if (!criteria.StartsWith("where", StringComparison.OrdinalIgnoreCase))
+      {
         criteria = "WHERE " + criteria;
       }
       res += " " + criteria;
     }
     return res;
-}
-}
+  }
 
-// ============================================================================================================================
-/// <summary>
-/// Describes a table that another is dependent upon.
-/// This is your typical Foreign Key relationship in an RDBMS system.
-/// </summary>
-public class AssociatedDatasetInfo
-{
-  public TableDef TargetSet { get; set; }
-  public EAssociationType RelationType { get; set; }
 
-  /// <summary>
-  /// The name of the property that contains the table in question.
-  /// </summary>
-  /// <remarks>This only applies to child data sets.</remarks>
-  public string DataStoreName { get; set; } = string.Empty;
+  // --------------------------------------------------------------------------------------------------------------------------
+  public QueryParams? ResolveQueryParams(object? qParams)
+  {
+    QueryParams? useParams = null;
+    if (qParams != null)
+    {
+      if (qParams is QueryParams)
+      {
+        useParams = qParams as QueryParams;
+      }
+      else
+      {
+        useParams = CreateParams(qParams);
+      }
+    }
 
-  public ColumnDef TargetIDColumn { get; set; } = null!;
+    return useParams;
+  }
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
-  /// This tells us if we have a dependency on the given table, anywhere in the chain....
+  /// Create a set of dynamic query parameters from the given object.
+  /// This allows us to use some of our conventions for mapping relationships to types.
   /// </summary>
-  internal bool HasTableDependency(TableDef t)
+  QueryParams CreateParams(object fromInstance, bool includeNulls = false, bool includeID = false)
   {
-    foreach (var dep in this.TargetSet.RelatedDataSets)
+    if (fromInstance == null) { throw new ArgumentNullException($"Please provide an instance for {nameof(fromInstance)}"); }
+    Type t = fromInstance.GetType();
+
+    // throw new InvalidOperationException("make sure to use correct property names for relation mappings!  NOT the type names!  Use 'CanModelOneToManyRelationship' as a starting point!");
+
+    var qpb = new QueryParamsBuilder(this.Flavor);
+
+    var td = GetTableDef(t, true);
+    if (td == null)
     {
-      if (dep.TargetSet.DataType == t.DataType)
+      BuildParamsFromNonTableType(t, fromInstance, includeID, includeNulls, qpb);
+    }
+    else
+    {
+
+      // Build the params from a known table table.
+      foreach (var col in td.Columns)
       {
-        return true;
+        var prop = col.PropInfo;
+
+        if (col.IsPrimary && !includeID) { continue; }
+        if (col.AssociationDef != null)
+        {
+          var ad = col.AssociationDef;
+          switch (ad.AssociationType)
+          {
+            case EAssociationType.Single:
+
+              string setName = ad.DataSetName;
+              string useName = col.DataStoreName; 
+
+              // TODO: I think I can get this directly from the def...or at least I should be able to.
+              var relType = col.AssociatedDataSet.TargetSet.DataType; // col.PropInfo.PropertyType.GetGenericArguments()[0];
+              var relVal = ad.TargetProperty.GetValue(fromInstance);
+              if (relVal == null || (relVal as ISingleAssociation).ID == 0)
+              {
+                // This is null, or unset:
+                if (includeNulls)
+                {
+                  qpb.Add(useName, null, typeof(int));
+                }
+                continue;
+              }
+
+
+              int useId = (relVal as ISingleAssociation).ID;
+              qpb.Add(useName, useId, typeof(int));
+
+              break;
+
+            case EAssociationType.Many:
+
+              // TODO: Decide what to do about this.  In this case, there could be many related instances
+              // each with their own ID, etc.....
+              // Scenario one:
+              // A one -> many relationship just means that some other Dataset has an FK to this one.
+              // In that case, there is nothing for us to include, esp. if this is an INSERT query.
+              // TODO: We don't have any indication as to what type of query we are creating params for,
+              // so we should look into it at some point.
+              var manyVal = col.PropInfo.GetValue(fromInstance);
+              if (manyVal == null)
+              {
+                // There is no data anyway, so we can skip.
+                continue;
+              }
+              Log.Warning("There is currently no support for many relations!");
+              continue;
+
+            default:
+              throw new InvalidOperationException("Unknown association type!");
+          }
+        }
+        else
+        {
+          // Normal, non association column.
+
+          object? useVal = prop.GetValue(fromInstance);
+
+          // NOTE: Why does the value work for sqlite....
+          if (useVal != null && prop.PropertyType.IsEnum)
+          {
+            if (useVal.GetType() == typeof(string))
+            {
+              useVal = Enum.Parse(prop.PropertyType, (string)useVal);
+            }
+            else
+            {
+              useVal = (int)useVal;
+            }
+          }
+
+          if (!includeNulls && useVal == null)
+          {
+            // NOTE: Depending on what we are doing, and what data set / type we are targeting, we may
+            // want to flag non-nullable values.  Requires more machinery, but might be nice....
+            continue;
+          }
+
+          bool isComposite = ReflectionTools.HasInterface<ICompositeSerializer>(prop.PropertyType);
+          if (isComposite)
+          {
+            // var cs = useVal as ICompositeSerializer;
+            // var genFunc = typeof(ICompositeSerializer<>).MakeGenericType(new[] { cs.GetCompositeType() }).GetMethod("To");
+            useVal = (useVal as ICompositeSerializer).Serialize(); // (string)genFunc.Invoke(useVal, null);
+
+            // useVal = cs.ToS
+          }
+          qpb.Add(prop.Name, useVal, prop.PropertyType);
+          // res.Add(prop.Name, new QueryParamValue(useVal, ToDbType(prop.PropertyType)));
+
+        }
       }
-      //if (dep.HasTableDependency(t))
-      //{
-      //  return true;
-      //}
+
     }
 
-    return false;
+
+    var res = qpb.Build();
+    return res;
+
   }
+
+  private void BuildParamsFromNonTableType(Type t, object fromInstance, bool includeID, bool includeNulls, QueryParamsBuilder qpb)
+  {
+    var props = ReflectionTools.GetProperties(t);
+    foreach (var prop in props)
+    {
+      // Don't attempt to include ids.
+      if (prop.Name == nameof(IHasPrimary.ID) && !includeID) { continue; }
+      if (ReflectionTools.HasAttribute<IgnoreAttribute>(prop)) { continue; }
+
+      var relAttr = ReflectionTools.GetAttribute<AssociationAttribute>(prop);
+      if (relAttr != null)
+      {
+        throw new InvalidOperationException("These should not have associations!");
+        if (ReflectionTools.HasInterface<ISingleAssociation>(prop.PropertyType))
+        {
+          string setName = relAttr.DataSetName;
+          string useName = relAttr.LocalIDPropertyName ?? setName + "_" + nameof(IHasPrimary.ID);
+
+          var relType = prop.PropertyType.GetGenericArguments()[0];
+          var relVal = prop.GetValue(fromInstance);
+          if (relVal == null || (relVal as ISingleAssociation).ID == 0)
+          {
+            // TODO: If the property isn't nullable, we should raise a flag here!
+            // Not sure if we should blow it up, but I will for now....
+            // NOTE: This call isn't detecting the nullability of the type correctly!
+            //if (!TableDef.IsNullableEx(item)) { 
+            //  throw new Exception("The value for a non-nullable property is currently null!");
+            //}
+
+            // This is null, or unset:
+            if (includeNulls)
+            {
+              qpb.Add(useName, null, typeof(int));
+              // res.Add(useName, new QueryParamValue(null, ToDbType(typeof(int))));
+            }
+            continue;
+          }
+
+
+          int useId = (relVal as ISingleAssociation).ID;
+          qpb.Add(useName, useId, typeof(int));
+          // res.Add(useName, new QueryParamValue(useId, ToDbType(typeof(int))));
+        }
+        else if (ReflectionTools.HasInterface<IManyAssociation>(prop.PropertyType))
+        {
+          // TODO: Decide what to do about this.  In this case, there could be many related instances
+          // each with their own ID, etc.....
+
+          // Scenario one:
+          // A one -> many relationship just means that some other Dataset has an FK to this one.
+          // In that case, there is nothing for us to include, esp. if this is an INSERT query.
+          // TODO: We don't have any indication as to what type of query we are creating params for,
+          // so we should look into it at some point.
+          var manyVal = prop.GetValue(fromInstance);
+          if (manyVal == null)
+          {
+            // There is no data anyway, so we can skip.
+            continue;
+          }
+          Log.Warning("There is currently no support for many relations!");
+          continue;
+        }
+        else
+        {
+          throw new InvalidOperationException($"All associations should be represented with a {nameof(ISingleAssociation)} OR {nameof(IManyAssociation)} instance!");
+        }
+
+      }
+      else
+      {
+        object? useVal = prop.GetValue(fromInstance);
+
+        // NOTE: Why does the value work for sqlite....
+        if (useVal != null && prop.PropertyType.IsEnum)
+        {
+          if (useVal.GetType() == typeof(string))
+          {
+            useVal = Enum.Parse(prop.PropertyType, (string)useVal);
+          }
+          else
+          {
+            useVal = (int)useVal;
+          }
+        }
+
+        if (!includeNulls && useVal == null)
+        {
+          // NOTE: Depending on what we are doing, and what data set / type we are targeting, we may
+          // want to flag non-nullable values.  Requires more machinery, but might be nice....
+          continue;
+        }
+
+        bool isComposite = ReflectionTools.HasInterface<ICompositeSerializer>(prop.PropertyType);
+        if (isComposite)
+        {
+          // var cs = useVal as ICompositeSerializer;
+          // var genFunc = typeof(ICompositeSerializer<>).MakeGenericType(new[] { cs.GetCompositeType() }).GetMethod("To");
+          useVal = (useVal as ICompositeSerializer).Serialize(); // (string)genFunc.Invoke(useVal, null);
+
+          // useVal = cs.ToS
+        }
+        qpb.Add(prop.Name, useVal, prop.PropertyType);
+        // res.Add(prop.Name, new QueryParamValue(useVal, ToDbType(prop.PropertyType)));
+      }
+    }
+  }
+
 }

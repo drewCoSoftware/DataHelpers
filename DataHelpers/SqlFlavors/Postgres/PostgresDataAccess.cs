@@ -58,7 +58,7 @@ public class PostgresDataAccess<TSchema> : IDataAccess<TSchema>
   // --------------------------------------------------------------------------------------------------------------------------
   public int GetCount<T>(string criteria, object? qParams = null)
   {
-    QueryParams? useParams = SchemaDef.Flavor.ResolveQueryParams(qParams);
+    QueryParams? useParams = SchemaDef.ResolveQueryParams(qParams);
 
     string query = SchemaDef.GetCountQuery<T>(criteria);
     int count = DBHandler.QuerySingle<int>(query, useParams);
@@ -217,7 +217,7 @@ public class PostgresDataAccess<TSchema> : IDataAccess<TSchema>
   {
 
     string queryType = StringTools.GetFirstWord(query).ToLower();
-    QueryParams? useParams = SchemaDef.Flavor.ResolveQueryParams(qParams);
+    QueryParams? useParams = SchemaDef.ResolveQueryParams(qParams);
 
 
     var res = DBHandler.Query<T>(query, useParams);
@@ -269,7 +269,7 @@ public class PostgresDataAccess<TSchema> : IDataAccess<TSchema>
   public int RunExecute(string query, object? qParams)
   {
     string queryType = StringTools.GetFirstWord(query);
-    var useParams = SchemaDef.Flavor.ResolveQueryParams(qParams);
+    var useParams = SchemaDef.ResolveQueryParams(qParams);
     int res = DBHandler.Execute(query, useParams);
     return res;
 

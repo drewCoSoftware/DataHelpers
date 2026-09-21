@@ -28,9 +28,9 @@ namespace DataHelpersTesters
       var td = factory.Schema.GetTableDef<Matchup>();
       Assert.That(td.Columns.Count, Is.EqualTo(3), "There should be three columns!");
 
-      string[] cols = new[] { "favorite_ID", "other_ID" };
+      string[] cols = new[] { "favorite_id", "other_id" };
       foreach (var cName in cols) { 
-        var col = td.GetColumn(cName);
+        var col = td.GetColumn(cName, true);
         Assert.That(col.AssociatedDataSet, Is.Not.Null, "There should be an associated dataset for this column!");
       }
     }

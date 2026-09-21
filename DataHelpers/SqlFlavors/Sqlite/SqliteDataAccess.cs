@@ -94,7 +94,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
     string queryType = StringTools.GetFirstWord(query).ToLower();
 
     // TODO: We will have to resolve the queryparams from the def itself so that we can map the names correctly!
-    QueryParams? useParams = SchemaDef.Flavor.ResolveQueryParams(qParams);
+    QueryParams? useParams = SchemaDef.ResolveQueryParams(qParams);
 
     var res = DBHandler.Query<T>(query, useParams);
     // var res = RunQuery<T>(Connection, query, useParams);
@@ -104,7 +104,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   // --------------------------------------------------------------------------------------------------------------------------
   public int GetCount<T>(string criteria, object? qParams = null)
   {
-    QueryParams? useParams = SchemaDef.Flavor.ResolveQueryParams(qParams);
+    QueryParams? useParams = SchemaDef.ResolveQueryParams(qParams);
 
     string query = SchemaDef.GetCountQuery<T>(criteria);
     int count = DBHandler.QuerySingle<int>(query, useParams);
@@ -130,7 +130,7 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   public int RunExecute(string query, object? qParams = null)
   {
     string queryType = StringTools.GetFirstWord(query);
-    var useParams = SchemaDef.Flavor.ResolveQueryParams(qParams);
+    var useParams = SchemaDef.ResolveQueryParams(qParams);
     int res = DBHandler.Execute(query, useParams);
     return res;
     //int res = RunExecute(Connection, query, qParams);
