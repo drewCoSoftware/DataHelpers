@@ -70,7 +70,8 @@ public class TableDef
       }
     }
 
-    if (throwIfMissing)  {
+    if (throwIfMissing)
+    {
       throw new NullReferenceException($"There is no column named: {propName}");
     }
     return null;
@@ -1079,7 +1080,7 @@ public class TableDef
   /// <summary>
   /// Get the name of the field for the associated data set.  This is a foreign key in SQL.
   /// </summary>
-  public string GetAssociatedFieldNameFor<T>()
+  public string GetAssociatedFieldNameFor<T>(string? byName = null)
   {
     var match = (from x in this.RelatedDataSets where x.TargetSet.DataType == typeof(T) select x).SingleOrDefault();
     return match.DataStoreName;

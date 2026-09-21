@@ -705,7 +705,7 @@ public class SchemaDefinition
   /// Create a set of dynamic query parameters from the given object.
   /// This allows us to use some of our conventions for mapping relationships to types.
   /// </summary>
-  QueryParams CreateParams(object fromInstance, bool includeNulls = false, bool includeID = false)
+  public QueryParams CreateParams(object fromInstance, bool includeNulls = false, bool includeID = false)
   {
     if (fromInstance == null) { throw new ArgumentNullException($"Please provide an instance for {nameof(fromInstance)}"); }
     Type t = fromInstance.GetType();
