@@ -18,6 +18,24 @@ public interface IDataFactory<TSchema>
 
   SchemaDefinition Schema { get; }
 
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Delete the entity of the given type by its ID.
+  /// </summary>
+  int DeleteById<T>(int id)
+    where T : IHasPrimary
+  {
+    if (id == 0) { throw new InvalidOperationException($"Invalid id!"); }
+    var td = Schema.GetTableDef<T>();
+    string query = $"DELETE FROM {td.Name} where id = @id";
+
+    int res = Action(dal =>
+    {
+      return dal.RunExecute(query, new { id });
+    });
+    return res;
+
+  }
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
@@ -89,10 +107,12 @@ public interface IDataFactory<TSchema>
       // This is where we need to translate the predicate to the correct select, etc.
       // stuff that would make up the query.
       // string selectPart= 
-      if (predicate.NodeType == ExpressionType.Lambda) { 
-      if (predicate.Parameters.Count > 1) { 
-        throw new NotSupportedException("no support for multiple parameters!"); 
-      }
+      if (predicate.NodeType == ExpressionType.Lambda)
+      {
+        if (predicate.Parameters.Count > 1)
+        {
+          throw new NotSupportedException("no support for multiple parameters!");
+        }
 
 
 
@@ -105,12 +125,14 @@ public interface IDataFactory<TSchema>
 
 
         // Decide what to do about the body....
-        if (body.NodeType == ExpressionType.Equal) { 
+        if (body.NodeType == ExpressionType.Equal)
+        {
           var exp = body as BinaryExpression;
 
           // The part on the left is the property that we are accessing....
           // What we want to see if it is from a many association/mapped table.
-          if (exp.Left.NodeType == ExpressionType.Parameter) { 
+          if (exp.Left.NodeType == ExpressionType.Parameter)
+          {
             // We are doing a select on the table directly.
 
           }
@@ -125,7 +147,8 @@ public interface IDataFactory<TSchema>
         int x = 10;
 
       }
-      else {
+      else
+      {
         throw new NotImplementedException("unsupported node type!");
       }
 
