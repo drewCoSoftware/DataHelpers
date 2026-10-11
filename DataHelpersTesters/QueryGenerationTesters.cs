@@ -14,6 +14,46 @@ namespace DataHelpersTesters
 
     // --------------------------------------------------------------------------------------------------------------------------
     /// <summary>
+    /// Shows that GetBy matches all supplied properties and returns null when no entity matches.
+    /// </summary>
+    /// <remarks>
+    /// CLANKER CODE
+    /// </remarks>
+    [Test]
+    public void CanGetEntityByProperties()
+    {
+      const string TEST_NAME = nameof(CanGetEntityByProperties);
+      IDataFactory<VacationSchema> factory = CreateTestDataBaseFor<VacationSchema>(TEST_NAME);
+
+      var expected = new Place() { Name = "King's Gardens", Country = "Testistan" };
+      factory.Add(new Place() { Name = expected.Name, Country = "Otherland" });
+      factory.Add(new Place() { Name = "Royal Palace", Country = expected.Country });
+      factory.Add(expected);
+
+      var byId = factory.GetBy<Place>((nameof(Place.ID), expected.ID));
+      Assert.That(byId, Is.Not.Null);
+      Assert.That(byId!.Name, Is.EqualTo(expected.Name));
+      Assert.That(byId.Country, Is.EqualTo(expected.Country));
+
+      // Each property alone matches another row, so both conditions must be applied.
+      var match = factory.GetBy<Place>(
+        (nameof(Place.Name), expected.Name),
+        (nameof(Place.Country), expected.Country));
+
+      Assert.That(match, Is.Not.Null);
+      Assert.That(match!.ID, Is.EqualTo(expected.ID));
+      Assert.That(match.Name, Is.EqualTo(expected.Name));
+      Assert.That(match.Country, Is.EqualTo(expected.Country));
+
+      var missing = factory.GetBy<Place>(
+        (nameof(Place.Name), "Royal Palace"),
+        (nameof(Place.Country), "Otherland"));
+
+      Assert.That(missing, Is.Null);
+    }
+
+    // --------------------------------------------------------------------------------------------------------------------------
+    /// <summary>
     /// Shows that the update entity functionality works as expected.
     /// </summary>
     [Test]
