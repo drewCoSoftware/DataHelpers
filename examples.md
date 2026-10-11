@@ -1,5 +1,20 @@
 # DataHelpers examples
 
+## Table of contents
+
+<!-- Keep this table of contents in sync whenever topics or examples are added, renamed, moved, or removed. -->
+
+- [Define a schema and create a SQLite database](#define-a-schema-and-create-a-sqlite-database)
+  - [Define the entity and schema](#1-define-the-entity-and-schema)
+  - [Create the database from the schema](#2-create-the-database-from-the-schema)
+  - [Inspect the generated schema](#3-inspect-the-generated-schema-optional)
+  - [Existing databases](#existing-databases)
+- [Basic CRUD through IDataFactory](#basic-crud-through-idatafactory)
+  - [Create: Add](#create-add)
+  - [Read: GetById, GetBy, and GetAll](#read-getbyid-getby-and-getall)
+  - [Update: UpdateEntity](#update-updateentity)
+  - [Delete: DeleteById](#delete-deletebyid)
+
 DataHelpers supports multiple database flavors, including SQLite (`SqliteFlavor`) and PostgreSQL (`PostgresFlavor`). A flavor supplies the database-specific SQL behavior.
 
 All examples in this document use the SQLite flavor. SQLite keeps setup simple by storing the database in a local file without requiring a database server.
