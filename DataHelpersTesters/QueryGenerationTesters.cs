@@ -12,6 +12,58 @@ namespace DataHelpersTesters
   public class QueryGenerationTesters : TestBase
   {
 
+    // --------------------------------------------------------------------------------------------------------------------------
+    /// <summary>
+    /// Shows that the update entity functionality works as expected.
+    /// </summary>
+    [Test]
+    public void CanUpdateEntity()
+    {
+      const string TEST_NAME = nameof(CanUpdateEntity);
+
+      var schema = new SchemaDefinition(new SqliteFlavor(), typeof(BusinessSchema));
+      IDataFactory<BusinessSchema> factory = CreateTestDataBaseFor<BusinessSchema>(TEST_NAME);
+
+      var town = new Town() { 
+      Name = "MyTown"
+      };
+      factory.Add(town);
+
+      var testAddr = new Address()
+      {
+        Street = "123 Street Lane",
+        City = "Town",
+        State = "XX",
+        Town = town
+      };
+      factory.Add(testAddr);
+
+      var testPerson = new Person()
+      {
+        Name = "Person1",
+        Number = 123,
+        Address = testAddr
+      };
+      factory.Add<Person>(testPerson);
+
+
+      // Now we can check + change the person.
+      var check = factory.GetById<Person>(testPerson.ID);
+      Assert.That(check, Is.Not.Null);
+      Assert.That(check.Name, Is.EqualTo("Person1"));
+      Assert.That(check.Number, Is.EqualTo(123));
+
+      const string UPDATE_NAME = "NewName";
+      const int UPDATE_NUMBER = 456;
+      factory.UpdateEntity<Person>(check.ID, (nameof(Person.Name), UPDATE_NAME), (nameof(Person.Number), UPDATE_NUMBER));
+
+      var check2 = factory.GetById<Person>(testPerson.ID);
+      Assert.That(check2, Is.Not.Null);
+      Assert.That(check2.Name, Is.EqualTo(UPDATE_NAME));
+      Assert.That(check2.Number, Is.EqualTo(UPDATE_NUMBER));
+
+    }
+
     // -------------------------------------------------------------------------------------------------------------------------- 
     /// <summary>
     /// This test case was provided to solve a bug where we weren't generating the correct associations
@@ -29,7 +81,8 @@ namespace DataHelpersTesters
       Assert.That(td.Columns.Count, Is.EqualTo(3), "There should be three columns!");
 
       string[] cols = new[] { "favorite_id", "other_id" };
-      foreach (var cName in cols) { 
+      foreach (var cName in cols)
+      {
         var col = td.GetColumn(cName, true);
         Assert.That(col.AssociatedDataSet, Is.Not.Null, "There should be an associated dataset for this column!");
       }

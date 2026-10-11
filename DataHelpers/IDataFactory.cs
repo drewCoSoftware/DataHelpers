@@ -1,4 +1,5 @@
 using DataHelpers.Data;
+using drewCo.Tools;
 using System.Linq.Expressions;
 
 namespace DataHelpers;
@@ -141,10 +142,7 @@ public interface IDataFactory<TSchema>
             throw new NotImplementedException();
           }
           var l = exp.Left;
-
-          int sfsdf = 10;
         }
-        int x = 10;
 
       }
       else
@@ -158,6 +156,95 @@ public interface IDataFactory<TSchema>
     return null;
 
   }
+
+
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  // REFACTOR:  This function is general enough that it should be part of the SQLFlavor implementations.
+  // SHARE:  This belongs with DataHelpers.
+  public void UpdateEntity<T>(int entityId, params (string key, object? value)[] propsAndValues)
+    where T : IHasPrimary
+  {
+    // TODO: Make sure the schema actually has the type in questions....
+    var td = Schema.GetTableDef<T>()!;
+
+    var t = typeof(T);
+
+    var qpBuilder = new QueryParamsBuilder(Schema.Flavor);
+    qpBuilder.Add("id", entityId);
+
+    var setParts = new List<string>();
+    foreach (var (key, value) in propsAndValues)
+    {
+      // NOTE: We don't have any null support for this!
+
+      // DO NOT CHANGE THE ID OR ATTEMPT TO!
+      if (key == nameof(IHasPrimary.ID)) { continue; }
+
+      // NOTE: It would be a good thing if we could query the TableDef directly for this info.  Different SQL flavors
+      // may have different name for their string columns, etc.
+      var col = td.GetColumn(key);
+
+      setParts.Add($"{key} = @{key}");
+
+      qpBuilder.Add(key, value, col.PropInfo.PropertyType);
+    }
+    string setClause = " SET " + string.Join(", ", setParts);
+    string whereClause = $" WHERE {nameof(IHasPrimary.ID).ToLower()} = @id";
+
+    string query = $"UPDATE {td.Name}" + setClause + whereClause;
+
+    int updated = Action(dal =>
+    {
+      var qp = qpBuilder.Build();
+      int res = dal.RunExecute(query, qp);
+      return res;
+    });
+
+    if (updated != 1)  {
+      throw new InvalidOperationException($"Could not update entity in data set: {td.Name}!");
+    }
+
+  }
+
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  // REFACTOR: This should be off in the DataHelpers lib, somewhere.
+  public void UpdateEntity<T>(int entityId, EditData editData)
+    where T : IHasPrimary
+  {
+    // TODO: Make sure the schema actually has the type in questions....
+    var td = Schema.GetTableDef<T>()!;
+
+    var t = typeof(T);
+
+    var qParams = editData.ToQueryParams(Schema.Flavor);
+    var setParts = new List<string>();
+
+    foreach (var item in qParams)
+    {
+      if (item.Key == nameof(IHasPrimary.ID)) { continue; }
+
+      var col = td.GetColumn(item.Key)!;
+      setParts.Add($"{col.DataStoreName} = @{item.Key}");
+    }
+
+    string setClause = " SET " + string.Join(", ", setParts);
+    string whereClause = $" WHERE {nameof(IHasPrimary.ID).ToLower()} = @ID";
+
+    string query = $"UPDATE {td.Name}" + setClause + whereClause;
+
+
+    Action(dal =>
+    {
+      int updated = dal.RunExecute(query, qParams);
+      if (updated != 1)
+      {
+        throw new InvalidOperationException($"Could not update entity in data set: {td.Name}!");
+      }
+    });
+  }
+
 }
 
 // ========================================================================== 
@@ -191,4 +278,118 @@ public abstract class IDataFactory<TSchema, TFlavor> : IDataFactory<TSchema>
   public abstract TData Action<TData>(Func<IDataAccess<TSchema>, TData> action);
 
   public abstract void SetupDatabase();
+}
+
+
+
+
+// ==============================================================================================================================
+// REFACTOR:  This type is very similar to that of QueryParams....
+// It's like an unflavored version, so I wonder why we have it.....
+// I need to inspect the two to figure out what is going on....
+// --> @@AAR: 9/17/2026 : I think that the best way is to replace this type with QueryParamsBuilder,
+// and update that type so that it's 'build' function is what takes in the flavor argument.  That keeps it all nice and portable.
+public class EditData
+{
+  // --------------------------------------------------------------------------------------------------------------------------
+  public EditData() { }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public static EditData CreateFrom<T>(T instance, IList<string>? excludeProps = null)
+  {
+    var res = new EditData()
+    {
+      TypeName = typeof(T).Name,
+    };
+    var props = ReflectionTools.GetProperties(typeof(T));
+    foreach (var p in props)
+    {
+      if (excludeProps?.Contains(p.Name) ?? false) { continue; }
+      if (!p.CanWrite) { continue; }
+
+      object? val = p.GetValue(instance);
+      res.AddProperty(p.Name, p.PropertyType, val);
+    }
+
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public static EditData Create<T>()
+  {
+    var res = new EditData()
+    {
+      TypeName = typeof(T).Name,
+    };
+    return res;
+  }
+
+  /// <summary>
+  /// The data, or entity type that is being edited...
+  /// </summary>
+  public string TypeName { get; set; }
+
+  /// <summary>
+  /// All of the properties that are being changed....
+  /// How do we manage compound / nested types...?
+  /// I'm thinking just full property paths.... Works everywhere else, and we have
+  /// the technology so......
+  /// </summary>
+  //public List<KeyValuePair<string, string>> Properties { get; set; }
+  // public Dictionary<string, string?> Properties = new Dictionary<string, string?>();
+
+  public Dictionary<string, (Type, object?)> Properties = new Dictionary<string, (Type, object?)>();
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public T? Get<T>(string propName)
+  {
+    var match = Properties[propName];
+    var res = (T?)match.Item2;
+    return res;
+  }
+
+  //// --------------------------------------------------------------------------------------------------------------------------
+  //internal void AddProperty(string propName, object? propVal)
+  //{
+  //  AddProperty(propName, propVal?.ToString());
+  //}
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public void AddProperty(string propName, Type propType, object? val)
+  {
+    // if (propVal == null) { throw new ArgumentNullException($"{nameof(propVal)} should not be null!"); }
+    Properties.Add(propName, (propType, val));
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public void ValidateProperty<T>(string propName, Func<T?, bool>? predicate = null)
+  {
+    if (!Properties.ContainsKey(propName))
+    {
+      throw new InvalidOperationException($"The property: {propName} does not exist in the edit data!");
+    }
+    if (predicate != null)
+    {
+      T? val = Get<T>(propName);
+      bool isValid = predicate(val);
+      if (!isValid)
+      {
+        throw new InvalidOperationException($"The value for property: {propName} is not valid!");
+      }
+    }
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public QueryParams ToQueryParams(ISqlFlavor flavor)
+  {
+    var qpBuilder = new QueryParamsBuilder(flavor);
+
+    foreach (var kv in Properties)
+    {
+      qpBuilder.Add(kv.Key, kv.Value.Item2, kv.Value.Item1);
+    }
+    var res = qpBuilder.Build();
+    return res;
+  }
+
 }
