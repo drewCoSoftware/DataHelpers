@@ -158,6 +158,30 @@ public interface IDataFactory<TSchema>
   }
 
 
+  // --------------------------------------------------------------------------------------------------------------------------
+  public T? GetBy<T>(params (string Name, object Value)[] properties)
+  {
+    return Action(dal =>
+    {
+      var td = dal.SchemaDef.GetTableDef<T>();
+      string query = $"SELECT * FROM {td.Name}"; // WHERE name = @name";
+
+      // TODO: SchemaDef should have its own QPB:
+      var qb = new QueryParamsBuilder(dal.SchemaDef.Flavor);
+      foreach (var item in properties)
+      {
+        qb.Add(item.Name, item.Value);
+      }
+
+      string wherePart = qb.GetWhereClause();
+      query += (" " + wherePart);
+
+      var qp = qb.Build();
+      var res = dal.RunSingleQuery<T>(query, qp);
+      return res;
+    });
+  }
+
 
   // --------------------------------------------------------------------------------------------------------------------------
   // REFACTOR:  This function is general enough that it should be part of the SQLFlavor implementations.
