@@ -208,10 +208,22 @@ public interface IDataFactory<TSchema>
       // NOTE: It would be a good thing if we could query the TableDef directly for this info.  Different SQL flavors
       // may have different name for their string columns, etc.
       var col = td.GetColumn(key);
-
+      if (col == null) { throw new InvalidOperationException($"There is no column with key: {key}!"); }
+      
       setParts.Add($"{key} = @{key}");
 
-      qpBuilder.Add(key, value, col.PropInfo.PropertyType);
+      var propType = col?.PropInfo?.PropertyType;
+
+      if (propType == null)
+      {
+        // A bit of a HACK:, but we are going to assume that the FK is an integer!
+        if (col.AssociationDef != null) {
+          propType = typeof(int);
+        }else { 
+          throw new InvalidOperationException($"Could not resolve the data type for column: {col.DataStoreName}");
+        }
+      }
+      qpBuilder.Add(key, value, propType);
     }
     string setClause = " SET " + string.Join(", ", setParts);
     string whereClause = $" WHERE {nameof(IHasPrimary.ID).ToLower()} = @id";
@@ -225,7 +237,8 @@ public interface IDataFactory<TSchema>
       return res;
     });
 
-    if (updated != 1)  {
+    if (updated != 1)
+    {
       throw new InvalidOperationException($"Could not update entity in data set: {td.Name}!");
     }
 
