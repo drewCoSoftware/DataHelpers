@@ -146,6 +146,11 @@ public class TableDef
                         ReflectionTools.HasAttribute<System.Runtime.CompilerServices.NullableAttribute>(p) ||
                         p.PropertyType.Name.StartsWith("Nullable`1");
 
+      if (!isNullable)  { 
+        var nullability = new NullabilityInfoContext().Create(p);
+        isNullable = nullability.ReadState == NullabilityState.Nullable;
+      }
+
       bool isPrimary = p.Name == nameof(IHasPrimary.ID) || ReflectionTools.HasAttribute<PrimaryKey>(p);
 
       // NOTE: TODO: We should be assigning the association type here!
