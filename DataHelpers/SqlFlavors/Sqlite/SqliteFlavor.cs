@@ -72,7 +72,8 @@ public class SqliteDataTypeResolver : IDataTypeResolver
       // lol, no boolean type either!
       res = IDataTypeResolver.INTEGER;
     }
-    else if (t == typeof(decimal))
+    else if (t == typeof(decimal) || 
+             t == typeof(decimal?))
     {
       res = "DECIMAL(10,8)";
     }
