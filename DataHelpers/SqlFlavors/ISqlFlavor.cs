@@ -1,65 +1,7 @@
-﻿using drewCo.Tools.Logging;
-using drewCo.Tools;
-using ClankerCode;
-using System.Text;
+﻿using ClankerCode;
 
 namespace DataHelpers.Data
 {
-
-  // ============================================================================================================================
-  public class QueryParamsBuilder
-  {
-    private ISqlFlavor Flavor = null!;
-    private QueryParams QParams = new Dictionary<string, QueryParamValue>();
-
-    // --------------------------------------------------------------------------------------------------------------------------
-    public QueryParamsBuilder(ISqlFlavor flavor_)
-    {
-      Flavor = flavor_;
-    }
-
-    // --------------------------------------------------------------------------------------------------------------------------
-    public void Add(string key, object? value, Type? t = null)
-    {
-      if (key == null) { 
-        throw new ArgumentNullException("key may not be null!");
-      }
-
-      if (t == null)
-      {
-        if (value == null) { 
-          throw new InvalidOperationException("Illegal! The value and type argument are null!");
-        }
-        t = value.GetType();
-      }
-
-      var qp = new QueryParamValue(value, Flavor.ToDbType(t));
-      this.QParams.Add(key, qp);
-    }
-
-    // --------------------------------------------------------------------------------------------------------------------------
-    public QueryParams Build()
-    {
-      return QParams;
-    }
-
-    // --------------------------------------------------------------------------------------------------------------------------
-    /// <summary>
-    /// Return the names of all items as a WHERE clause.
-    /// </summary>
-    public string GetWhereClause()
-    {
-      var sb = new StringBuilder();
-      sb.Append("WHERE ");
-
-      string args = string.Join(" AND ", from x in QParams select $"{x.Key} = @{x.Key}");
-      sb.Append(args);
-
-      string res = sb.ToString(); 
-      return res;
-    }
-
-  }
 
   // ============================================================================================================================
   /// <summary>

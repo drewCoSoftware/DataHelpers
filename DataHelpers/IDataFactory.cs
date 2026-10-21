@@ -1,6 +1,7 @@
 using DataHelpers.Data;
 using drewCo.Tools;
 using System.Linq.Expressions;
+using System.Net.Http.Headers;
 
 namespace DataHelpers;
 
@@ -159,7 +160,65 @@ public interface IDataFactory<TSchema>
 
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public T? GetBy<T>(params (string Name, object Value)[] properties)
+  public IEnumerable<T> GetBy<T>(IList<(string Name, object Value)> props)
+  {
+    return Action(dal =>
+    {
+      var td = dal.SchemaDef.GetTableDef<T>();
+      string query = $"SELECT * FROM {td.Name}"; // WHERE name = @name";
+
+      // TODO: SchemaDef should have its own QPB:
+      var qb = new QueryParamsBuilder(dal.SchemaDef.Flavor);
+      foreach (var item in props)
+      {
+        var nv = item.Value as INullValue;
+        if (nv != null)
+        {
+          qb.Add(item.Name, null, nv.DataType);
+        }
+        else
+        {
+          qb.Add(item.Name, item.Value);
+        }
+      }
+
+      // TODO: We need support for "x IS NULL" because SQL is fucking stupid"
+      string wherePart = qb.GetWhereClause();
+      query += (" " + wherePart);
+
+      var qp = qb.Build();
+      var res = dal.RunQuery<T>(query, qp);
+      return res;
+    });
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public IEnumerable<T> GetBy<T>(params (string Name, object Value)[] properties)
+  {
+    return GetBy<T>(properties.ToList());
+    //return Action(dal =>
+    //{
+    //  var td = dal.SchemaDef.GetTableDef<T>();
+    //  string query = $"SELECT * FROM {td.Name}"; // WHERE name = @name";
+
+    //  // TODO: SchemaDef should have its own QPB:
+    //  var qb = new QueryParamsBuilder(dal.SchemaDef.Flavor);
+    //  foreach (var item in properties)
+    //  {
+    //    qb.Add(item.Name, item.Value);
+    //  }
+
+    //  string wherePart = qb.GetWhereClause();
+    //  query += (" " + wherePart);
+
+    //  var qp = qb.Build();
+    //  var res = dal.RunQuery<T>(query, qp);
+    //  return res;
+    //});
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public T? GetBySingle<T>(params (string Name, object Value)[] properties)
   {
     return Action(dal =>
     {
@@ -209,7 +268,7 @@ public interface IDataFactory<TSchema>
       // may have different name for their string columns, etc.
       var col = td.GetColumn(key);
       if (col == null) { throw new InvalidOperationException($"There is no column with key: {key}!"); }
-      
+
       setParts.Add($"{key} = @{key}");
 
       var propType = col?.PropInfo?.PropertyType;
@@ -217,9 +276,12 @@ public interface IDataFactory<TSchema>
       if (propType == null)
       {
         // A bit of a HACK:, but we are going to assume that the FK is an integer!
-        if (col.AssociationDef != null) {
+        if (col.AssociationDef != null)
+        {
           propType = typeof(int);
-        }else { 
+        }
+        else
+        {
           throw new InvalidOperationException($"Could not resolve the data type for column: {col.DataStoreName}");
         }
       }
@@ -429,4 +491,19 @@ public class EditData
     return res;
   }
 
+}
+
+// ==============================================================================================================================
+public interface INullValue
+{
+  Type DataType { get; }
+}
+
+// ==============================================================================================================================
+/// <summary>
+/// A way to represent 'null' in GetBy calls....
+/// </summary>
+public class NullValue<T> : INullValue
+{
+  public Type DataType { get { return typeof(T); } }
 }

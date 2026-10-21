@@ -2,7 +2,6 @@
 using DataHelpers.Data;
 using NUnit.Framework;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
 namespace DataHelpersTesters
@@ -11,6 +10,21 @@ namespace DataHelpersTesters
   // =========================================================================================================
   public class QueryGenerationTesters : TestBase
   {
+
+    // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// This test case solves a bug where it wasn't possible to build a correct WHERE clause when some of the parameters were null.
+  /// </summary>
+    [Test]
+    public void CanGenerateWhereClauseWithNulls()  {
+
+      var qpb = new QueryParamsBuilder(new SqliteFlavor());
+      qpb.Add("name", null, typeof(string));
+
+      var where = qpb.GetWhereClause();
+
+      Assert.That(where, Is.EqualTo("WHERE name IS NULL"), "Invalid where clause!");
+    }
 
     // --------------------------------------------------------------------------------------------------------------------------
     /// <summary>
@@ -30,13 +44,13 @@ namespace DataHelpersTesters
       factory.Add(new Place() { Name = "Royal Palace", Country = expected.Country });
       factory.Add(expected);
 
-      var byId = factory.GetBy<Place>((nameof(Place.ID), expected.ID));
+      var byId = factory.GetBySingle<Place>((nameof(Place.ID), expected.ID));
       Assert.That(byId, Is.Not.Null);
       Assert.That(byId!.Name, Is.EqualTo(expected.Name));
       Assert.That(byId.Country, Is.EqualTo(expected.Country));
 
       // Each property alone matches another row, so both conditions must be applied.
-      var match = factory.GetBy<Place>(
+      var match = factory.GetBySingle<Place>(
         (nameof(Place.Name), expected.Name),
         (nameof(Place.Country), expected.Country));
 
