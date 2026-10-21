@@ -17,19 +17,30 @@ namespace DataHelpers.Data
     // --------------------------------------------------------------------------------------------------------------------------
     public void Add(string key, object? value, Type? t = null)
     {
-      if (key == null) { 
+      if (key == null)
+      {
         throw new ArgumentNullException("key may not be null!");
       }
 
       if (t == null)
       {
-        if (value == null) { 
+        if (value == null)
+        {
           throw new InvalidOperationException("Illegal! The value and type argument are null!");
         }
         t = value.GetType();
       }
 
-      var qp = new QueryParamValue(value, Flavor.ToDbType(t));
+      QueryParamValue qp = null!;
+      var valOrNull = value as IValueOrNull;
+      if (valOrNull != null)
+      {
+        qp = new QueryParamValue(valOrNull.Value, Flavor.ToDbType(valOrNull.DataType));
+      }
+      else
+      {
+        qp = new QueryParamValue(value, Flavor.ToDbType(t));
+      }
       this.QParams.Add(key, qp);
     }
 
@@ -51,16 +62,19 @@ namespace DataHelpers.Data
       string args = string.Join(" AND ", from x in QParams select GetEqualsExpression(x.Key, x.Value));
       sb.Append(args);
 
-      string res = sb.ToString(); 
+      string res = sb.ToString();
       return res;
     }
 
     // --------------------------------------------------------------------------------------------------------------------------
-    private string GetEqualsExpression(string name, QueryParamValue val) { 
-      if (val.Value == null)  { 
+    private string GetEqualsExpression(string name, QueryParamValue val)
+    {
+      if (val.Value == null)
+      {
         return $"{name} IS NULL";
       }
-      else { 
+      else
+      {
         return $"{name} = @{name}";
       }
     }

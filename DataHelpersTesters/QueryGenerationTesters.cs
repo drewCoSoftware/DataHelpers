@@ -21,9 +21,12 @@ namespace DataHelpersTesters
       var qpb = new QueryParamsBuilder(new SqliteFlavor());
       qpb.Add("name", null, typeof(string));
 
+      // Also show that QueryParamsBuilder supports this concept.
+      qpb.Add("number", new ValueOrNull<int>(null));
+
       var where = qpb.GetWhereClause();
 
-      Assert.That(where, Is.EqualTo("WHERE name IS NULL"), "Invalid where clause!");
+      Assert.That(where, Is.EqualTo("WHERE name IS NULL AND number IS NULL"), "Invalid where clause!");
     }
 
     // --------------------------------------------------------------------------------------------------------------------------

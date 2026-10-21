@@ -165,21 +165,13 @@ public interface IDataFactory<TSchema>
     return Action(dal =>
     {
       var td = dal.SchemaDef.GetTableDef<T>();
-      string query = $"SELECT * FROM {td.Name}"; // WHERE name = @name";
+      string query = $"SELECT * FROM {td.Name}";
 
       // TODO: SchemaDef should have its own QPB:
       var qb = new QueryParamsBuilder(dal.SchemaDef.Flavor);
       foreach (var item in props)
       {
-        var nv = item.Value as INullValue;
-        if (nv != null)
-        {
-          qb.Add(item.Name, null, nv.DataType);
-        }
-        else
-        {
-          qb.Add(item.Name, item.Value);
-        }
+        qb.Add(item.Name, item.Value);
       }
 
       // TODO: We need support for "x IS NULL" because SQL is fucking stupid"
@@ -196,25 +188,6 @@ public interface IDataFactory<TSchema>
   public IEnumerable<T> GetBy<T>(params (string Name, object Value)[] properties)
   {
     return GetBy<T>(properties.ToList());
-    //return Action(dal =>
-    //{
-    //  var td = dal.SchemaDef.GetTableDef<T>();
-    //  string query = $"SELECT * FROM {td.Name}"; // WHERE name = @name";
-
-    //  // TODO: SchemaDef should have its own QPB:
-    //  var qb = new QueryParamsBuilder(dal.SchemaDef.Flavor);
-    //  foreach (var item in properties)
-    //  {
-    //    qb.Add(item.Name, item.Value);
-    //  }
-
-    //  string wherePart = qb.GetWhereClause();
-    //  query += (" " + wherePart);
-
-    //  var qp = qb.Build();
-    //  var res = dal.RunQuery<T>(query, qp);
-    //  return res;
-    //});
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -493,17 +466,49 @@ public class EditData
 
 }
 
+
 // ==============================================================================================================================
-public interface INullValue
+public interface IHasType
 {
   Type DataType { get; }
 }
 
 // ==============================================================================================================================
-/// <summary>
-/// A way to represent 'null' in GetBy calls....
-/// </summary>
-public class NullValue<T> : INullValue
+public interface IValueOrNull : IHasType
 {
-  public Type DataType { get { return typeof(T); } }
+  public object? Value { get; }
 }
+
+// ==============================================================================================================================
+public class ValueOrNull<T> : IValueOrNull
+{
+  // --------------------------------------------------------------------------------------------------------------------------
+  public ValueOrNull(object? value_)
+  {
+    Value = value_;
+    if (Value != null)  { 
+      if (Value.GetType() != typeof(T)) { 
+        throw new InvalidOperationException("Value is not the correct type!");
+      }
+    }
+  }
+
+  public object? Value { get; }
+  public Type DataType
+  {
+    get
+    {
+      Type t = typeof(T);
+      return t;
+    }
+  }
+}
+
+//// ==============================================================================================================================
+///// <summary>
+///// A way to represent 'null' in GetBy calls....
+///// </summary>
+//public class NullValue<T> : IHasType
+//{
+//  public Type DataType { get { return typeof(T); } }
+//}
