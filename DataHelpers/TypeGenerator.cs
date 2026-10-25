@@ -33,6 +33,26 @@ public class DataSetAttribute : Attribute
 
 
 // ============================================================================================================================
+public class AssociationDef
+{
+  // --------------------------------------------------------------------------------------------------------------------------
+  public AssociationDef(TableDef targetSet_)
+  {
+    if (targetSet_ == null) { throw new ArgumentNullException($"argument: {nameof(targetSet_)} is null!"); }
+    TargetSet = targetSet_;
+  }
+
+  public TableDef TargetSet { get; private set; }
+  public ColumnDef TargetIDField { get; set; }
+  public PropertyInfo? TargetProperty { get; set; }
+
+  public EAssociationType AssociationType { get; set; }
+
+  public string? LocalIDPropertyName { get; set; }
+  public string? TargetIDPropertyName { get; set; }
+}
+
+// ============================================================================================================================
 /// <summary>
 /// Describes a relationship to another set of data (table, list, etc.)
 /// </summary>

@@ -369,8 +369,8 @@ public class DBHandler : IDisposable
       //}
     }
 
-    var targetSet = SchemaDef.GetTableDef(rel.DataSetName);
-    if (targetSet == null) { throw new NullReferenceException($"There is no data set named: {rel.DataSetName} in the schema!"); }
+    var targetSet = rel.TargetSet; // SchemaDef.GetTableDef(rel.DataSetName);
+   // if (targetSet == null) { throw new NullReferenceException($"There is no data set named: {rel.DataSetName} in the schema!"); }
 
     // TODO: If we want, we can determine what the generic data type is....
     //if (targetSet.DataType != rel.TargetProperty.PropertyType)

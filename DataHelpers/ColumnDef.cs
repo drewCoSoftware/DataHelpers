@@ -40,10 +40,10 @@ public class ColumnDef
   /// The association that is defined for this column.
   /// This data is really only useful when the SchemaDefs are being computed.
   /// </summary>
-  internal AssociationAttribute? AssociationDef { get; set; } = null;
+  internal AssociationDef? AssociationDef { get; set; } = null;
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public ColumnDef(string propName, string dataStoreName, Type runtimeType, string dataType, bool isPrimary, bool isNullable, AssociationAttribute? assocDef_, PropertyInfo? propInfo_, bool isComposite_)
+  public ColumnDef(string propName, string dataStoreName, Type runtimeType, string dataType, bool isPrimary, bool isNullable, AssociationDef? assocDef_, PropertyInfo? propInfo_, bool isComposite_)
   {
     PropertyName = propName;
     DataStoreName = dataStoreName;
@@ -52,10 +52,6 @@ public class ColumnDef
     IsPrimary = isPrimary;
     IsNullable = isNullable;
     AssociationDef = assocDef_;
-
-    //if (propInfo_ == null) { 
-    //  throw new NullReferenceException("property info is null!");
-    //}
     PropInfo = propInfo_;
 
     IsComposite = isComposite_;

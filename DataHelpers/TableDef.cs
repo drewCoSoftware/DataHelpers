@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Data;
 using System.Diagnostics.Contracts;
 using System.Net.WebSockets;
+using System.Net.Http.Headers;
 
 namespace DataHelpers.Data;
 
@@ -147,19 +148,30 @@ public class TableDef
                         ReflectionTools.HasAttribute<System.Runtime.CompilerServices.NullableAttribute>(p) ||
                         p.PropertyType.Name.StartsWith("Nullable`1");
 
-      if (!isNullable)  { 
+      if (!isNullable)
+      {
         var nullability = new NullabilityInfoContext().Create(p);
         isNullable = nullability.ReadState == NullabilityState.Nullable;
       }
 
       bool isPrimary = p.Name == nameof(IHasPrimary.ID) || ReflectionTools.HasAttribute<PrimaryKey>(p);
 
-      // NOTE: TODO: We should be assigning the association type here!
+      AssociationDef? ad = null;
       var assocAttr = ReflectionTools.GetAttribute<AssociationAttribute>(p);
       if (assocAttr != null)
       {
-        assocAttr.AssociationType = GetRelationType(p.PropertyType);
-        assocAttr.TargetProperty = p;
+        // NOTE: I think that most of the association properties need to be resolved here, or possibly on a different step of the schema geneartor?
+        var targetSet = this.Schema.GetTableDef(assocAttr.DataSetName);
+
+        ad = new AssociationDef(targetSet);
+        DTOMapper.CopyMembers(assocAttr, ad);
+
+        // Resolve the target set!
+
+
+        // ad.TargetSet = this;
+        ad.AssociationType = GetRelationType(p.PropertyType);
+        ad.TargetProperty = p;
       }
 
       // We want to warn when single/multi-associations don't have the proper attribute.
@@ -182,7 +194,7 @@ public class TableDef
                                  dataTypeName,
                                  isPrimary,
                                  isNullable,
-                                 assocAttr,
+                                 ad,
                                  p,
                                  isComposite));
 
@@ -192,10 +204,6 @@ public class TableDef
   // --------------------------------------------------------------------------------------------------------------------------
   private bool IsRelationType(Type t)
   {
-    //if (t.Name.StartsWith("Single"))
-    //{
-    //  int x = 10;
-    //}
     if (t.Name.StartsWith(typeof(SingleAssociation<>).Name) || t.Name.StartsWith(typeof(ManyAssociation<>).Name))
     {
       return true;
@@ -712,9 +720,10 @@ public class TableDef
       {
         // We need to make sure that the data type mentioned in the Association Attribute
         // matches the data type of the (Single|Many)Association.
-        var targetSet = Schema.GetTableDef(col.AssociationDef.DataSetName);
+        var targetSet = Schema.GetTableDef(col.AssociationDef.TargetSet.Name);
         var tProp = col.AssociationDef.TargetProperty;
-        if (tProp != null && tProp.PropertyType.GetGenericArguments()[0] != targetSet.DataType) { 
+        if (tProp != null && tProp.PropertyType.GetGenericArguments()[0] != targetSet.DataType)
+        {
           throw new InvalidOperationException("Associated data set type does not match target property!");
         }
 
@@ -767,6 +776,49 @@ public class TableDef
     _Columns.Add(colDef);
   }
 
+
+  internal List<TableDef> PopulateAssociationMembers()
+  {
+    var newMappingSets = new List<TableDef>();
+
+    var toAdd = new List<ColumnDef>();
+
+    // Let's find all the associations first...
+    foreach (var col in this.Columns)
+    {
+      if (col.AssociationDef != null)
+      {
+        var ad = col.AssociationDef;
+        // This field is an association to another data set.
+        var targetSet = this.Schema.GetTableDef(ad.TargetSet.Name);
+        if (targetSet == null)
+        {
+          throw new InvalidOperationException($"There is no data set named: {targetSet}");
+        }
+
+        switch (ad.AssociationType)
+        {
+
+          case EAssociationType.Single:
+            throw new NotImplementedException();
+
+          case EAssociationType.Many:
+
+            int x = 10;
+
+            break;
+
+          default:
+            throw new NotImplementedException();
+        }
+
+      }
+    }
+
+    throw new Exception("finish me!");
+  }
+
+
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// This will create any column defs that are required to correctly represent the relations
@@ -777,7 +829,7 @@ public class TableDef
   /// A list of new <see cref="TableDef"/> instances that represent mapping sets that should be created.
   /// These mapping sets are auto-generated based on how associations are setup in the rest of the schema.
   /// </returns>
-  internal List<TableDef> PopulateAssociationMembers()
+  internal List<TableDef> PopulateAssociationMembers_LEGACY()
   {
     var newMappingSets = new List<TableDef>();
 
@@ -786,14 +838,14 @@ public class TableDef
     // Let's find all the associations first...
     foreach (var col in this.Columns)
     {
-      var rd = col.AssociationDef;
-      if (rd != null)
+      if (col.AssociationDef != null)
       {
+        var ad = col.AssociationDef;
         // OBSOLETE:??
         // rd.RelationType = GetRelationType(col.RuntimeType);
 
         // Get the matching data set....
-        var targetSet = this.Schema.GetTableDef(col.AssociationDef.DataSetName);
+        var targetSet = ad.TargetSet; // this.Schema.GetTableDef(col.AssociationDef.TargetSet.Name);
         if (targetSet == null)
         {
           throw new InvalidOperationException($"There is no data set named: {targetSet}");
@@ -805,9 +857,9 @@ public class TableDef
         {
           // In single associations we use a column from this type.
           // Because we are using one of our special data types, that defined column is mapped to it. <-- review this, does it make sense?
-          string propName = rd.LocalIDPropertyName ?? $"{col.DataStoreName}_{nameof(IHasPrimary.ID).ToLower()}";
+          string propName = ad.LocalIDPropertyName ?? $"{col.DataStoreName}_{nameof(IHasPrimary.ID).ToLower()}";
           string colName = Schema.Flavor.GetDataStoreName(propName);
-          rd.LocalIDPropertyName = propName;
+          ad.LocalIDPropertyName = propName;
 
           var match = this.GetColumn(propName);
 
@@ -825,7 +877,7 @@ public class TableDef
           {
             // Create the new def.....
             string dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
-            var cd = new ColumnDef(propName, colName, typeof(int), dbTypeName, false, col.IsNullable, rd, null, false);
+            var cd = new ColumnDef(propName, colName, typeof(int), dbTypeName, false, col.IsNullable, ad, null, false);
             toAdd.Add(cd);
           }
           else
@@ -839,7 +891,7 @@ public class TableDef
         {
           // If the target dataset also has a many associations that points back to this one, then
           // we probably need to create some kind of mapping table!
-          var relSet = this.Schema.GetTableDef(col.AssociationDef.DataSetName);
+          var relSet = this.Schema.GetTableDef(col.AssociationDef.TargetSet.Name);
           if (relSet == null)
           {
             throw new InvalidOperationException($"Related data set does not exist in the schema!");
@@ -852,7 +904,7 @@ public class TableDef
 
           if (mutualAssoc != null &&
               mutualAssoc.AssociationType == EAssociationType.Many &&
-              mutualAssoc.DataSetName == this.Name)
+              mutualAssoc.TargetSet.Name == this.Name)
           {
             // This is a many-many relationship!
             string mtName = ComputeMappingSetName(relSet, mutualAssoc);
@@ -887,8 +939,8 @@ public class TableDef
             //throw new InvalidOperationException("FK name resolution logic is invalid!  Resolve from target association as it may already exist!");
             //string useName = rd.TargetIDPropertyName ?? $"{this.Name}_{nameof(IHasPrimary.ID)}";
 
-            string useName = mutualAssoc?.LocalIDPropertyName!; 
-            if (useName == null ) { useName = $"{col.PropertyName}_{nameof(IHasPrimary.ID)}"; }
+            string useName = mutualAssoc?.LocalIDPropertyName!;
+            if (useName == null) { useName = $"{col.PropertyName}_{nameof(IHasPrimary.ID)}"; }
 
             // != null mutualAssoc.LocalIDPropertyName;
             string sqlName = Schema.Flavor.GetDataStoreName(useName);
@@ -903,10 +955,12 @@ public class TableDef
 
             string dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
 
-            var useRelation = new AssociationAttribute(this.Name);
-            useRelation.TargetIDPropertyName = nameof(IHasPrimary.ID);
-            useRelation.AssociationType = EAssociationType.Many;
-            useRelation.TargetProperty = mutualAssoc?.TargetProperty ?? col.PropInfo; // null; // ?? relSet.GetColumn(nameof(IHasPrimary.ID)).PropInfo;
+            var useRelation = new AssociationDef(this)
+            {
+              TargetIDPropertyName = nameof(IHasPrimary.ID),
+              AssociationType = EAssociationType.Many,
+              TargetProperty = mutualAssoc?.TargetProperty ?? col.PropInfo, // null; // ?? relSet.GetColumn(nameof(IHasPrimary.ID)).PropInfo;
+            };
 
             // TODO: This is where we would check to make sure that there is already a column with the correct
             // name that corresponds to a SingleAssociation or ManyAssociation member....
@@ -914,7 +968,7 @@ public class TableDef
             if (match != null)
             {
               // There should be a association, and it should point to this set!
-              if (match.AssociationDef == null || match.AssociationDef.DataSetName != this.Name)
+              if (match.AssociationDef == null || match.AssociationDef.TargetSet.Name != this.Name)
               {
                 throw new InvalidOperationException($"There should be a association on column: {useName} that points to this Dataset ({this.Name})!");
               }
@@ -958,14 +1012,14 @@ public class TableDef
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  internal static string ComputeMappingSetName(TableDef relSet, AssociationAttribute mutualRelation)
+  internal static string ComputeMappingSetName(TableDef relSet, AssociationDef mutualRelation)
   {
-    return ComputeMappingSetName(relSet.Name, mutualRelation.DataSetName);
+    return ComputeMappingSetName(relSet.Name, mutualRelation.TargetSet.Name);
   }
 
 
   // --------------------------------------------------------------------------------------------------------------------------
-  private TableDef CreateMappingSet(TableDef relSet, AssociationAttribute mutualRelation, string mtName)
+  private TableDef CreateMappingSet(TableDef relSet, AssociationDef mutualRelation, string mtName)
   {
     Log.Verbose($"Many -> Many association detected.  A mapping dataset will be created!");
     Log.Verbose($"Mapping dataset name: {mtName}");
@@ -982,19 +1036,22 @@ public class TableDef
 
     // Now the id refs for each of the data sets.
     string idCol1 = $"{relSet.Name}_{nameof(IHasPrimary.ID)}";
-    string idCol2 = $"{mutualRelation.DataSetName}_{nameof(IHasPrimary.ID)}";
+    string idCol2 = $"{mutualRelation.TargetSet.Name}_{nameof(IHasPrimary.ID)}";
     var cols = new[] { idCol1, idCol2 };
 
     int index = 0;
     foreach (var c in cols)
     {
       sqlName = Schema.Flavor.GetDataStoreName(c);
-      var cd = new ColumnDef(c, sqlName, intType, intTypeName, false, false, new AssociationAttribute()
+
+      var useSet = index == 0 ? relSet : mutualRelation.TargetSet;
+      var ad = new AssociationDef(useSet)
       {
-        DataSetName = index == 0 ? relSet.Name : mutualRelation.DataSetName,
         LocalIDPropertyName = c,
         AssociationType = EAssociationType.Single
-      }, null, false);
+      };
+
+      var cd = new ColumnDef(c, sqlName, intType, intTypeName, false, false, ad, null, false);
       td.AddColumn(cd);
       ++index;
     }
@@ -1003,12 +1060,11 @@ public class TableDef
   }
 
   // ------------------------------------------------------------------------------------------------
-  private AssociationAttribute? GetAssociationTo(TableDef dataset)
+  private AssociationDef? GetAssociationTo(TableDef dataset)
   {
-
     foreach (var item in this.Columns)
     {
-      if (item.AssociationDef != null && item.AssociationDef.DataSetName == dataset.Name)
+      if (item.AssociationDef != null && item.AssociationDef.TargetSet.Name == dataset.Name)
       {
         return item.AssociationDef;
       }
@@ -1022,7 +1078,7 @@ public class TableDef
   /// </summary>
   private bool HasRelationTo(TableDef dataset)
   {
-    AssociationAttribute? relAttr = GetAssociationTo(dataset);
+    var relAttr = GetAssociationTo(dataset);
     return relAttr != null;
   }
 

@@ -376,7 +376,7 @@ public class SchemaDefinition
     foreach (var def in _TableDefs.Values)
     {
       // Now we can populate all of the members.
-      var generatedSets = def.PopulateAssociationMembers();
+      var generatedSets = def.PopulateAssociationMembers_LEGACY();
       allGeneratedSets.AddRange(generatedSets);
     }
 
@@ -733,7 +733,7 @@ public class SchemaDefinition
           {
             case EAssociationType.Single:
 
-              string setName = ad.DataSetName;
+              string setName = ad.TargetSet.Name;
               string useName = col.DataStoreName; 
 
               // TODO: I think I can get this directly from the def...or at least I should be able to.
