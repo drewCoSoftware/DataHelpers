@@ -423,11 +423,11 @@ public class SqliteSchemaTesters : TestBase
   /// Shows that we can model a relationship where one data set gets its data by another (ie: Foreign Key)
   /// </summary>
   [Test]
-  public void CanModelSingleRelationship()
+  public void CanModelSingleAssociationship()
   {
 
     string dir = FileTools.GetLocalDir("test-db");
-    var factory = new SqliteDataFactory<BusinessSchema>(dir, nameof(CanModelSingleRelationship));
+    var factory = new SqliteDataFactory<BusinessSchema>(dir, nameof(CanModelSingleAssociationship));
     FileTools.DeleteExistingFile(factory.DBFilePath);
 
     factory.SetupDatabase();
@@ -509,8 +509,8 @@ public class SqliteSchemaTesters : TestBase
       var td = schemaDef.GetTableDef<Person>();
 
       // One child ref. to 'Addresses'
-      Assert.That(td.RelatedDataSets.Count, Is.EqualTo(2));
-      Assert.That(td.RelatedDataSets[0].TargetSet.Name == nameof(BusinessSchema.Addresses));
+      Assert.That(td.AssociatedDataSets.Count, Is.EqualTo(2));
+      Assert.That(td.AssociatedDataSets[0].TargetSet.Name == nameof(BusinessSchema.Addresses));
     }
 
     // Now show that the FKs are properly added when the queries are created.

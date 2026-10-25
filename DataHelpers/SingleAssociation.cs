@@ -36,13 +36,13 @@ public interface IManyAssociation : IRelation
 /// <summary>
 /// Represents an FK association to different data set where there can be one or more
 /// matches.  The ID property is set on the related table, and may be bi-directional
-/// through the use of a 'SingleRelation' instance.
+/// through the use of a 'SingleAssociation' instance.
 /// </summary>
-public class ManyRelation<T> : IManyAssociation
+public class ManyAssociation<T> : IManyAssociation
 where T : class, new()
 {
-  public ManyRelation() { }
-  public ManyRelation(IEnumerable<T> data)
+  public ManyAssociation() { }
+  public ManyAssociation(IEnumerable<T> data)
   {
     this.Data = data.ToList();
   }
@@ -64,11 +64,11 @@ where T : class, new()
 /// <summary>
 /// Represents an FK association to a different data set....
 /// </summary>
-public class SingleRelation<T> : IHasPrimary, ISingleAssociation
+public class SingleAssociation<T> : IHasPrimary, ISingleAssociation
 where T : class, IHasPrimary
 {
-  public SingleRelation() { }
-  public SingleRelation(int id)
+  public SingleAssociation() { }
+  public SingleAssociation(int id)
   {
     _ID = id;
   }
@@ -105,23 +105,23 @@ where T : class, IHasPrimary
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public static implicit operator SingleRelation<T>(T data)
+  public static implicit operator SingleAssociation<T>(T? data)
   {
-    var res = new SingleRelation<T>();
+    var res = new SingleAssociation<T>();
     res.Data = data;
     return res;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public static implicit operator T?(SingleRelation<T> data)
+  public static implicit operator T?(SingleAssociation<T> data)
   {
     return data.Data;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public static implicit operator SingleRelation<T>(int id)
+  public static implicit operator SingleAssociation<T>(int id)
   {
-    var res = new SingleRelation<T>(id);
+    var res = new SingleAssociation<T>(id);
     return res;
   }
 

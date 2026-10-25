@@ -7,6 +7,7 @@ using drewCo.Tools.Logging;
 using System.Reflection;
 using System.Data;
 using System.Diagnostics.Contracts;
+using System.Net.WebSockets;
 
 namespace DataHelpers.Data;
 
@@ -21,7 +22,7 @@ public class TableDef
   public string Name { get; private set; }
   public SchemaDefinition Schema { get; private set; }
 
-  public List<AssociatedDatasetInfo> RelatedDataSets { get; set; }
+  public List<AssociatedDatasetInfo> AssociatedDataSets { get; set; }
 
   // NOTE: This should probably be a dictionary.....
   // REFACTOR: FIX: NOTE: We are making a new readonly instance each time.... this will make mucho garbagio!
@@ -196,7 +197,7 @@ public class TableDef
     //{
     //  int x = 10;
     //}
-    if (t.Name.StartsWith(typeof(SingleRelation<>).Name) || t.Name.StartsWith(typeof(ManyRelation<>).Name))
+    if (t.Name.StartsWith(typeof(SingleAssociation<>).Name) || t.Name.StartsWith(typeof(ManyAssociation<>).Name))
     {
       return true;
     }
@@ -704,13 +705,19 @@ public class TableDef
   /// </summary>
   internal void PopulateAssociations()
   {
-    RelatedDataSets = new List<AssociatedDatasetInfo>();
+    AssociatedDataSets = new List<AssociatedDatasetInfo>();
 
     foreach (var col in Columns)
     {
       if (col.AssociationDef != null)
       {
+        // We need to make sure that the data type mentioned in the Association Attribute
+        // matches the data type of the (Single|Many)Association.
         var targetSet = Schema.GetTableDef(col.AssociationDef.DataSetName);
+        var tProp = col.AssociationDef.TargetProperty;
+        if (tProp != null && tProp.PropertyType.GetGenericArguments()[0] != targetSet.DataType) { 
+          throw new InvalidOperationException("Associated data set type does not match target property!");
+        }
 
         AssociatedDatasetInfo ddsInfo = new()
         {
@@ -719,7 +726,7 @@ public class TableDef
           DataStoreName = col.DataStoreName,
           RelationType = col.AssociationDef.AssociationType,
         };
-        this.RelatedDataSets.Add(ddsInfo);
+        this.AssociatedDataSets.Add(ddsInfo);
         col.AssociatedDataSet = ddsInfo;
       }
     }
@@ -900,7 +907,7 @@ public class TableDef
             useRelation.TargetProperty = mutualAssoc.TargetProperty;
 
             // TODO: This is where we would check to make sure that there is already a column with the correct
-            // name that corresponds to a SingleRelation or ManyRelation member....
+            // name that corresponds to a SingleAssociation or ManyAssociation member....
             //var match = targetSet.GetColumn(useName);
             if (match != null)
             {
@@ -1077,7 +1084,7 @@ public class TableDef
   /// </summary>
   public AssociatedDatasetInfo? GetAssociatedSet<T>()
   {
-    var match = (from x in this.RelatedDataSets where x.TargetSet.DataType == typeof(T) select x).SingleOrDefault();
+    var match = (from x in this.AssociatedDataSets where x.TargetSet.DataType == typeof(T) select x).SingleOrDefault();
     return match;
   }
 
@@ -1087,7 +1094,7 @@ public class TableDef
   /// </summary>
   public string GetAssociatedFieldNameFor<T>(string? byName = null)
   {
-    var match = (from x in this.RelatedDataSets where x.TargetSet.DataType == typeof(T) select x).SingleOrDefault();
+    var match = (from x in this.AssociatedDataSets where x.TargetSet.DataType == typeof(T) select x).SingleOrDefault();
     return match.DataStoreName;
   }
 }

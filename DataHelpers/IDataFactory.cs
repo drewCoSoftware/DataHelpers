@@ -42,6 +42,7 @@ public interface IDataFactory<TSchema>
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// Add a new entity to the database.
+  /// The ID propery will be assigned upon successful creation.
   /// </summary>
   int Add<T>(T entity)
     where T : IHasPrimary
@@ -49,7 +50,7 @@ public interface IDataFactory<TSchema>
     if (entity.ID != 0) { throw new InvalidOperationException($"The entity already has an assigned ID and can't be added to the set!  Use 'AddOrUpdate' or 'Update' calls instead!"); }
 
     var td = Schema.GetTableDef<T>();
-    var qParams = Schema.ComputeParametersFor(entity);
+    var qParams = Schema.ResolveQueryParams(entity);
     string query = td.GetInsertQuery(qParams.Keys.ToArray());
     int res = Action(dal =>
     {

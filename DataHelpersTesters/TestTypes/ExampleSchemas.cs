@@ -14,10 +14,10 @@ public class Matchup : IHasPrimary
   public int ID { get; set; }
 
   [Association(nameof(SchemaWithMappedTypes.Teams))]
-  public SingleRelation<Team> Favorite { get; set; } = new SingleRelation<Team>();
+  public SingleAssociation<Team> Favorite { get; set; } = new SingleAssociation<Team>();
 
   [Association(nameof(SchemaWithMappedTypes.Teams))]
-  public SingleRelation<Team>? Other { get; set; } = null;
+  public SingleAssociation<Team>? Other { get; set; } = null;
 }
 
 // ==============================================================================================================================
@@ -28,7 +28,7 @@ public class Player : IHasPrimary
   public string Position { get; set; }
 
   [Association(nameof(SchemaWithMappedTypes.Teams))]
-  public ManyRelation<Team> Teams { get; set; }
+  public ManyAssociation<Team> Teams { get; set; }
 }
 
 // ==============================================================================================================================
@@ -38,7 +38,7 @@ public class Team : IHasPrimary
   public string Name { get; set; }
 
   [Association(nameof(SchemaWithMappedTypes.Players))]
-  public ManyRelation<Player> Players { get; set; } = new ManyRelation<Player>();
+  public ManyAssociation<Player> Players { get; set; } = new ManyAssociation<Player>();
 }
 
 // ==============================================================================================================================
@@ -184,10 +184,10 @@ public class Traveler : IHasPrimary
   /// All of the places that this person has visited.
   /// </summary>
   [Association(DataSetName = nameof(VacationSchema.Places))]
-  public ManyRelation<Place> PlacesVisited { get; set; }
+  public ManyAssociation<Place> PlacesVisited { get; set; }
 
   [Association(DataSetName = nameof(VacationSchema.Places), LocalIDPropertyName = "FavoritePlace_ID")]
-  public SingleRelation<Place>? FavoritePlace { get; set; } = null;
+  public SingleAssociation<Place>? FavoritePlace { get; set; } = null;
 }
 
 // ==============================================================================================================================
@@ -201,7 +201,7 @@ public class Place : IHasPrimary
   /// All of the people that have visited this place.
   /// </summary>
   [Association(DataSetName = nameof(VacationSchema.Travelers))]
-  public ManyRelation<Person> Visitors { get; set; }
+  public ManyAssociation<Person> Visitors { get; set; }
 }
 
 // ==========================================================================
@@ -224,13 +224,13 @@ public class Person : IHasPrimary
   /// This data comes from the 'People' dataset of the schema.
   /// </summary>
   [Association(nameof(BusinessSchema.Addresses))]
-  public SingleRelation<Address> Address { get; set; } = new SingleRelation<Address>();
+  public SingleAssociation<Address> Address { get; set; } = new SingleAssociation<Address>();
 
   [Association(nameof(BusinessSchema.Towns))]
-  public SingleRelation<Town>? HomeTown { get; set; } = null;
+  public SingleAssociation<Town>? HomeTown { get; set; } = null;
 
   //[Relation(nameof(BusinessSchema.Addresses))]
-  //public SingleRelation<Address>? HomeAddress { get; set; } = null;
+  //public SingleAssociation<Address>? HomeAddress { get; set; } = null;
 
   ///// <summary>
   ///// Shows that we can use an explicit name for the data set that this is related to.
@@ -263,12 +263,12 @@ public class Address : IHasPrimary
   // NOTE: I think that if this column isn't explicitly defined it can be nullable...
   // of course, if it isn't defined, then there is really no good way to set the data,
   // so we should make it required instead?
-  // NOTE: What can we do about setting this as a 'SingleRelation'?
+  // NOTE: What can we do about setting this as a 'SingleAssociation'?
   // Should that be required?
   // --> Yes!
   // public int Towns_ID { get; set; }
   [Association(DataSetName = nameof(BusinessSchema.Towns))]
-  public SingleRelation<Town> Town { get; set; }
+  public SingleAssociation<Town> Town { get; set; }
 }
 
 // ==========================================================================
@@ -283,7 +283,7 @@ public class Town : IHasPrimary
   /// An FK to this will be created on the 'Address' table.
   /// </summary>
   [Association(DataSetName = nameof(BusinessSchema.Addresses))]
-  public ManyRelation<Address> Addresses { get; set; } // = new ManyRelation<Address>();
+  public ManyAssociation<Address> Addresses { get; set; } // = new ManyAssociation<Address>();
 }
 
 //// ==========================================================================

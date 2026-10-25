@@ -461,7 +461,7 @@ public class SchemaDefinition
     foreach (var t in _TableDefs.Values)
     {
       // Circular reference test.
-      foreach (var rel in t.RelatedDataSets)
+      foreach (var rel in t.AssociatedDataSets)
       {
         if (rel.HasTableDependency(t))
         {
@@ -473,7 +473,7 @@ public class SchemaDefinition
       }
 
       // Primary test.
-      foreach (var pTable in t.RelatedDataSets)
+      foreach (var pTable in t.AssociatedDataSets)
       {
         // The parent table MUST have a primary key!
         bool hasPrimary = ReflectionTools.HasInterface<IHasPrimary>(pTable.TargetSet.DataType);
@@ -561,7 +561,7 @@ public class SchemaDefinition
     var res = new List<TableDef>();
 
     // NOTE: This can be folded in to the main loop...
-    var zeroDeps = (from x in candidates where x.RelatedDataSets.Count == 0 select x).ToList();
+    var zeroDeps = (from x in candidates where x.AssociatedDataSets.Count == 0 select x).ToList();
     foreach (var item in zeroDeps)
     {
       candidates.Remove(item);
@@ -575,7 +575,7 @@ public class SchemaDefinition
       foreach (var item in candidates)
       {
         bool hasAll = true;
-        foreach (var rel in item.RelatedDataSets)
+        foreach (var rel in item.AssociatedDataSets)
         {
           if (!used.Contains(rel.TargetSet))
           {
@@ -710,8 +710,6 @@ public class SchemaDefinition
     if (fromInstance == null) { throw new ArgumentNullException($"Please provide an instance for {nameof(fromInstance)}"); }
     Type t = fromInstance.GetType();
 
-    // throw new InvalidOperationException("make sure to use correct property names for relation mappings!  NOT the type names!  Use 'CanModelOneToManyRelationship' as a starting point!");
-
     var qpb = new QueryParamsBuilder(this.Flavor);
 
     var td = GetTableDef(t, true);
@@ -808,15 +806,9 @@ public class SchemaDefinition
           bool isComposite = ReflectionTools.HasInterface<ICompositeSerializer>(prop.PropertyType);
           if (isComposite)
           {
-            // var cs = useVal as ICompositeSerializer;
-            // var genFunc = typeof(ICompositeSerializer<>).MakeGenericType(new[] { cs.GetCompositeType() }).GetMethod("To");
             useVal = (useVal as ICompositeSerializer).Serialize(); // (string)genFunc.Invoke(useVal, null);
-
-            // useVal = cs.ToS
           }
           qpb.Add(prop.Name, useVal, prop.PropertyType);
-          // res.Add(prop.Name, new QueryParamValue(useVal, ToDbType(prop.PropertyType)));
-
         }
       }
 

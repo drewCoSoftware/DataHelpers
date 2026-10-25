@@ -66,7 +66,7 @@ namespace DataHelpersTesters
         (nameof(Place.Name), "Royal Palace"),
         (nameof(Place.Country), "Otherland"));
 
-      Assert.That(missing, Is.Null);
+      Assert.That(missing, Is.Empty);
     }
 
     // --------------------------------------------------------------------------------------------------------------------------
@@ -191,7 +191,7 @@ namespace DataHelpersTesters
 
           // Players are added so the teams have 1-2-3 players.
           // This is simply to show some variance.
-          Players = new ManyRelation<Player>(from x in players where x.ID <= i select x)
+          Players = new ManyAssociation<Player>(from x in players where x.ID <= i select x)
         };
         factory.Add(t);
       }
