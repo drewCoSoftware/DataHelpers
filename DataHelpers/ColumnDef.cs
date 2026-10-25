@@ -4,6 +4,9 @@ using System.Reflection;
 namespace DataHelpers.Data;
 
 // ============================================================================================================================
+/// <summary>
+/// Defines a field in a DataSet.
+/// </summary>
 [DebuggerDisplay("{PropertyName} : {DataStoreName}")]
 public class ColumnDef
 {
@@ -11,7 +14,6 @@ public class ColumnDef
   /// Special DataType name used for placeholder associations defs during schema generation.
   /// </summary>
   public const string ASSOCIATION_PLACEHOLDER = "@_ASSOCIATON";
-  public const string COMPOSITE_PLACEHOLDER = "@_COMPOSITE";
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
@@ -24,8 +26,6 @@ public class ColumnDef
   public string DataType { get; private set; }
   public bool IsPrimary { get; private set; }
 
-  [Obsolete("This will be removed in favor of adding indexes to the table.  We may end up providing convenience functions to resolve this however.")]
-  public bool IsUnique { get; private set; }
   public bool IsNullable { get; private set; }
   public bool IsComposite { get; private set; }
 
@@ -43,14 +43,13 @@ public class ColumnDef
   internal AssociationAttribute? AssociationDef { get; set; } = null;
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public ColumnDef(string propName, string dataStoreName, Type runtimeType, string dataType, bool isPrimary, bool isUnique, bool isNullable, AssociationAttribute? assocDef_, PropertyInfo? propInfo_, bool isComposite_)
+  public ColumnDef(string propName, string dataStoreName, Type runtimeType, string dataType, bool isPrimary, bool isNullable, AssociationAttribute? assocDef_, PropertyInfo? propInfo_, bool isComposite_)
   {
     PropertyName = propName;
     DataStoreName = dataStoreName;
     RuntimeType = runtimeType;
     DataType = dataType;
     IsPrimary = isPrimary;
-    IsUnique = isUnique;
     IsNullable = isNullable;
     AssociationDef = assocDef_;
 
@@ -67,8 +66,7 @@ public class ColumnDef
   {
     bool res = (colDef.PropertyName == match.PropertyName &&
                 colDef.IsPrimary == match.IsPrimary &&
-                colDef.DataType == match.DataType &&                
-                colDef.IsUnique == match.IsUnique);
+                colDef.DataType == match.DataType);
 
     return res;
   }
@@ -95,7 +93,8 @@ public class ColumnDef
       {
         if (i == j || matched[j] != -1) { continue; }
         bool isMatch = AreSame(l[i], r[j]);
-        if (isMatch) { 
+        if (isMatch)
+        {
           matched[j] = i;
           ++matchCount;
         }

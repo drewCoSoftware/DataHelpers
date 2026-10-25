@@ -9,6 +9,38 @@ namespace DataHelpersTesters;
 
 
 // ==============================================================================================================================
+// ==============================================================================================================================
+public class SomeSchema
+{
+  public List<SomeType> SomeTable { get; set; } = new List<SomeType>();
+  public List<SomeOtherType> SomeOtherTable { get; set; } = new List<SomeOtherType>();
+}
+
+// ==============================================================================================================================
+public class SomeType : IHasPrimary
+{
+  public int ID { get; set; }
+  public string Name { get; set; }
+
+  /// <summary>
+  /// Here we can see that we have a many relation to another set, but that set doesn't have
+  /// any defined associations to this one.
+  /// </summary>
+  [Association(DataSetName = nameof(SomeSchema.SomeOtherTable))]
+  public ManyAssociation<SomeOtherType> OtherStuff { get; set; } = new ManyAssociation<SomeOtherType>();
+}
+
+// ==============================================================================================================================
+public class SomeOtherType : IHasPrimary
+{
+  public int Number { get; set; }
+  public int ID { get; set; }
+}
+// ==============================================================================================================================
+// ==============================================================================================================================
+
+
+// ==============================================================================================================================
 public class Matchup : IHasPrimary
 {
   public int ID { get; set; }

@@ -16,6 +16,9 @@ public class AssociatedDatasetInfo
   /// <remarks>This only applies to child data sets.</remarks>
   public string DataStoreName { get; set; } = string.Empty;
 
+  /// <summary>
+  /// Reference to the ID column of the associated data set....
+  /// </summary>
   public ColumnDef TargetIDColumn { get; set; } = null!;
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -30,10 +33,6 @@ public class AssociatedDatasetInfo
       {
         return true;
       }
-      //if (dep.HasTableDependency(t))
-      //{
-      //  return true;
-      //}
     }
 
     return false;

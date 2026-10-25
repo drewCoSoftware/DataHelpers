@@ -12,11 +12,12 @@ namespace DataHelpersTesters
   {
 
     // --------------------------------------------------------------------------------------------------------------------------
-  /// <summary>
-  /// This test case solves a bug where it wasn't possible to build a correct WHERE clause when some of the parameters were null.
-  /// </summary>
+    /// <summary>
+    /// This test case solves a bug where it wasn't possible to build a correct WHERE clause when some of the parameters were null.
+    /// </summary>
     [Test]
-    public void CanGenerateWhereClauseWithNulls()  {
+    public void CanGenerateWhereClauseWithNulls()
+    {
 
       var qpb = new QueryParamsBuilder(new SqliteFlavor());
       qpb.Add("name", null, typeof(string));
@@ -81,8 +82,9 @@ namespace DataHelpersTesters
       var schema = new SchemaDefinition(new SqliteFlavor(), typeof(BusinessSchema));
       IDataFactory<BusinessSchema> factory = CreateTestDataBaseFor<BusinessSchema>(TEST_NAME);
 
-      var town = new Town() { 
-      Name = "MyTown"
+      var town = new Town()
+      {
+        Name = "MyTown"
       };
       factory.Add(town);
 

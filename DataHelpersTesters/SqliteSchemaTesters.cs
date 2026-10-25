@@ -24,6 +24,21 @@ public class SqliteSchemaTesters : TestBase
 {
 
   // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// This test case was provided to solve a bug where use a 'ManyAsssociation' on one data set was crashing if
+  /// there wasn't an explicitly defined SingeAssociation on the target set.
+  /// </summary>
+  [Test]
+  public void CanCreateManyToOneRelationWithoutDefinedMutualAssociation() {
+
+    IDataFactory<SomeSchema> factory = CreateTestDataBaseFor<SomeSchema>(CurrentFunctionName());
+
+    var s = factory.Schema;
+    Assert.That(s, Is.Not.Null);
+  }
+
+
+  // --------------------------------------------------------------------------------------------------------------------------
   [Test]
   public void CanUseGUIDInSchema() {
     IDataFactory<DataTypesSchema> factory = CreateTestDataBaseFor<DataTypesSchema>(CurrentFunctionName());

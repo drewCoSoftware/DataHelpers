@@ -181,7 +181,6 @@ public class TableDef
                                  p.PropertyType,
                                  dataTypeName,
                                  isPrimary,
-                                 isUnique,
                                  isNullable,
                                  assocAttr,
                                  p,
@@ -826,7 +825,7 @@ public class TableDef
           {
             // Create the new def.....
             string dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
-            var cd = new ColumnDef(propName, colName, typeof(int), dbTypeName, false, col.IsUnique, col.IsNullable, rd, null, false);
+            var cd = new ColumnDef(propName, colName, typeof(int), dbTypeName, false, col.IsNullable, rd, null, false);
             toAdd.Add(cd);
           }
           else
@@ -883,12 +882,15 @@ public class TableDef
           {
             // This is a one-many relationship.
 
-            // This columnd def gets added to the target dataset, NOT this one....
+            // This column def gets added to the target dataset, NOT this one....
             // NOTE: This needs to be resolved from the associated dataset.  We can't use a single naming convention here!
             //throw new InvalidOperationException("FK name resolution logic is invalid!  Resolve from target association as it may already exist!");
             //string useName = rd.TargetIDPropertyName ?? $"{this.Name}_{nameof(IHasPrimary.ID)}";
 
-            string useName = mutualAssoc.LocalIDPropertyName;
+            string useName = mutualAssoc?.LocalIDPropertyName!; 
+            if (useName == null ) { useName = $"{col.PropertyName}_{nameof(IHasPrimary.ID)}"; }
+
+            // != null mutualAssoc.LocalIDPropertyName;
             string sqlName = Schema.Flavor.GetDataStoreName(useName);
 
             var match = targetSet.GetColumn(useName);
@@ -904,7 +906,7 @@ public class TableDef
             var useRelation = new AssociationAttribute(this.Name);
             useRelation.TargetIDPropertyName = nameof(IHasPrimary.ID);
             useRelation.AssociationType = EAssociationType.Many;
-            useRelation.TargetProperty = mutualAssoc.TargetProperty;
+            useRelation.TargetProperty = mutualAssoc?.TargetProperty ?? col.PropInfo; // null; // ?? relSet.GetColumn(nameof(IHasPrimary.ID)).PropInfo;
 
             // TODO: This is where we would check to make sure that there is already a column with the correct
             // name that corresponds to a SingleAssociation or ManyAssociation member....
@@ -919,7 +921,7 @@ public class TableDef
               int x = 10;
             }
 
-            var colDef = new ColumnDef(useName, sqlName, typeof(int), dbTypeName, false, false, false, useRelation, null, false);
+            var colDef = new ColumnDef(useName, sqlName, typeof(int), dbTypeName, false, false, useRelation, null, false);
             targetSet.AddColumn(colDef);
           }
         }
@@ -976,7 +978,7 @@ public class TableDef
 
     var td = new TableDef(null, mtName, this.Schema);
     td.IsMappingTable = true;
-    td.AddColumn(new ColumnDef(useName, sqlName, intType, intTypeName, true, false, false, null, null, false));
+    td.AddColumn(new ColumnDef(useName, sqlName, intType, intTypeName, true, false, null, null, false));
 
     // Now the id refs for each of the data sets.
     string idCol1 = $"{relSet.Name}_{nameof(IHasPrimary.ID)}";
@@ -987,7 +989,7 @@ public class TableDef
     foreach (var c in cols)
     {
       sqlName = Schema.Flavor.GetDataStoreName(c);
-      var cd = new ColumnDef(c, sqlName, intType, intTypeName, false, false, false, new AssociationAttribute()
+      var cd = new ColumnDef(c, sqlName, intType, intTypeName, false, false, new AssociationAttribute()
       {
         DataSetName = index == 0 ? relSet.Name : mutualRelation.DataSetName,
         LocalIDPropertyName = c,
