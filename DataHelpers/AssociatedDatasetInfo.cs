@@ -28,7 +28,7 @@ public class AssociatedDatasetInfo
   /// </summary>
   internal bool HasTableDependency(TableDef t)
   {
-    foreach (var dep in this.TargetSet.AssociatedDataSets)
+    foreach (var dep in this.TargetSet.AssociationDefs)
     {
       if (dep.TargetSet.DataType == t.DataType)
       {

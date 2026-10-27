@@ -143,7 +143,7 @@ namespace DataHelpersTesters
       foreach (var cName in cols)
       {
         var col = td.GetColumn(cName, true);
-        Assert.That(col.AssociatedDataSet, Is.Not.Null, "There should be an associated dataset for this column!");
+        Assert.That(col.AssociationDef, Is.Not.Null, "There should be an associated dataset for this column!");
       }
     }
 

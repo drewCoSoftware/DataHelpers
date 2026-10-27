@@ -6,10 +6,6 @@ using System.Linq.Expressions;
 using drewCo.Tools.Logging;
 using System.Reflection;
 using System.Data;
-using System.Diagnostics.Contracts;
-using System.Net.WebSockets;
-using System.Net.Http.Headers;
-using Microsoft.VisualBasic;
 
 namespace DataHelpers.Data;
 
@@ -24,7 +20,7 @@ public class TableDef
   public string Name { get; private set; }
   public SchemaDefinition Schema { get; private set; }
 
-  public List<AssociationDef> AssociatedDataSets { get; set; }
+  public List<AssociationDef> AssociationDefs { get; set; }
 
   // NOTE: This should probably be a dictionary.....
   // REFACTOR: FIX: NOTE: We are making a new readonly instance each time.... this will make mucho garbagio!
@@ -272,9 +268,9 @@ public class TableDef
       string useColType = col.DataType;
 
       string def = $"{useName} {col.DataType}";
-      if (col.AssociatedDataSet != null && Schema.Flavor.UsesInlineFKDeclaration)
+      if (col.AssociationDef != null && Schema.Flavor.UsesInlineFKDeclaration)
       {
-        def += $" REFERENCES {col.AssociatedDataSet.TargetSet.Name} ({col.AssociatedDataSet.TargetIDColumn.PropertyName})";
+        def += $" REFERENCES {col.AssociationDef.TargetSet.Name} ({col.AssociationDef.TargetIDField.PropertyName})";
       }
 
       if (col.IsPrimary)
@@ -291,16 +287,11 @@ public class TableDef
         def += " NULL";
       }
 
-      //if (col.IsUnique)
-      //{
-      //  def += " UNIQUE";
-      //}
-
       colDefs.Add(def);
 
-      if (col.AssociatedDataSet != null && !Schema.Flavor.UsesInlineFKDeclaration)
+      if (col.AssociationDef != null && !Schema.Flavor.UsesInlineFKDeclaration)
       {
-        string fk = $"FOREIGN KEY({useName}) REFERENCES {col.AssociatedDataSet.TargetSet.Name}({col.AssociatedDataSet.TargetIDColumn.PropertyName})";
+        string fk = $"FOREIGN KEY({useName}) REFERENCES {col.AssociationDef.TargetSet.Name}({col.AssociationDef.TargetIDField.PropertyName})";
         fkDefs.Add(fk);
       }
 
@@ -607,7 +598,7 @@ public class TableDef
   public string GetUpdateQuery()
   {
     var useCols = (from x in this.Columns
-                   where x.AssociatedDataSet == null
+                   where x.AssociationDef == null
                    select x);
     var namesAndVals = GetNamesAndValues(useCols);
 
@@ -721,7 +712,7 @@ public class TableDef
   /// </summary>
   internal void PopulateAssociations()
   {
-    AssociatedDataSets = new List<AssociationDef>();
+    AssociationDefs = new List<AssociationDef>();
 
     foreach (var col in Columns)
     {
@@ -732,7 +723,7 @@ public class TableDef
         // NOTE: I don't think that we need to do any other integrity checking at this time.
         // That should all be handled during schema generation...
         // Yes, if we do it that way, then the checks below get a lot simpler.
-        AssociatedDataSets.Add(ad);
+        AssociationDefs.Add(ad);
 
 
         // We need to make sure that the data type mentioned in the Association Attribute
@@ -773,8 +764,8 @@ public class TableDef
         //  DataStoreName = col.DataStoreName,
         //  RelationType = col.AssociationDef.AssociationType,
         //};
-        //this.AssociatedDataSets.Add(ddsInfo);
-        //col.AssociatedDataSet = ddsInfo;
+        //this.AssociationDefs.Add(ddsInfo);
+        //col.AssociationDef = ddsInfo;
       }
     }
   }
@@ -1307,7 +1298,7 @@ public class TableDef
   /// </summary>
   public AssociationDef? GetAssociatedSet<T>()
   {
-    var match = (from x in this.AssociatedDataSets where x.TargetSet.DataType == typeof(T) select x).SingleOrDefault();
+    var match = (from x in this.AssociationDefs where x.TargetSet.DataType == typeof(T) select x).SingleOrDefault();
     return match;
   }
 
@@ -1317,7 +1308,7 @@ public class TableDef
   /// </summary>
   public string GetAssociatedFieldNameFor<T>(string? byName = null)
   {
-    var match = (from x in this.AssociatedDataSets where x.TargetSet.DataType == typeof(T) select x).SingleOrDefault();
+    var match = (from x in this.AssociationDefs where x.TargetSet.DataType == typeof(T) select x).SingleOrDefault();
     return match.TargetSet.Name;
   }
 

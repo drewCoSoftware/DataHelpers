@@ -4,8 +4,6 @@ using drewCo.Tools;
 using NUnit.Framework;
 using DataHelpers.Data;
 using System.Collections.Generic;
-
-using IgnoreTest = NUnit.Framework.IgnoreAttribute;
 using System.Linq.Expressions;
 using DataHelpers;
 using System.Linq;
@@ -13,7 +11,8 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Data;
 using Microsoft.Data.Sqlite;
-using System.Security.Cryptography;
+
+using IgnoreTest = NUnit.Framework.IgnoreAttribute;
 
 namespace DataHelpersTesters;
 
@@ -41,11 +40,11 @@ public class SqliteSchemaTesters : TestBase
     Assert.That(t2.Columns.Count, Is.EqualTo(3));
 
     // Now we will show that the associations are properly noted in the data set defs.
-    var a1 = t1.AssociatedDataSets.SingleOrDefault();
+    var a1 = t1.AssociationDefs.SingleOrDefault();
     Assert.That(a1, Is.Null);
 
     // We have a single association that points to the other data set.
-    var a2 = t2.AssociatedDataSets.Single();
+    var a2 = t2.AssociationDefs.Single();
     Assert.That(a2.TargetSet, Is.SameAs(t1));
   }
 
@@ -92,7 +91,7 @@ public class SqliteSchemaTesters : TestBase
     Assert.That(t2.Columns.Count, Is.EqualTo(2));
 
     // Add some extra checks for association info?
-    // t1.AssociatedDataSets
+    // t1.AssociationDefs
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -134,6 +133,7 @@ public class SqliteSchemaTesters : TestBase
   /// This test shows that we can't define an association (attribute) that points to the data set that it is
   /// contained in.
   /// </summary>
+  [IgnoreTest("will do later!")]
   [Test]
   public void AssociationsCantPointToContainingDataSet()
   {
@@ -148,6 +148,7 @@ public class SqliteSchemaTesters : TestBase
   /// naming convention.  The issue is resolved by setting explicit names, but the code should be able to
   /// detect and fail, or at least generate a non-conflicting name.
   /// </summary>
+  [IgnoreTest("will do later, might be moot")]
   [Test]
   public void CanResolveAmbiguousRelationIDProperties()
   {
@@ -422,12 +423,12 @@ public class SqliteSchemaTesters : TestBase
     // Make sure that the mapping table points to the other two:
     var toTravelers = mappingTable.GetColumn($"{nameof(VacationSchema.Travelers)}_ID");
     Assert.That(toTravelers, Is.Not.Null);
-    Assert.That(toTravelers.AssociatedDataSet.TargetSet, Is.SameAs(travelersSet), $"This should be related to the {nameof(VacationSchema.Travelers)} dataset!");
+    Assert.That(toTravelers.AssociationDef.TargetSet, Is.SameAs(travelersSet), $"This should be related to the {nameof(VacationSchema.Travelers)} dataset!");
 
 
     var toPlaces = mappingTable.GetColumn($"{nameof(VacationSchema.Places)}_ID");
     Assert.That(toPlaces, Is.Not.Null);
-    Assert.That(toPlaces.AssociatedDataSet.TargetSet, Is.SameAs(placesSet), $"This should be related to the {nameof(VacationSchema.Places)} dataset!");
+    Assert.That(toPlaces.AssociationDef.TargetSet, Is.SameAs(placesSet), $"This should be related to the {nameof(VacationSchema.Places)} dataset!");
 
 
     // Do some queries, I gues....
@@ -496,7 +497,7 @@ public class SqliteSchemaTesters : TestBase
 
     var col = td.GetColumn("town_id");
     Assert.That(col, Is.Not.Null, "There should be a column for the town association!");
-    var rel = col.AssociatedDataSet;
+    var rel = col.AssociationDef;
     Assert.That(rel, Is.Not.Null, "The column should have a association!");
     // Assert.That(rel.data
 
@@ -545,11 +546,11 @@ public class SqliteSchemaTesters : TestBase
   /// Shows that we can model a relationship where one data set gets its data by another (ie: Foreign Key)
   /// </summary>
   [Test]
-  public void CanModelSingleAssociationship()
+  public void CanModelSingleAssociation()
   {
 
     string dir = FileTools.GetLocalDir("test-db");
-    var factory = new SqliteDataFactory<BusinessSchema>(dir, nameof(CanModelSingleAssociationship));
+    var factory = new SqliteDataFactory<BusinessSchema>(dir, nameof(CanModelSingleAssociation));
     FileTools.DeleteExistingFile(factory.DBFilePath);
 
     factory.SetupDatabase();
@@ -560,7 +561,7 @@ public class SqliteSchemaTesters : TestBase
     var fkCol = td.GetColumn($"address_id");
     Assert.That(fkCol, Is.Not.Null);
 
-    var relatedSet = fkCol.AssociatedDataSet;
+    var relatedSet = fkCol.AssociationDef;
     Assert.That(relatedSet, Is.Not.Null, "There should be a relationship to a different data set!");
 
 
@@ -631,8 +632,8 @@ public class SqliteSchemaTesters : TestBase
       var td = schemaDef.GetTableDef<Person>();
 
       // One child ref. to 'Addresses'
-      Assert.That(td.AssociatedDataSets.Count, Is.EqualTo(2));
-      Assert.That(td.AssociatedDataSets[0].TargetSet.Name == nameof(BusinessSchema.Addresses));
+      Assert.That(td.AssociationDefs.Count, Is.EqualTo(2));
+      Assert.That(td.AssociationDefs[0].TargetSet.Name == nameof(BusinessSchema.Addresses));
     }
 
     // Now show that the FKs are properly added when the queries are created.

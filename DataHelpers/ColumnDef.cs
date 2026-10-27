@@ -31,10 +31,10 @@ public class ColumnDef
 
   public PropertyInfo PropInfo { get; private set; } = null!;
 
-  //// NOTE: This has a non-private setter b/c we have to update them sometimes, after the fact,
-  //// because of the sloppy way that we are currently creating the table defs.
-  //// we should have it so that the columns are added to the def BEFORE we attempt resolve the associations.
-  public AssociatedDatasetInfo? AssociatedDataSet { get; internal set; }
+  ////// NOTE: This has a non-private setter b/c we have to update them sometimes, after the fact,
+  ////// because of the sloppy way that we are currently creating the table defs.
+  ////// we should have it so that the columns are added to the def BEFORE we attempt resolve the associations.
+  //public AssociatedDatasetInfo? AssociatedDataSet { get; internal set; }
 
   /// <summary>
   /// A copy of the defining attriute for the association.

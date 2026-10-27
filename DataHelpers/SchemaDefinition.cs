@@ -470,7 +470,7 @@ public class SchemaDefinition
     foreach (var t in _TableDefs.Values)
     {
       // Circular reference test.
-      foreach (var rel in t.AssociatedDataSets)
+      foreach (var rel in t.AssociationDefs)
       {
         if (rel.HasTableDependency(t))
         {
@@ -482,7 +482,7 @@ public class SchemaDefinition
       }
 
       // Primary test.
-      foreach (var pTable in t.AssociatedDataSets)
+      foreach (var pTable in t.AssociationDefs)
       {
         // The parent table MUST have a primary key!
         bool hasPrimary = ReflectionTools.HasInterface<IHasPrimary>(pTable.TargetSet.DataType);
@@ -570,7 +570,7 @@ public class SchemaDefinition
     var res = new List<TableDef>();
 
     // NOTE: This can be folded in to the main loop...
-    var zeroDeps = (from x in candidates where x.AssociatedDataSets.Count == 0 select x).ToList();
+    var zeroDeps = (from x in candidates where x.AssociationDefs.Count == 0 select x).ToList();
     foreach (var item in zeroDeps)
     {
       candidates.Remove(item);
@@ -584,7 +584,7 @@ public class SchemaDefinition
       foreach (var item in candidates)
       {
         bool hasAll = true;
-        foreach (var rel in item.AssociatedDataSets)
+        foreach (var rel in item.AssociationDefs)
         {
           if (!used.Contains(rel.TargetSet))
           {
@@ -746,7 +746,7 @@ public class SchemaDefinition
               string useName = col.DataStoreName;
 
               // TODO: I think I can get this directly from the def...or at least I should be able to.
-              var relType = col.AssociatedDataSet.TargetSet.DataType; // col.PropInfo.PropertyType.GetGenericArguments()[0];
+              var relType = col.AssociationDef.TargetSet.DataType; // col.PropInfo.PropertyType.GetGenericArguments()[0];
               var relVal = ad.TargetProperty.GetValue(fromInstance);
               if (relVal == null || (relVal as ISingleAssociation).ID == 0)
               {
