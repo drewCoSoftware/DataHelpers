@@ -21,16 +21,21 @@ public enum EAssociationType
   Many,
 
 
-  /// <summary>
-  /// ONE instance of the target data set is associated with MANY instances of this set.
-  /// </summary>
-  ManyToOne,
+  ///// <summary>
+  ///// ONE instance of the target data set is associated with MANY instances of this set.
+  ///// </summary>
+  //ManyToOne,
 
-  /// <summary>
-  /// MANY instances of the target data set are associated with ONE instance of this set.
-  /// </summary>
-  OneToMany,
-  // OneToMany,
+  ///// <summary>
+  ///// MANY instances of the target data set are associated with ONE instance of this set.
+  ///// </summary>
+  //OneToMany,
+
+  ///// <summary>
+  ///// ONE instance of this data set is associated with ONE instance of the target data set.
+  ///// This may or may not be a mutual association!
+  ///// </summary>
+  //OneToOne
 }
 
 // ==========================================================================

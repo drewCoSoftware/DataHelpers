@@ -845,7 +845,7 @@ public class SchemaDefinition
         if (ReflectionTools.HasInterface<ISingleAssociation>(prop.PropertyType))
         {
           string setName = relAttr.DataSetName;
-          string useName = relAttr.LocalIDPropertyName ?? setName + "_" + nameof(IHasPrimary.ID);
+          string useName = relAttr.IDFieldName ?? setName + "_" + nameof(IHasPrimary.ID);
 
           var relType = prop.PropertyType.GetGenericArguments()[0];
           var relVal = prop.GetValue(fromInstance);

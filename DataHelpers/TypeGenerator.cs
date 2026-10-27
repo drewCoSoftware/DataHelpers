@@ -52,6 +52,23 @@ public class AssociationDef
 
   [Obsolete("We are going to only use 'LocalIDPropertyName' in the future!")]
   public string? TargetIDPropertyName { get; set; }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// This tells us if we have a dependency on the given table, anywhere in the chain....
+  /// </summary>
+  internal bool HasTableDependency(TableDef t)
+  {
+    foreach (var dep in this.TargetSet.AssociatedDataSets)
+    {
+      if (dep.TargetSet.DataType == t.DataType)
+      {
+        return true;
+      }
+    }
+
+    return false;
+  }
 }
 
 // ============================================================================================================================
@@ -78,7 +95,7 @@ public class AssociationAttribute : Attribute
   /// The name of the property on the defining type that represents the association.
   /// If null, a default value will be used.
   /// </summary>
-  public string? LocalIDPropertyName { get; set; }
+  public string? IDFieldName { get; set; }
 
   /// <summary>
   /// The name of the property on the target data set that represents the association.

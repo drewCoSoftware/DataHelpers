@@ -13,6 +13,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Data;
 using Microsoft.Data.Sqlite;
+using System.Security.Cryptography;
 
 namespace DataHelpersTesters;
 
@@ -24,12 +25,71 @@ public class SqliteSchemaTesters : TestBase
 {
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
+  /// This shows that if there are redundant associations on the data sets, those redundancies will be properly resolved.
+  /// </summary>
+  [Test]
+  public void RedundantAssociationsAreProperlyResolved()
+  {
+    var factory = CreateTestDataBaseFor<SchemaWithRedundantAssociationDefs>(CurrentFunctionName());
+    var s = factory.Schema;
+    Assert.That(s, Is.Not.Null);
+
+    var t1 = factory.Schema.GetTableDef<MMOTO_MANY>();
+    Assert.That(t1.Columns.Count, Is.EqualTo(2));
+
+    var t2 = factory.Schema.GetTableDef<MMOTO_ONE>();
+    Assert.That(t2.Columns.Count, Is.EqualTo(3));
+
+    // Now we will show that the associations are properly noted in the data set defs.
+    var a1 = t1.AssociatedDataSets.SingleOrDefault();
+    Assert.That(a1, Is.Null);
+
+    // We have a single association that points to the other data set.
+    var a2 = t2.AssociatedDataSets.Single();
+    Assert.That(a2.TargetSet, Is.SameAs(t1));
+  }
+
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// This shows that we are able to create mutual one-one associations.
+  /// </summary>
+  [Test]
+  public void CanCreateMutual_OneToOne_Association()
+  {
+    var factory = CreateTestDataBaseFor<MutualOneToOneSchema>(CurrentFunctionName());
+    var s = factory.Schema;
+    Assert.That(s, Is.Not.Null);
+
+    var t1 = factory.Schema.GetTableDef<MOTOSource>();
+    Assert.That(t1.Columns.Count, Is.EqualTo(3));
+
+    var t2 = factory.Schema.GetTableDef<MOTOTarget>();
+    Assert.That(t2.Columns.Count, Is.EqualTo(3));
+
+    // Add some extra checks for association info?
+    // t1.AssociatedDataSets
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
   /// This shows that we are able to create 
   /// </summary>
   [Test]
   public void CanCreateOneWayOneToOneAssociation()
   {
-    Assert.Fail("please complete this test!");
+    var factory = CreateTestDataBaseFor<OneWayOneToOneSchema>(CurrentFunctionName());
+    var s = factory.Schema;
+    Assert.That(s, Is.Not.Null);
+
+    var t1 = factory.Schema.GetTableDef<OTOSource>();
+    Assert.That(t1.Columns.Count, Is.EqualTo(3));
+
+    var t2 = factory.Schema.GetTableDef<OTOTarget>();
+    Assert.That(t2.Columns.Count, Is.EqualTo(2));
+
+    // Add some extra checks for association info?
+    // t1.AssociatedDataSets
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -38,20 +98,19 @@ public class SqliteSchemaTesters : TestBase
   /// there wasn't an explicitly defined SingeAssociation on the target set.
   /// </summary>
   [Test]
-  public void CanCreateoneWayManyToOneRelationAssociation()
+  public void CanCreateOneWayManyToOneRelationAssociation()
   {
-
     IDataFactory<OneWayManyToOneSchema> factory = CreateTestDataBaseFor<OneWayManyToOneSchema>(CurrentFunctionName());
 
     var s = factory.Schema;
     Assert.That(s, Is.Not.Null);
 
     // Let's make sure that the data is correct.....
-    var t1 = s.GetTableDef<SomeType>();
+    var t1 = s.GetTableDef<HasMany>();
     Assert.That(t1.Columns.Count, Is.EqualTo(2), "The association property should have been removed!");
 
 
-    var t2 = s.GetTableDef<SomeOtherType>();
+    var t2 = s.GetTableDef<HasOne>();
 
     Assert.That(t2.Columns.Count, Is.EqualTo(3));
     var mapCol = t2.GetColumn("sometable_id");
@@ -60,10 +119,36 @@ public class SqliteSchemaTesters : TestBase
     // The mapped column should have the association def.
     var ad = mapCol.AssociationDef;
     Assert.That(ad, Is.Not.Null);
-    Assert.That(ad.AssociationType, Is.EqualTo(EAssociationType.ManyToOne));
+    Assert.That(ad.AssociationType, Is.EqualTo(EAssociationType.Many));
 
 
     // TOOD: We can add some code to show that we can do selects / adds / whatever.....
+  }
+
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// This test shows that we can't define an association (attribute) that points to the data set that it is
+  /// contained in.
+  /// </summary>
+  [Test]
+  public void AssociationsCantPointToContainingDataSet()
+  {
+    // NOTE: Also include a test to make sure that the target data set matches the generic type of the IAssociation<T> of the property.
+    Assert.Fail("please finish this test!");
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// This test case was provided to solve a problem where a type in a schema could have multiple relations
+  /// to a single dataset.  While this is OK, the code was only adding one related ID property, using the default
+  /// naming convention.  The issue is resolved by setting explicit names, but the code should be able to
+  /// detect and fail, or at least generate a non-conflicting name.
+  /// </summary>
+  [Test]
+  public void CanResolveAmbiguousRelationIDProperties()
+  {
+    Assert.Fail("complete this test!  See comment / SoccerClub.Contact for tips/examples.");
   }
 
 
@@ -186,7 +271,7 @@ public class SqliteSchemaTesters : TestBase
   /// This test case was provided to show that 
   /// </summary>
   [Test]
-  public void CanUseOptionalRelation()
+  public void CanUseOptionalAssociation()
   {
 
     IDataFactory<VacationSchema> factory = CreateTestDataBaseFor<VacationSchema>(CurrentFunctionName());
@@ -257,18 +342,6 @@ public class SqliteSchemaTesters : TestBase
     //Assert.That(check.FavoritePlace.Data, Is.Null);
   }
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  /// <summary>
-  /// This test case was provided to solve a problem where a type in a schema could have multiple relations
-  /// to a single dataset.  While this is OK, the code was only adding one related ID property, using the default
-  /// naming convention.  The issue is resolved by setting explicit names, but the code should be able to
-  /// detect and fail, or at least generate a non-conflicting name.
-  /// </summary>
-  [Test]
-  public void CanResolveAmbiguousRelationIDProperties()
-  {
-    Assert.Fail("complete this test!  See comment / SoccerClub.Contact for tips/examples.");
-  }
 
 
   // --------------------------------------------------------------------------------------------------------------------------

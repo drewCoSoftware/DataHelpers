@@ -9,44 +9,138 @@ namespace DataHelpersTesters;
 
 // ==============================================================================================================================
 // ==============================================================================================================================
+public class MutualOneToOneSchema
+{
+  public List<MOTOSource> Sources { get; set; } = new List<MOTOSource>();
+  public List<MOTOTarget> Targets { get; set; } = new List<MOTOTarget>();
+}
+
+// ==============================================================================================================================
+public class MOTOSource : IHasPrimary
+{
+  public int ID { get; set; }
+  public string Name { get; set; }
+
+  [Association(nameof(OneWayOneToOneSchema.Targets))]
+  public SingleAssociation<MOTOTarget> TargetSet { get; set; } = new SingleAssociation<MOTOTarget>();
+}
+
+// ==============================================================================================================================
+public class MOTOTarget : IHasPrimary
+{
+  public int ID { get; set; }
+  public string Name { get; set; }
+
+  [Association(nameof(OneWayOneToOneSchema.Sources))]
+  public SingleAssociation<MOTOSource> SourceSet { get; set; } = new SingleAssociation<MOTOSource>();
+}
+
+// ==============================================================================================================================
+// ==============================================================================================================================
 public class OneWayOneToOneSchema {
-  public List<OneToOneSource> Sources { get; set; } = new List<OneToOneSource>();
-  public List<OneToOneTarget> Targets { get; set; } = new List<OneToOneTarget>();
+  public List<OTOSource> Sources { get; set; } = new List<OTOSource>();
+  public List<OTOTarget> Targets { get; set; } = new List<OTOTarget>();
 }
 
 // ==============================================================================================================================
-public class OneToOneSource : IHasPrimary
+public class OTOSource : IHasPrimary
 {
   public int ID { get; set; }
   public string Name { get; set; }
 
-  [Association(nameof(OneWayOneToOneSchema))]
-  public SingleAssociation<OneToOneTarget> Targets { get; set; } =new SingleAssociation<OneToOneTarget>();
+  [Association(nameof(OneWayOneToOneSchema.Targets))]
+  public SingleAssociation<OTOTarget> Targets { get; set; } =new SingleAssociation<OTOTarget>();
 }
 
 // ==============================================================================================================================
-public class OneToOneTarget : IHasPrimary
+public class OTOTarget : IHasPrimary
 {
   public int ID { get; set; }
   public string Name { get; set; }
 }
 
+// ==============================================================================================================================
+// ==============================================================================================================================
+public class MutualManyToManySchema
+{
+  public List<ManyManySource> Sources { get; set; } = new List<ManyManySource>();
+  public List<ManyManyTarget> Targets { get; set; } = new List<ManyManyTarget>();
+}
 
+// ==============================================================================================================================
+public class ManyManySource : IHasPrimary
+{
+  public int ID { get; set; }
+  public string Name { get; set; }
+
+  /// <summary>
+  /// Here we can see that we have a many relation to another set, but that set doesn't have
+  /// any defined associations to this one.
+  /// </summary>
+  [Association(DataSetName = nameof(MutualManyToManySchema.Targets))]
+  public ManyAssociation<ManyManyTarget> MMTargets { get; set; } = new ManyAssociation<ManyManyTarget>();
+}
+
+// ==============================================================================================================================
+public class ManyManyTarget : IHasPrimary
+{
+  public int Number { get; set; }
+  public int ID { get; set; }
+
+  [Association(DataSetName = nameof(MutualManyToManySchema.Sources))]
+  public ManyAssociation<ManyManySource> MMSources { get; set; } = new ManyAssociation<ManyManySource>();
+}
 // ==============================================================================================================================
 // ==============================================================================================================================
 
+// ==============================================================================================================================
+// ==============================================================================================================================
+public class SchemaWithRedundantAssociationDefs
+{
+  public List<MMOTO_MANY> ManyTable { get; set; } = new List<MMOTO_MANY>();
+  public List<MMOTO_ONE> OneTable { get; set; } = new List<MMOTO_ONE>();
+}
+
+// ==============================================================================================================================
+public class MMOTO_MANY : IHasPrimary
+{
+  public int ID { get; set; }
+  public string Name { get; set; }
+
+  /// <summary>
+  /// Here we can see that we have a many relation to another set, but that set doesn't have
+  /// any defined associations to this one.
+  /// </summary>
+  [Association(DataSetName = nameof(SchemaWithRedundantAssociationDefs.OneTable))]
+  public ManyAssociation<MMOTO_ONE> OtherStuff { get; set; } = new ManyAssociation<MMOTO_ONE>();
+}
+
+// ==============================================================================================================================
+public class MMOTO_ONE : IHasPrimary
+{
+  public int Number { get; set; }
+  public int ID { get; set; }
+
+  // This association is redundant, and should CRASH on schema generation.
+  // Because an ID field that points back to the MMOTO_MANY set is created, this one is no longer needed!
+  [Association(DataSetName = nameof(SchemaWithRedundantAssociationDefs.ManyTable))]
+  public SingleAssociation<MMOTO_MANY> OtherStuff { get; set; } = new SingleAssociation<MMOTO_MANY>();
+
+}
+// ==============================================================================================================================
+// ==============================================================================================================================
 
 
 // ==============================================================================================================================
 // ==============================================================================================================================
 public class OneWayManyToOneSchema
 {
-  public List<SomeType> SomeTable { get; set; } = new List<SomeType>();
-  public List<SomeOtherType> SomeOtherTable { get; set; } = new List<SomeOtherType>();
+  public List<HasMany> SomeTable { get; set; } = new List<HasMany>();
+  public List<HasOne> SomeOtherTable { get; set; } = new List<HasOne>();
 }
 
 // ==============================================================================================================================
-public class SomeType : IHasPrimary
+public class HasMany : IHasPrimary
 {
   public int ID { get; set; }
   public string Name { get; set; }
@@ -56,11 +150,11 @@ public class SomeType : IHasPrimary
   /// any defined associations to this one.
   /// </summary>
   [Association(DataSetName = nameof(OneWayManyToOneSchema.SomeOtherTable))]
-  public ManyAssociation<SomeOtherType> OtherStuff { get; set; } = new ManyAssociation<SomeOtherType>();
+  public ManyAssociation<HasOne> OtherStuff { get; set; } = new ManyAssociation<HasOne>();
 }
 
 // ==============================================================================================================================
-public class SomeOtherType : IHasPrimary
+public class HasOne : IHasPrimary
 {
   public int Number { get; set; }
   public int ID { get; set; }
@@ -247,7 +341,7 @@ public class Traveler : IHasPrimary
   [Association(DataSetName = nameof(VacationSchema.Places))]
   public ManyAssociation<Place> PlacesVisited { get; set; }
 
-  [Association(DataSetName = nameof(VacationSchema.Places), LocalIDPropertyName = "FavoritePlace_ID")]
+  [Association(DataSetName = nameof(VacationSchema.Places), IDFieldName = "FavoritePlace_ID")]
   public SingleAssociation<Place>? FavoritePlace { get; set; } = null;
 }
 
