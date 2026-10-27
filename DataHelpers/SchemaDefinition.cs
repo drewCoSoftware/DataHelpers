@@ -1,12 +1,8 @@
 ﻿using drewCo.Tools;
 using drewCo.Tools.Logging;
 using System.Collections;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Formats.Asn1;
 using System.Linq.Expressions;
-using System.Net.WebSockets;
-using System.Reflection;
 using System.Text;
 
 namespace DataHelpers.Data;
@@ -198,7 +194,7 @@ public class SchemaDefinition
   /// </summary>
   private object? GetAssociationID(ColumnDef col, object? obj)
   {
-    var relInstance = col.AssociationDef!.TargetProperty!.GetValue(obj) as ISingleAssociation;
+    var relInstance = col.AssociationDef!.AssociationProperty!.GetValue(obj) as ISingleAssociation;
     if (relInstance == null) { return null; }
 
     int res = relInstance.ID;
@@ -712,7 +708,7 @@ public class SchemaDefinition
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// Create a set of dynamic query parameters from the given object.
-  /// This allows us to use some of our conventions for mapping relationships to types.
+  /// This allows us to use some of our conventions for mapping associations to types.
   /// </summary>
   public QueryParams CreateParams(object fromInstance, bool includeNulls = false, bool includeID = false)
   {
@@ -747,7 +743,7 @@ public class SchemaDefinition
 
               // TODO: I think I can get this directly from the def...or at least I should be able to.
               var relType = col.AssociationDef.TargetSet.DataType; // col.PropInfo.PropertyType.GetGenericArguments()[0];
-              var relVal = ad.TargetProperty.GetValue(fromInstance);
+              var relVal = ad.AssociationProperty.GetValue(fromInstance);
               if (relVal == null || (relVal as ISingleAssociation).ID == 0)
               {
                 // This is null, or unset:

@@ -62,7 +62,7 @@ public class TableDef
       var relDef = col.AssociationDef;
       if (relDef != null)
       {
-        if (relDef.TargetProperty?.Name == propName)
+        if (relDef.AssociationProperty?.Name == propName)
         {
           return col;
         }
@@ -202,7 +202,7 @@ public class TableDef
 
     // ad.TargetSet = this;
     ad.AssociationType = GetAssociationType(p.PropertyType);
-    ad.TargetProperty = p;
+    ad.AssociationProperty = p;
     return ad;
   }
 
@@ -728,7 +728,7 @@ public class TableDef
 
         // We need to make sure that the data type mentioned in the Association Attribute
         // matches the data type of the (Single|Many)Association.
-        var tProp = ad.TargetProperty;
+        var tProp = ad.AssociationProperty;
 
         // This happens when we are pointing to an ID.  So in that case I don't think that we need to check anything...
         if (tProp.PropertyType as IRelation == null) { continue; }
@@ -906,7 +906,7 @@ public class TableDef
             {
 
               var dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
-              fkField = new ColumnDef(fieldName, fieldName, typeof(int), dbTypeName, false, false, null, null, false);
+              fkField = new ColumnDef(fieldName, fieldName, typeof(int), dbTypeName, false, col.IsNullable, null, null, false);
 
               // Now stick the association def on it..
               var ad = new AssociationDef(targetSet);
@@ -914,7 +914,7 @@ public class TableDef
 
               // HMM.... is this the same thing?
               ad.TargetIDField = targetSet.GetColumn(nameof(IHasPrimary.ID));
-              ad.TargetProperty = ad.TargetIDField.PropInfo;
+              ad.AssociationProperty = col.PropInfo; // ad.TargetProperty
 
               fkField.AssociationDef = ad;
 
@@ -936,12 +936,12 @@ public class TableDef
 
               // There is no column with that name on the target set.... We will generate it here?
               var dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
-              var colDef = new ColumnDef(assocFieldName, assocFieldName, typeof(int), dbTypeName, false, false, null, null, false);
+              var colDef = new ColumnDef(assocFieldName, assocFieldName, typeof(int), dbTypeName, false, col.IsNullable, null, null, false);
 
               // Let's place the association def on that column!
               var ad2 = new AssociationDef(this);
               ad2.AssociationType = EAssociationType.Many;
-              ad2.TargetProperty = col.PropInfo;
+              ad2.AssociationProperty = col.PropInfo;
               ad2.TargetIDField = this.GetColumn(nameof(IHasPrimary.ID))!;
 
               colDef.AssociationDef = ad2;

@@ -44,7 +44,11 @@ public class AssociationDef
 
   public TableDef TargetSet { get; private set; }
   public ColumnDef TargetIDField { get; set; }
-  public PropertyInfo? TargetProperty { get; set; }
+
+  /// <summary>
+  /// The property on the data type that defines the association (ISingle*, IMany*, etc.)
+  /// </summary>
+  public PropertyInfo? AssociationProperty { get; set; }
 
   public EAssociationType AssociationType { get; set; }
 

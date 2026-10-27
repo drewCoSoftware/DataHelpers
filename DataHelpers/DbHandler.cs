@@ -351,7 +351,7 @@ public class DBHandler : IDisposable
     var rel = col.AssociationDef;
     if (rel.AssociationType == EAssociationType.Single)
     {
-      if (rel.TargetProperty == null)
+      if (rel.AssociationProperty == null)
       {
         throw new ArgumentNullException("A target property should be set on this association!");
       }
@@ -384,9 +384,9 @@ public class DBHandler : IDisposable
       // Create the instance of the association type + assign the ID.
       // TODO: At a later date we can decide if there is data in the result set (from a JOIN) where we would
       // populate the rest of the instance data.
-      var instance = Activator.CreateInstance(rel.TargetProperty.PropertyType) as ISingleAssociation; //    Activator.CreateInstance(targetSet.DataType) as IHasPrimary;
+      var instance = Activator.CreateInstance(rel.AssociationProperty.PropertyType) as ISingleAssociation; //    Activator.CreateInstance(targetSet.DataType) as IHasPrimary;
       instance.ID = (int)idVal;
-      rel.TargetProperty.SetValue(item, instance);
+      rel.AssociationProperty.SetValue(item, instance);
     }
   }
 

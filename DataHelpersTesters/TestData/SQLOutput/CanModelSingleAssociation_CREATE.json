@@ -1,0 +1,4 @@
+{
+  "IsApproved": true,
+  "SQL": "CREATE TABLE IF NOT EXISTS Towns (\r\nid INTEGER PRIMARY KEY NOT NULL, \r\nname TEXT NOT NULL\r\n);\r\n\r\nCREATE TABLE IF NOT EXISTS Addresses (\r\nid INTEGER PRIMARY KEY NOT NULL, \r\nstreet TEXT NOT NULL, \r\ncity TEXT NOT NULL, \r\nstate TEXT NOT NULL, \r\ntowns_id INTEGER NOT NULL,\r\nFOREIGN KEY(towns_id) REFERENCES Towns(ID)\r\n);\r\n\r\nCREATE TABLE IF NOT EXISTS People (\r\nid INTEGER PRIMARY KEY NOT NULL, \r\nname TEXT NOT NULL, \r\nnumber INTEGER NOT NULL, \r\naddresses_id INTEGER NOT NULL, \r\ntowns_id INTEGER NULL,\r\nFOREIGN KEY(addresses_id) REFERENCES Addresses(ID)\r\nFOREIGN KEY(towns_id) REFERENCES Towns(ID)\r\n);\r\n\r\n"
+}

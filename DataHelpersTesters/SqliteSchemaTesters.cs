@@ -495,7 +495,7 @@ public class SqliteSchemaTesters : TestBase
     var td = schema.GetTableDef<Address>();
     Assert.That(td.Columns.Count, Is.EqualTo(5));    // One extra property for the FK.
 
-    var col = td.GetColumn("town_id");
+    var col = td.GetColumn("towns_id");
     Assert.That(col, Is.Not.Null, "There should be a column for the town association!");
     var rel = col.AssociationDef;
     Assert.That(rel, Is.Not.Null, "The column should have a association!");
@@ -532,7 +532,7 @@ public class SqliteSchemaTesters : TestBase
     }
 
     // Now we will get the town with the included addresses back out from the DB:
-    string query = "SELECT * FROM Addresses WHERE town_id = @townId";
+    string query = "SELECT * FROM Addresses WHERE towns_id = @townId";
     factory.Action(dal =>
     {
       var addrs = dal.RunQuery<Address>(query, new { townId = t.ID }).ToList();
@@ -553,12 +553,15 @@ public class SqliteSchemaTesters : TestBase
     var factory = new SqliteDataFactory<BusinessSchema>(dir, nameof(CanModelSingleAssociation));
     FileTools.DeleteExistingFile(factory.DBFilePath);
 
+    string create = factory.Schema.GetCreateSQL();
+    CheckSQL($"{nameof(CanModelSingleAssociation)}_CREATE", create);
+
     factory.SetupDatabase();
     var schema = factory.Schema;
 
     // Show that we have a association from people to addresses:
     var td = schema.GetTableDef<Person>();
-    var fkCol = td.GetColumn($"address_id");
+    var fkCol = td.GetColumn($"addresses_id");
     Assert.That(fkCol, Is.Not.Null);
 
     var relatedSet = fkCol.AssociationDef;
@@ -607,7 +610,7 @@ public class SqliteSchemaTesters : TestBase
       var td = dal.SchemaDef.GetTableDef<Person>();
 
       // NOTE: We can update more of the API to use this kind of pattern!
-      var qParams = dal.SchemaDef.ComputeParametersFor(testPerson);
+      var qParams = dal.SchemaDef.ResolveQueryParams(testPerson);
       string query = td.GetInsertQuery(qParams.Keys.ToArray());
 
       int newId = dal.RunSingleQuery<int>(query, testPerson);
