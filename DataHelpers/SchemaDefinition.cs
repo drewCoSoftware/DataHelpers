@@ -1,12 +1,13 @@
 ﻿using drewCo.Tools;
-using System.Text;
-using System.Collections;
-using System.Collections.ObjectModel;
-using System.Linq.Expressions;
-using System.Formats.Asn1;
 using drewCo.Tools.Logging;
-using System.Reflection;
+using System.Collections;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Formats.Asn1;
+using System.Linq.Expressions;
 using System.Net.WebSockets;
+using System.Reflection;
+using System.Text;
 
 namespace DataHelpers.Data;
 
@@ -372,18 +373,26 @@ public class SchemaDefinition
       def.PopulateMembers();
     }
 
-    var allGeneratedSets = new List<TableDef>();
     foreach (var def in _TableDefs.Values)
     {
       // Now we can populate all of the members.
-      var generatedSets = def.PopulateAssociationMembers_LEGACY();
-      allGeneratedSets.AddRange(generatedSets);
+      // var generatedSets = def.PopulateAssociationMembers_LEGACY();
+      def.InitAssociationDefs();
+    }
+
+    // Now we can finalize associations, complete their mappings, and generate any necessary mapping tables.
+    List<TableDef> allGeneratedSets = new List<TableDef>();
+    foreach (var def in _TableDefs.Values)
+    {
+      List<TableDef> generated = def.FinalizeAssociations();
     }
 
     // Now we can remove all of the temp, related columns from each of the sets:
     foreach (var def in _TableDefs.Values)
     {
-      var toRemove = (from x in def.Columns where x.DataType == ColumnDef.ASSOCIATION_PLACEHOLDER select x).ToList();
+      var toRemove = (from x in def.Columns
+                      where x.DataType == ColumnDef.ASSOCIATION_PLACEHOLDER
+                      select x).ToList();
       foreach (var item in toRemove)
       {
         def.RemoveCol(item);
@@ -734,7 +743,7 @@ public class SchemaDefinition
             case EAssociationType.Single:
 
               string setName = ad.TargetSet.Name;
-              string useName = col.DataStoreName; 
+              string useName = col.DataStoreName;
 
               // TODO: I think I can get this directly from the def...or at least I should be able to.
               var relType = col.AssociatedDataSet.TargetSet.DataType; // col.PropInfo.PropertyType.GetGenericArguments()[0];

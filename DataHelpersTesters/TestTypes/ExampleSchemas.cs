@@ -7,10 +7,39 @@ using DataHelpers.Data;
 
 namespace DataHelpersTesters;
 
+// ==============================================================================================================================
+// ==============================================================================================================================
+public class OneWayOneToOneSchema {
+  public List<OneToOneSource> Sources { get; set; } = new List<OneToOneSource>();
+  public List<OneToOneTarget> Targets { get; set; } = new List<OneToOneTarget>();
+}
+
+// ==============================================================================================================================
+public class OneToOneSource : IHasPrimary
+{
+  public int ID { get; set; }
+  public string Name { get; set; }
+
+  [Association(nameof(OneWayOneToOneSchema))]
+  public SingleAssociation<OneToOneTarget> Targets { get; set; } =new SingleAssociation<OneToOneTarget>();
+}
+
+// ==============================================================================================================================
+public class OneToOneTarget : IHasPrimary
+{
+  public int ID { get; set; }
+  public string Name { get; set; }
+}
+
 
 // ==============================================================================================================================
 // ==============================================================================================================================
-public class SomeSchema
+
+
+
+// ==============================================================================================================================
+// ==============================================================================================================================
+public class OneWayManyToOneSchema
 {
   public List<SomeType> SomeTable { get; set; } = new List<SomeType>();
   public List<SomeOtherType> SomeOtherTable { get; set; } = new List<SomeOtherType>();
@@ -26,7 +55,7 @@ public class SomeType : IHasPrimary
   /// Here we can see that we have a many relation to another set, but that set doesn't have
   /// any defined associations to this one.
   /// </summary>
-  [Association(DataSetName = nameof(SomeSchema.SomeOtherTable))]
+  [Association(DataSetName = nameof(OneWayManyToOneSchema.SomeOtherTable))]
   public ManyAssociation<SomeOtherType> OtherStuff { get; set; } = new ManyAssociation<SomeOtherType>();
 }
 

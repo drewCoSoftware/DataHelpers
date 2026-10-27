@@ -5,6 +5,7 @@
 /// Describes a table that another is dependent upon.
 /// This is your typical Foreign Key relationship in an RDBMS system.
 /// </summary>
+[Obsolete("This will be replaced with AssociationDef")]
 public class AssociatedDatasetInfo
 {
   public TableDef TargetSet { get; set; }

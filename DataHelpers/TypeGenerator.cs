@@ -49,6 +49,8 @@ public class AssociationDef
   public EAssociationType AssociationType { get; set; }
 
   public string? LocalIDPropertyName { get; set; }
+
+  [Obsolete("We are going to only use 'LocalIDPropertyName' in the future!")]
   public string? TargetIDPropertyName { get; set; }
 }
 
@@ -88,11 +90,13 @@ public class AssociationAttribute : Attribute
   /// <summary>
   /// This is set internally, during schema computation.
   /// </summary>
+  [Obsolete("this will be removed!")]
   internal EAssociationType AssociationType { get; set; }
 
   /// <summary>
   /// The instance that stores the actualy association data.  This may not always be set, depending on the scenario.
   /// </summary>
+  [Obsolete("this will be removed!")]
   public PropertyInfo? TargetProperty { get; set; }
 
   // --------------------------------------------------------------------------------------------------------------------------

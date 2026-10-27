@@ -22,6 +22,15 @@ namespace DataHelpersTesters;
 // a way to generate test data for the query generation tests, I think this is very possible.
 public class SqliteSchemaTesters : TestBase
 {
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// This shows that we are able to create 
+  /// </summary>
+  [Test]
+  public void CanCreateOneWayOneToOneAssociation()
+  {
+    Assert.Fail("please complete this test!");
+  }
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
@@ -29,25 +38,47 @@ public class SqliteSchemaTesters : TestBase
   /// there wasn't an explicitly defined SingeAssociation on the target set.
   /// </summary>
   [Test]
-  public void CanCreateManyToOneRelationWithoutDefinedMutualAssociation() {
+  public void CanCreateoneWayManyToOneRelationAssociation()
+  {
 
-    IDataFactory<SomeSchema> factory = CreateTestDataBaseFor<SomeSchema>(CurrentFunctionName());
+    IDataFactory<OneWayManyToOneSchema> factory = CreateTestDataBaseFor<OneWayManyToOneSchema>(CurrentFunctionName());
 
     var s = factory.Schema;
     Assert.That(s, Is.Not.Null);
+
+    // Let's make sure that the data is correct.....
+    var t1 = s.GetTableDef<SomeType>();
+    Assert.That(t1.Columns.Count, Is.EqualTo(2), "The association property should have been removed!");
+
+
+    var t2 = s.GetTableDef<SomeOtherType>();
+
+    Assert.That(t2.Columns.Count, Is.EqualTo(3));
+    var mapCol = t2.GetColumn("sometable_id");
+    Assert.That(mapCol, Is.Not.Null);
+
+    // The mapped column should have the association def.
+    var ad = mapCol.AssociationDef;
+    Assert.That(ad, Is.Not.Null);
+    Assert.That(ad.AssociationType, Is.EqualTo(EAssociationType.ManyToOne));
+
+
+    // TOOD: We can add some code to show that we can do selects / adds / whatever.....
   }
 
 
   // --------------------------------------------------------------------------------------------------------------------------
   [Test]
-  public void CanUseGUIDInSchema() {
+  public void CanUseGUIDInSchema()
+  {
     IDataFactory<DataTypesSchema> factory = CreateTestDataBaseFor<DataTypesSchema>(CurrentFunctionName());
 
-    DateTimeOffset testDate= DateTimeOffset.Now;
+    DateTimeOffset testDate = DateTimeOffset.Now;
     Guid testGuid = Guid.NewGuid();
-    var i1 = new XtraDataTypes(){
+    var i1 = new XtraDataTypes()
+    {
       CreatedOn = testDate,
-      UserTag  = testGuid,
+      UserTag = testGuid,
     };
 
     factory.Add(i1);

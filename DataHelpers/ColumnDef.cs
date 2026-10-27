@@ -37,13 +37,16 @@ public class ColumnDef
   public AssociatedDatasetInfo? AssociatedDataSet { get; internal set; }
 
   /// <summary>
-  /// The association that is defined for this column.
-  /// This data is really only useful when the SchemaDefs are being computed.
+  /// A copy of the defining attriute for the association.
+  /// This is needed so we can properly define the associations in a later setup step.
   /// </summary>
-  internal AssociationDef? AssociationDef { get; set; } = null;
+  [Obsolete("This will be removed!")]
+  internal AssociationAttribute? AssociationAttr{ get; private set; } = null;
+
+  public AssociationDef? AssociationDef { get; internal set; } = null;
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public ColumnDef(string propName, string dataStoreName, Type runtimeType, string dataType, bool isPrimary, bool isNullable, AssociationDef? assocDef_, PropertyInfo? propInfo_, bool isComposite_)
+  public ColumnDef(string propName, string dataStoreName, Type runtimeType, string dataType, bool isPrimary, bool isNullable, AssociationAttribute? assocAttr_, PropertyInfo? propInfo_, bool isComposite_)
   {
     PropertyName = propName;
     DataStoreName = dataStoreName;
@@ -51,7 +54,7 @@ public class ColumnDef
     DataType = dataType;
     IsPrimary = isPrimary;
     IsNullable = isNullable;
-    AssociationDef = assocDef_;
+    AssociationAttr = assocAttr_;
     PropInfo = propInfo_;
 
     IsComposite = isComposite_;

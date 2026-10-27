@@ -9,8 +9,28 @@ namespace DataHelpers;
 public enum EAssociationType
 {
   Invalid = 0,
+
+  /// <summary>
+  /// This set is associated with exactly one instance of another set.  (OneToOne)
+  /// </summary>
   Single,
-  Many
+
+  /// <summary>
+  /// This set is associated with multiple instances of another set.    (OneToMany)
+  /// </summary>
+  Many,
+
+
+  /// <summary>
+  /// ONE instance of the target data set is associated with MANY instances of this set.
+  /// </summary>
+  ManyToOne,
+
+  /// <summary>
+  /// MANY instances of the target data set are associated with ONE instance of this set.
+  /// </summary>
+  OneToMany,
+  // OneToMany,
 }
 
 // ==========================================================================
