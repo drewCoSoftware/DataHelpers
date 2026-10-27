@@ -52,23 +52,26 @@ public class SqliteSchemaTesters : TestBase
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
-  /// This shows that we are able to create mutual one-one associations.
+  /// This shows that trying to have a circular reference in the schema will not work!
   /// </summary>
   [Test]
-  public void CanCreateMutual_OneToOne_Association()
+  public void CircularAssociationsAreNotAllows()
   {
-    var factory = CreateTestDataBaseFor<MutualOneToOneSchema>(CurrentFunctionName());
-    var s = factory.Schema;
-    Assert.That(s, Is.Not.Null);
+    Assert.Throws<InvalidOperationException>(() =>
+    {
+      // Both sets in the schema have an association to each other, which is not allowed!
+      // Yes, there are ways to resolve this, but it is a huge pain the dick, so we aren't
+      // going to support it!
+      var factory = CreateTestDataBaseFor<MutualOneToOneSchema>(CurrentFunctionName());
+      var s = factory.Schema;
+      Assert.That(s, Is.Not.Null);
 
-    var t1 = factory.Schema.GetTableDef<MOTOSource>();
-    Assert.That(t1.Columns.Count, Is.EqualTo(3));
+      var t1 = factory.Schema.GetTableDef<MOTOSource>();
+      Assert.That(t1.Columns.Count, Is.EqualTo(3));
 
-    var t2 = factory.Schema.GetTableDef<MOTOTarget>();
-    Assert.That(t2.Columns.Count, Is.EqualTo(3));
-
-    // Add some extra checks for association info?
-    // t1.AssociatedDataSets
+      var t2 = factory.Schema.GetTableDef<MOTOTarget>();
+      Assert.That(t2.Columns.Count, Is.EqualTo(3));
+    });
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -618,7 +621,7 @@ public class SqliteSchemaTesters : TestBase
   /// This shows that properties with the 'Relation' attribute will automatically have FK associations setup in the schema / defs.
   /// </summary>
   [Test]
-  public void CanCreateForeignKeyFromRelation()
+  public void CanCreateForeignKeyFromAssociation()
   {
 
     var schemaDef = new SchemaDefinition(new SqliteFlavor(), typeof(BusinessSchema));
@@ -638,14 +641,14 @@ public class SqliteSchemaTesters : TestBase
       var td = schemaDef.GetTableDef<Address>();
       string createQuery = td.GetCreateQuery();
 
-      CheckSQL(nameof(CanCreateForeignKeyFromRelation) + "\\Address", createQuery);
+      CheckSQL(nameof(CanCreateForeignKeyFromAssociation) + "\\Address", createQuery);
     }
 
     {
       var td = schemaDef.GetTableDef<Person>();
       string createQuery = td.GetCreateQuery();
 
-      CheckSQL(nameof(CanCreateForeignKeyFromRelation) + "\\Person", createQuery);
+      CheckSQL(nameof(CanCreateForeignKeyFromAssociation) + "\\Person", createQuery);
     }
 
     //{

@@ -365,7 +365,6 @@ public class BusinessSchema
   public List<Person> People { get; set; } = new List<Person>();
   public List<Address> Addresses { get; set; } = new List<Address>();
   public List<Town> Towns { get; set; } = new List<Town>();
-  //public List<ClientAccount> ClientAccounts { get; set; } = new List<ClientAccount>();
 }
 
 // ==========================================================================
@@ -383,25 +382,6 @@ public class Person : IHasPrimary
 
   [Association(nameof(BusinessSchema.Towns))]
   public SingleAssociation<Town>? HomeTown { get; set; } = null;
-
-  //[Relation(nameof(BusinessSchema.Addresses))]
-  //public SingleAssociation<Address>? HomeAddress { get; set; } = null;
-
-  ///// <summary>
-  ///// Shows that we can use an explicit name for the data set that this is related to.
-  ///// </summary>
-  //[Relationship(DataSet = nameof(BusinessSchema.Addresses))]
-  //public Address Address { get; set; }
-
-  ////  public int Address_ID { get; set; }
-
-  ///// <summary>
-  ///// This will automatically use the data set name 'ClientAccounts'
-  ///// Note that this relationship, as far as a database is concerned, will require an FK on
-  ///// the associated data set, and this FK will be created automatically.
-  ///// </summary>
-  //[Relationship]
-  //public List<ClientAccount> ClientAccounts { get; set; } = null;
 }
 
 // ==========================================================================

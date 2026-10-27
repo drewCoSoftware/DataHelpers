@@ -729,6 +729,11 @@ public class TableDef
       {
         var ad = col.AssociationDef;
 
+        // NOTE: I don't think that we need to do any other integrity checking at this time.
+        // That should all be handled during schema generation...
+        // Yes, if we do it that way, then the checks below get a lot simpler.
+        AssociatedDataSets.Add(ad);
+
 
         // We need to make sure that the data type mentioned in the Association Attribute
         // matches the data type of the (Single|Many)Association.
@@ -760,9 +765,6 @@ public class TableDef
             throw new InvalidOperationException("Unsupported association type!");
         }
 
-        // NOTE: I don't think that we need to do any other integrity checking at this time.
-        // That should all be handled during schema generation...
-        AssociatedDataSets.Add(ad);
 
         //AssociatedDatasetInfo ddsInfo = new()
         //{
@@ -960,11 +962,11 @@ public class TableDef
               mutual = match.AssociationDef;
             }
 
-            if (mutual != null)
-            {
-              // This is where we will check for the need to create a mapping table or whatever....
-              throw new InvalidOperationException();
-            }
+            //if (mutual != null)
+            //{
+            //  // This is where we will check for the need to create a mapping table or whatever....
+            //  throw new InvalidOperationException();
+            //}
           }
           break;
 
@@ -980,187 +982,188 @@ public class TableDef
 
     return res;
   }
-  // --------------------------------------------------------------------------------------------------------------------------
-  /// <summary>
-  /// This will create any column defs that are required to correctly represent the relations
-  /// in the schema.  This step DOES not create the actual links, it just gets the dynamic members in place
-  /// so that they can be validated + populated correctly in a later step.
-  /// </summary>
-  /// <returns>
-  /// A list of new <see cref="TableDef"/> instances that represent mapping sets that should be created.
-  /// These mapping sets are auto-generated based on how associations are setup in the rest of the schema.
-  /// </returns>
-  internal List<TableDef> PopulateAssociationMembers_LEGACY()
-  {
-    var newMappingSets = new List<TableDef>();
 
-    var toAdd = new List<ColumnDef>();
+  //// --------------------------------------------------------------------------------------------------------------------------
+  ///// <summary>
+  ///// This will create any column defs that are required to correctly represent the relations
+  ///// in the schema.  This step DOES not create the actual links, it just gets the dynamic members in place
+  ///// so that they can be validated + populated correctly in a later step.
+  ///// </summary>
+  ///// <returns>
+  ///// A list of new <see cref="TableDef"/> instances that represent mapping sets that should be created.
+  ///// These mapping sets are auto-generated based on how associations are setup in the rest of the schema.
+  ///// </returns>
+  //internal List<TableDef> PopulateAssociationMembers_LEGACY()
+  //{
+  //  var newMappingSets = new List<TableDef>();
 
-    // Let's find all the associations first...
-    foreach (var col in this.Columns)
-    {
-      if (col.AssociationAttr != null)
-      {
-        var aa = col.AssociationAttr;
-        // OBSOLETE:??
-        // rd.RelationType = GetRelationType(col.RuntimeType);
+  //  var toAdd = new List<ColumnDef>();
 
-        //// Get the matching data set....
-        //var targetSet = aa.TargetSet; // this.Schema.GetTableDef(col.AssociationDef.TargetSet.Name);
-        //if (targetSet == null)
-        //{
-        //  throw new InvalidOperationException($"There is no data set named: {targetSet}");
-        //}
+  //  // Let's find all the associations first...
+  //  foreach (var col in this.Columns)
+  //  {
+  //    if (col.AssociationAttr != null)
+  //    {
+  //      var aa = col.AssociationAttr;
+  //      // OBSOLETE:??
+  //      // rd.RelationType = GetRelationType(col.RuntimeType);
 
-        // This is where we can setup the link to the other data set....
-        // Depends on the type of association, of course.
-        if (ReflectionTools.HasInterface<ISingleAssociation>(col.RuntimeType))
-        {
-          // In single associations we use a column from this type.
-          // Because we are using one of our special data types, that defined column is mapped to it. <-- review this, does it make sense?
-          string propName = aa.IDFieldName ?? $"{col.DataStoreName}_{nameof(IHasPrimary.ID).ToLower()}";
-          string colName = Schema.Flavor.GetDataStoreName(propName);
-          aa.IDFieldName = propName;
+  //      //// Get the matching data set....
+  //      //var targetSet = aa.TargetSet; // this.Schema.GetTableDef(col.AssociationDef.TargetSet.Name);
+  //      //if (targetSet == null)
+  //      //{
+  //      //  throw new InvalidOperationException($"There is no data set named: {targetSet}");
+  //      //}
 
-          var match = this.GetColumn(propName);
+  //      // This is where we can setup the link to the other data set....
+  //      // Depends on the type of association, of course.
+  //      if (ReflectionTools.HasInterface<ISingleAssociation>(col.RuntimeType))
+  //      {
+  //        // In single associations we use a column from this type.
+  //        // Because we are using one of our special data types, that defined column is mapped to it. <-- review this, does it make sense?
+  //        string propName = aa.IDFieldName ?? $"{col.DataStoreName}_{nameof(IHasPrimary.ID).ToLower()}";
+  //        string colName = Schema.Flavor.GetDataStoreName(propName);
+  //        aa.IDFieldName = propName;
 
-          // NOTE: I think that this should blow up if we are trying to add a duplicate member...?
-          // NOTE: Actually this exists to detect cases where the association is already defined.  This can happen in one-many, or many->many
-          // type scenarios.
-          if (match == null)
-          {
-            match = (from x in toAdd
-                     where x.PropertyName == propName
-                     select x).SingleOrDefault();
-          }
+  //        var match = this.GetColumn(propName);
 
-          if (match == null)
-          {
-            // Create the new def.....
-            string dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
-            var cd = new ColumnDef(propName, colName, typeof(int), dbTypeName, false, col.IsNullable, aa, null, false);
-            toAdd.Add(cd);
-          }
-          else
-          {
-            Log.Verbose("The association is already defined!");
-          }
+  //        // NOTE: I think that this should blow up if we are trying to add a duplicate member...?
+  //        // NOTE: Actually this exists to detect cases where the association is already defined.  This can happen in one-many, or many->many
+  //        // type scenarios.
+  //        if (match == null)
+  //        {
+  //          match = (from x in toAdd
+  //                   where x.PropertyName == propName
+  //                   select x).SingleOrDefault();
+  //        }
 
-
-        }
-        else if (ReflectionTools.HasInterface<IManyAssociation>(col.RuntimeType))
-        {
-          // If the target dataset also has a many associations that points back to this one, then
-          // we probably need to create some kind of mapping table!
-          var relSet = this.Schema.GetTableDef(col.AssociationDef.TargetSet.Name);
-          if (relSet == null)
-          {
-            throw new InvalidOperationException($"Related data set does not exist in the schema!");
-          }
-
-          // Find a ref to this dataset in the def?
-          var mutualAssoc = relSet.GetAssociationTo(this);
-
-          // if (mutualRelation.DataSetName == this.Name) { throw new Exception("cicular dependency?"); }
-
-          if (mutualAssoc != null &&
-              mutualAssoc.AssociationType == EAssociationType.Many &&
-              mutualAssoc.TargetSet.Name == this.Name)
-          {
-            // This is a many-many relationship!
-            string mtName = ComputeMappingSetName(relSet, mutualAssoc);
-            var matchSet = Schema.GetTableDef(mtName, true);
-            if (matchSet == null)
-            {
-              TableDef td = CreateMappingSet(relSet, mutualAssoc, mtName);
-
-              // Make sure that it doesn't already exist!
-              var existing = (from x in newMappingSets
-                              where x.Name == td.Name
-                              select x).SingleOrDefault();
-              if (existing != null)
-              {
-                throw new InvalidOperationException("The mapping table may already exists.... check it more....");
-              }
-              newMappingSets.Add(td);
-
-            }
-            else
-            {
-              // Handle the scenario where the mapping table is already defined....
-              throw new Exception("Handle this scenario: see comment!");
-            }
-          }
-          else
-          {
-            // This is a one-many relationship.
-
-            // This column def gets added to the target dataset, NOT this one....
-            // NOTE: This needs to be resolved from the associated dataset.  We can't use a single naming convention here!
-            //throw new InvalidOperationException("FK name resolution logic is invalid!  Resolve from target association as it may already exist!");
-            //string useName = rd.TargetIDPropertyName ?? $"{this.Name}_{nameof(IHasPrimary.ID)}";
-
-            string useName = mutualAssoc?.LocalIDPropertyName!;
-            if (useName == null) { useName = $"{col.PropertyName}_{nameof(IHasPrimary.ID)}"; }
-
-            // != null mutualAssoc.LocalIDPropertyName;
-            string sqlName = Schema.Flavor.GetDataStoreName(useName);
-
-            //var match = targetSet.GetColumn(useName);
-            //if (match != null)
-            //{
-            //  Log.Verbose($"A column named: {useName} has already been defined on data set: {targetSet.Name}");
-            //  continue;
-            //}
+  //        if (match == null)
+  //        {
+  //          // Create the new def.....
+  //          string dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
+  //          var cd = new ColumnDef(propName, colName, typeof(int), dbTypeName, false, col.IsNullable, aa, null, false);
+  //          toAdd.Add(cd);
+  //        }
+  //        else
+  //        {
+  //          Log.Verbose("The association is already defined!");
+  //        }
 
 
-            string dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
+  //      }
+  //      else if (ReflectionTools.HasInterface<IManyAssociation>(col.RuntimeType))
+  //      {
+  //        // If the target dataset also has a many associations that points back to this one, then
+  //        // we probably need to create some kind of mapping table!
+  //        var relSet = this.Schema.GetTableDef(col.AssociationDef.TargetSet.Name);
+  //        if (relSet == null)
+  //        {
+  //          throw new InvalidOperationException($"Related data set does not exist in the schema!");
+  //        }
 
-            var useRelation = new AssociationDef(this)
-            {
-              TargetIDPropertyName = nameof(IHasPrimary.ID),
-              AssociationType = EAssociationType.Many,
-              TargetProperty = mutualAssoc?.TargetProperty ?? col.PropInfo, // null; // ?? relSet.GetColumn(nameof(IHasPrimary.ID)).PropInfo;
-            };
+  //        // Find a ref to this dataset in the def?
+  //        var mutualAssoc = relSet.GetAssociationTo(this);
 
-            //// TODO: This is where we would check to make sure that there is already a column with the correct
-            //// name that corresponds to a SingleAssociation or ManyAssociation member....
-            ////var match = targetSet.GetColumn(useName);
-            //if (match != null)
-            //{
-            //  // There should be a association, and it should point to this set!
-            //  if (match.AssociationDef == null || match.AssociationDef.TargetSet.Name != this.Name)
-            //  {
-            //    throw new InvalidOperationException($"There should be a association on column: {useName} that points to this Dataset ({this.Name})!");
-            //  }
-            //  int x = 10;
-            //}
+  //        // if (mutualRelation.DataSetName == this.Name) { throw new Exception("cicular dependency?"); }
 
-            //var colDef = new ColumnDef(useName, sqlName, typeof(int), dbTypeName, false, false, useRelation, null, false);
-            //targetSet.AddColumn(colDef);
-          }
-        }
-        else if (col.RuntimeType == typeof(int))
-        {
-          // This is probably a generated property... I think that we can maybe leave it alone / ignore it.
-          // We don't need to create a new column, table, etc.
-          // Otherwise we need to flag the column as 'generated' which may be the best approach....
-          continue;
-        }
-        else
-        {
-          throw new InvalidOperationException($"The column type: {col.RuntimeType} is not supported!");
-        }
-      }
-    }
+  //        if (mutualAssoc != null &&
+  //            mutualAssoc.AssociationType == EAssociationType.Many &&
+  //            mutualAssoc.TargetSet.Name == this.Name)
+  //        {
+  //          // This is a many-many relationship!
+  //          string mtName = ComputeMappingSetName(relSet, mutualAssoc);
+  //          var matchSet = Schema.GetTableDef(mtName, true);
+  //          if (matchSet == null)
+  //          {
+  //            TableDef td = CreateMappingSet(relSet, mutualAssoc, mtName);
 
-    foreach (var newCol in toAdd)
-    {
-      this.AddColumn(newCol);
-    }
+  //            // Make sure that it doesn't already exist!
+  //            var existing = (from x in newMappingSets
+  //                            where x.Name == td.Name
+  //                            select x).SingleOrDefault();
+  //            if (existing != null)
+  //            {
+  //              throw new InvalidOperationException("The mapping table may already exists.... check it more....");
+  //            }
+  //            newMappingSets.Add(td);
 
-    return newMappingSets;
-  }
+  //          }
+  //          else
+  //          {
+  //            // Handle the scenario where the mapping table is already defined....
+  //            throw new Exception("Handle this scenario: see comment!");
+  //          }
+  //        }
+  //        else
+  //        {
+  //          // This is a one-many relationship.
+
+  //          // This column def gets added to the target dataset, NOT this one....
+  //          // NOTE: This needs to be resolved from the associated dataset.  We can't use a single naming convention here!
+  //          //throw new InvalidOperationException("FK name resolution logic is invalid!  Resolve from target association as it may already exist!");
+  //          //string useName = rd.TargetIDPropertyName ?? $"{this.Name}_{nameof(IHasPrimary.ID)}";
+
+  //          string useName = mutualAssoc?.LocalIDPropertyName!;
+  //          if (useName == null) { useName = $"{col.PropertyName}_{nameof(IHasPrimary.ID)}"; }
+
+  //          // != null mutualAssoc.LocalIDPropertyName;
+  //          string sqlName = Schema.Flavor.GetDataStoreName(useName);
+
+  //          //var match = targetSet.GetColumn(useName);
+  //          //if (match != null)
+  //          //{
+  //          //  Log.Verbose($"A column named: {useName} has already been defined on data set: {targetSet.Name}");
+  //          //  continue;
+  //          //}
+
+
+  //          string dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
+
+  //          var useRelation = new AssociationDef(this)
+  //          {
+  //            TargetIDPropertyName = nameof(IHasPrimary.ID),
+  //            AssociationType = EAssociationType.Many,
+  //            TargetProperty = mutualAssoc?.TargetProperty ?? col.PropInfo, // null; // ?? relSet.GetColumn(nameof(IHasPrimary.ID)).PropInfo;
+  //          };
+
+  //          //// TODO: This is where we would check to make sure that there is already a column with the correct
+  //          //// name that corresponds to a SingleAssociation or ManyAssociation member....
+  //          ////var match = targetSet.GetColumn(useName);
+  //          //if (match != null)
+  //          //{
+  //          //  // There should be a association, and it should point to this set!
+  //          //  if (match.AssociationDef == null || match.AssociationDef.TargetSet.Name != this.Name)
+  //          //  {
+  //          //    throw new InvalidOperationException($"There should be a association on column: {useName} that points to this Dataset ({this.Name})!");
+  //          //  }
+  //          //  int x = 10;
+  //          //}
+
+  //          //var colDef = new ColumnDef(useName, sqlName, typeof(int), dbTypeName, false, false, useRelation, null, false);
+  //          //targetSet.AddColumn(colDef);
+  //        }
+  //      }
+  //      else if (col.RuntimeType == typeof(int))
+  //      {
+  //        // This is probably a generated property... I think that we can maybe leave it alone / ignore it.
+  //        // We don't need to create a new column, table, etc.
+  //        // Otherwise we need to flag the column as 'generated' which may be the best approach....
+  //        continue;
+  //      }
+  //      else
+  //      {
+  //        throw new InvalidOperationException($"The column type: {col.RuntimeType} is not supported!");
+  //      }
+  //    }
+  //  }
+
+  //  foreach (var newCol in toAdd)
+  //  {
+  //    this.AddColumn(newCol);
+  //  }
+
+  //  return newMappingSets;
+  //}
 
 
   // --------------------------------------------------------------------------------------------------------------------------

@@ -25,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="TestData\SQLOutput\CanCreateForeignKeyFromRelation\" />
+    <Folder Include="TestData\SQLOutput\CanCreateForeignKeyFromAssociation\" />
     <Folder Include="TestData\SQLOutput\GenerateInsert\" />
   </ItemGroup>
 
