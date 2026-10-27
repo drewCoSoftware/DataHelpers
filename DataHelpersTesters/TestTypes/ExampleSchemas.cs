@@ -356,7 +356,7 @@ public class Place : IHasPrimary
   /// All of the people that have visited this place.
   /// </summary>
   [Association(DataSetName = nameof(VacationSchema.Travelers))]
-  public ManyAssociation<Person> Visitors { get; set; }
+  public ManyAssociation<Traveler> Visitors { get; set; }
 }
 
 // ==========================================================================

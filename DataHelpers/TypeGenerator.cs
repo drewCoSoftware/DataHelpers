@@ -1,5 +1,7 @@
 ﻿using drewCo.Curations;
+using System.Net;
 using System.Reflection;
+using System.Runtime.Intrinsics.Arm;
 
 namespace DataHelpers.Data;
 
@@ -42,7 +44,14 @@ public class AssociationDef
     TargetSet = targetSet_;
   }
 
+  /// <summary>
+  /// The target data set that this association points to.
+  /// </summary>
   public TableDef TargetSet { get; private set; }
+  
+  /// <summary>
+  /// The field of the ID in the target data set.
+  /// </summary>
   public ColumnDef TargetIDField { get; set; }
 
   /// <summary>
@@ -50,8 +59,17 @@ public class AssociationDef
   /// </summary>
   public PropertyInfo? AssociationProperty { get; set; }
 
+  /// <summary>
+  /// What kind of association is this?
+  /// </summary>
   public EAssociationType AssociationType { get; set; }
 
+  /// <summary>
+  /// Indicates that associations to the target set are required.  In a database, this would be a nullable foreign key.
+  /// </summary>
+  public bool IsOptional { get; set; }
+
+  [Obsolete("this should be replaced with 'local field' but probably only for singel associaitons.")]
   public string? LocalIDPropertyName { get; set; }
 
   [Obsolete("We are going to only use 'LocalIDPropertyName' in the future!")]
@@ -61,11 +79,12 @@ public class AssociationDef
   /// <summary>
   /// This tells us if we have a dependency on the given table, anywhere in the chain....
   /// </summary>
-  internal bool HasTableDependency(TableDef t)
+  internal bool HasTableDependency(TableDef toDataSet)
   {
+    if (IsOptional) { return false; }
     foreach (var dep in this.TargetSet.AssociationDefs)
     {
-      if (dep.TargetSet.DataType == t.DataType)
+      if (!dep.IsOptional && dep.TargetSet.DataType == toDataSet.DataType)
       {
         return true;
       }

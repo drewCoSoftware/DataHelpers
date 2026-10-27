@@ -272,12 +272,11 @@ public class SqliteSchemaTesters : TestBase
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
-  /// This test case was provided to show that 
+  /// This test case was provided to show that associations can be nullable.
   /// </summary>
   [Test]
   public void CanUseOptionalAssociation()
   {
-
     IDataFactory<VacationSchema> factory = CreateTestDataBaseFor<VacationSchema>(CurrentFunctionName());
     var schema = factory.Schema;
 
@@ -287,8 +286,6 @@ public class SqliteSchemaTesters : TestBase
     var opRelation = td.GetColumn("FavoritePlace_ID");
     Assert.That(opRelation, Is.Not.Null);
     Assert.That(opRelation.IsNullable, "This property should be marked as nullable!");
-
-
   }
 
 

@@ -915,6 +915,7 @@ public class TableDef
               // HMM.... is this the same thing?
               ad.TargetIDField = targetSet.GetColumn(nameof(IHasPrimary.ID));
               ad.AssociationProperty = col.PropInfo; // ad.TargetProperty
+              ad.IsOptional = col.IsNullable;
 
               fkField.AssociationDef = ad;
 
@@ -943,6 +944,7 @@ public class TableDef
               ad2.AssociationType = EAssociationType.Many;
               ad2.AssociationProperty = col.PropInfo;
               ad2.TargetIDField = this.GetColumn(nameof(IHasPrimary.ID))!;
+              ad2.IsOptional = col.IsNullable;
 
               colDef.AssociationDef = ad2;
 
