@@ -154,11 +154,10 @@ public class TableDef
       bool isPrimary = p.Name == nameof(IHasPrimary.ID) || ReflectionTools.HasAttribute<PrimaryKey>(p);
 
       var assocAttr = ReflectionTools.GetAttribute<AssociationAttribute>(p);
-      //AssociationDef? ad = null;
-      //if (assocAttr != null)
-      //{
-      //  ad = ComputeAssociationDef(p, assocAttr);
-      //}
+      if (assocAttr != null && !ReflectionTools.HasInterface<IRelation>(p.PropertyType))
+      {
+        throw new InvalidOperationException($"Property: {p.Name} has an association attribute, but does not implement the {nameof(IRelation)} interface!");
+      }
 
       // We want to warn when single/multi-associations don't have the proper attribute.
       bool isRelationType = IsRelationType(p.PropertyType);

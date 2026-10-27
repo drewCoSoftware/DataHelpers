@@ -830,30 +830,28 @@ public class SqliteSchemaTesters : TestBase
 
 
 
-
-
-
-
 // ==========================================================================
 public class SchemaWithNonPrimaryType
 {
   public TypeWithoutPrimary DataSet1 { get; set; }
-  public TypewithRelationToNonPrimary DataSet2 { get; set; }
+  public TypeWithAssociationToNonPrimary DataSet2 { get; set; }
 }
 
 // ==========================================================================
-public class TypewithRelationToNonPrimary : IHasPrimary
+public class TypeWithAssociationToNonPrimary : IHasPrimary
 {
   public int ID { get; set; }
   public int Number { get; set; }
 
-  [AssociationAttribute(DataSetName = nameof(SchemaWithNonPrimaryType.DataSet1))]
+  // NOTE: This declaration is completely invalid.
+  // The schema generation code will blow up if it encounters this!
+  [Association(DataSetName = nameof(SchemaWithNonPrimaryType.DataSet1))]
   public TypeWithoutPrimary Relation { get; set; }
 }
 
 // ==========================================================================
 /// <summary>
-/// A data type without a primary key.  This can't be used in child relationships.
+/// A data type without a primary key.  This can't be used in associations.
 /// </summary>
 public class TypeWithoutPrimary
 {
