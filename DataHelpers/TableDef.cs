@@ -92,6 +92,7 @@ public class TableDef
     if (ReflectionTools.HasInterface<ISingleAssociation>(p.PropertyType))
     {
       matchName = p.Name + "_ID";
+      matchName = Schema.Flavor.GetDataStoreName(matchName);
     }
     // NOTE: This is where a column map would come in handy.  less digging around in loops!
     var res = (from x in this.Columns where x.PropertyName == matchName select x).SingleOrDefault();
@@ -824,7 +825,7 @@ public class TableDef
         {
           AssociationType = assocType,
           LocalIDPropertyName = attr.IDFieldName,
-          TargetIDPropertyName = attr.TargetIDPropertyName,
+          //TargetIDPropertyName = attr.TargetIDPropertyName,
           // NOTE: The rest of the properties will be resolved later.
         };
 
@@ -879,8 +880,8 @@ public class TableDef
             // In a later step, we check for and annotate any mutual associations. (that might also be where we create mapping tables if needed?) --> Probably!
             //            var exists = 
             //// This is different.  We want to check the target set for a column name that mathches the one we generate here!
-            string fieldName = aa.IDFieldName ?? $"{targetSet.Name}_{nameof(IHasPrimary.ID)}";
-            fieldName = this.Schema.Flavor.GetDataStoreName(fieldName);
+            //TODO: Wrap this in a function + replace clones.
+            string fieldName = ResolveFieldName(aa, targetSet);
 
             // See if it exists on the target set, or if we need to add it....
             var fkField = this.GetColumnByDataStoreName(fieldName);
@@ -889,7 +890,11 @@ public class TableDef
               fkField = (from x in toAdd where x.PropertyName == fieldName select x).SingleOrDefault();
             }
 
-            if (fkField == null)
+            if (fkField != null)
+            {
+              throw new InvalidOperationException($"A field named: {fieldName} for single association on set '{this.Name}' is already defined!  Set a unique name on attribute property: {nameof(AssociationAttribute.IDFieldName)}");
+            }
+            else 
             {
 
               var dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
@@ -913,8 +918,7 @@ public class TableDef
         case EAssociationType.Many:
           {
             // Let's check the associated set to see if there is a matching association def:
-            string assocFieldName = aa.IDFieldName ?? $"{this.Name}_{nameof(IHasPrimary.ID)}";
-            assocFieldName = this.Schema.Flavor.GetDataStoreName(assocFieldName);
+            string assocFieldName = ResolveFieldName(aa, this);
 
             var match = targetSet.GetColumnByDataStoreName(assocFieldName);
             if (match == null)
@@ -948,6 +952,17 @@ public class TableDef
     {
       this.AddColumn(item);
     }
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private string ResolveFieldName(AssociationAttribute aa, TableDef? targetSet)
+  {
+    string res = aa.IDFieldName ?? $"{targetSet.Name}_{nameof(IHasPrimary.ID)}";
+    res = this.Schema.Flavor.GetDataStoreName(res);
+    if (!res.EndsWith("id")) { 
+      res += "_id";
+    }
+    return res;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------

@@ -82,6 +82,12 @@ namespace DataHelpersTesters
       var schema = new SchemaDefinition(new SqliteFlavor(), typeof(BusinessSchema));
       IDataFactory<BusinessSchema> factory = CreateTestDataBaseFor<BusinessSchema>(TEST_NAME);
 
+      // Make sure that the associations are correct.....
+      var adt = factory.Schema.GetTableDef<Address>();
+      var tcol = adt.GetColumnByDataStoreName("towns_id");
+      var assoc = tcol.AssociationDef;
+      Assert.That(assoc.AssociationType, Is.EqualTo(EAssociationType.Single), "Invalid / polluted association type!");
+
       var town = new Town()
       {
         Name = "MyTown"
@@ -133,16 +139,15 @@ namespace DataHelpersTesters
     {
       const string TEST_NAME = nameof(AssociationsAreGeneratedForMultipleLinkedDataSets);
 
-      var schema = new SchemaDefinition(new SqliteFlavor(), typeof(SchemaWithMappedTypes));
-      IDataFactory<SchemaWithMappedTypes> factory = CreateTestDataBaseFor<SchemaWithMappedTypes>(TEST_NAME);
+      var factory = CreateTestDataBaseFor<SchemaWithMappedTypes>(TEST_NAME);
 
       var td = factory.Schema.GetTableDef<Matchup>();
       Assert.That(td.Columns.Count, Is.EqualTo(3), "There should be three columns!");
 
-      string[] cols = new[] { "favorite_id", "other_id" };
+      string[] cols = new[] { "teams_id", "otherteam_id" };
       foreach (var cName in cols)
       {
-        var col = td.GetColumn(cName, true);
+        var col = td.GetColumnByDataStoreName(cName);
         Assert.That(col.AssociationDef, Is.Not.Null, "There should be an associated dataset for this column!");
       }
     }

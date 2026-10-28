@@ -102,6 +102,8 @@ public interface IDataFactory<TSchema>
   // TODO: Make a 'paged' version of this function (GetPaged)
   TEntity[] Get<TEntity>(Expression<Func<TEntity, bool>> predicate)
   {
+    throw new NotImplementedException("this does not work in any way...");
+
     // throw new NotImplementedException("This is not working at this time!");
     int x = 10;
 

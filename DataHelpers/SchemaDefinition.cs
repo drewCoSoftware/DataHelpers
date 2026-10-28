@@ -463,31 +463,6 @@ public class SchemaDefinition
       def.GetAssociationList();
     }
 
-    //// Pass two, detect and resolve many-many associations + generate mapping tables as needed.
-    //foreach (var def in _TableDefs.Values)
-    //{
-    //  foreach (var col in def.Columns)
-    //  {
-
-
-
-    //  }
-    //}
-
-    // TEMP: OLD:
-    //List<TableDef> allGeneratedSets = new List<TableDef>();
-
-    //// Add the generated sets to the Schema def.
-    //// We filter them first because at time of writing it is possible to double-define them (no way to detect that one has been created in prior step)
-    //allGeneratedSets = GetUniqueSets(allGeneratedSets);
-
-
-    //foreach (var item in allGeneratedSets)
-    //{
-    //  this._TableDefs.Add(item.Name, item);
-    //}
-
-
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -883,6 +858,7 @@ public class SchemaDefinition
               // Scenario one:
               // A one -> many relationship just means that some other Dataset has an FK to this one.
               // In that case, there is nothing for us to include, esp. if this is an INSERT query.
+              
               // TODO: We don't have any indication as to what type of query we are creating params for,
               // so we should look into it at some point.
               var manyVal = col.PropInfo.GetValue(fromInstance);

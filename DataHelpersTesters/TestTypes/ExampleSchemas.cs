@@ -112,7 +112,7 @@ public class MMOTO_MANY : IHasPrimary
   /// any defined associations to this one.
   /// </summary>
   [Association(DataSetName = nameof(SchemaWithRedundantAssociationDefs.OneTable))]
-  public ManyAssociation<MMOTO_ONE> OtherStuff { get; set; } = new ManyAssociation<MMOTO_ONE>();
+  public ManyAssociation<MMOTO_ONE> OtherOne { get; set; } = new ManyAssociation<MMOTO_ONE>();
 }
 
 // ==============================================================================================================================
@@ -124,7 +124,7 @@ public class MMOTO_ONE : IHasPrimary
   // This association is redundant, and should CRASH on schema generation.
   // Because an ID field that points back to the MMOTO_MANY set is created, this one is no longer needed!
   [Association(DataSetName = nameof(SchemaWithRedundantAssociationDefs.ManyTable))]
-  public SingleAssociation<MMOTO_MANY> OtherStuff { get; set; } = new SingleAssociation<MMOTO_MANY>();
+  public SingleAssociation<MMOTO_MANY> OtherMany { get; set; } = new SingleAssociation<MMOTO_MANY>();
 
 }
 // ==============================================================================================================================
@@ -168,10 +168,16 @@ public class Matchup : IHasPrimary
 {
   public int ID { get; set; }
 
+  /// <summary>
+  /// We have a favored team.
+  /// </summary>
   [Association(nameof(SchemaWithMappedTypes.Teams))]
   public SingleAssociation<Team> Favorite { get; set; } = new SingleAssociation<Team>();
 
-  [Association(nameof(SchemaWithMappedTypes.Teams))]
+  /// <summary>
+  /// And optionally, we have an association to another team.....
+  /// </summary>
+  [Association(nameof(SchemaWithMappedTypes.Teams), IDFieldName = "OtherTeam")]
   public SingleAssociation<Team>? Other { get; set; } = null;
 }
 

@@ -120,11 +120,12 @@ public class AssociationAttribute : Attribute
   /// </summary>
   public string? IDFieldName { get; set; }
 
-  /// <summary>
-  /// The name of the property on the target data set that represents the association.
-  /// If null, a default value will be used.
-  /// </summary>
-  public string? TargetIDPropertyName { get; set; }
+  ///// <summary>
+  ///// The name of the property on the target data set that represents the association.
+  ///// If null, a default value will be used.
+  ///// </summary>
+  //[Obsolete]
+  //public string? TargetIDPropertyName { get; set; }
 
 
   /// <summary>
