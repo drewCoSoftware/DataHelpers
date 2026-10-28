@@ -100,7 +100,7 @@ public class ManyManyTarget : IHasPrimary
 public class SchemaWithRedundantAssociationDefs
 {
   public List<MMOTO_TABLES> Tables { get; set; } = new List<MMOTO_TABLES>();
-  public List<MMOTO_CHARIS> Chairs { get; set; } = new List<MMOTO_CHARIS>();
+  public List<MMOTO_CHAIRS> Chairs { get; set; } = new List<MMOTO_CHAIRS>();
 }
 
 // ==============================================================================================================================
@@ -110,11 +110,11 @@ public class MMOTO_TABLES : IHasPrimary
   public string Name { get; set; }
 
   [Association(DataSetName = nameof(SchemaWithRedundantAssociationDefs.Chairs))]
-  public ManyAssociation<MMOTO_CHARIS> OtherData { get; set; } = new ManyAssociation<MMOTO_CHARIS>();
+  public ManyAssociation<MMOTO_CHAIRS> OtherData { get; set; } = new ManyAssociation<MMOTO_CHAIRS>();
 }
 
 // ==============================================================================================================================
-public class MMOTO_CHARIS : IHasPrimary
+public class MMOTO_CHAIRS : IHasPrimary
 {
   public int ID { get; set; }
   public int Number { get; set; }
@@ -173,7 +173,7 @@ public class Matchup : IHasPrimary
   /// <summary>
   /// And optionally, we have an association to another team.....
   /// </summary>
-  [Association(nameof(SchemaWithMappedTypes.Teams), IDFieldName = "OtherTeam")]
+  [Association(nameof(SchemaWithMappedTypes.Teams), AssociationName = "OtherTeam")]
   public SingleAssociation<Team>? Other { get; set; } = null;
 }
 
@@ -343,7 +343,7 @@ public class Traveler : IHasPrimary
   [Association(DataSetName = nameof(VacationSchema.Places))]
   public ManyAssociation<Place> PlacesVisited { get; set; }
 
-  [Association(DataSetName = nameof(VacationSchema.Places), IDFieldName = "FavoritePlace_ID")]
+  [Association(DataSetName = nameof(VacationSchema.Places), AssociationName = "FavoritePlace_ID")]
   public SingleAssociation<Place>? FavoritePlace { get; set; } = null;
 }
 
@@ -404,7 +404,7 @@ public class Address : IHasPrimary
   // Should that be required?
   // --> Yes!
   // public int Towns_ID { get; set; }
-  [Association(DataSetName = nameof(BusinessSchema.Towns))]
+  [Association(DataSetName = nameof(BusinessSchema.Towns), AssociationName = "Towns")]
   public SingleAssociation<Town> Town { get; set; }
 }
 
@@ -419,7 +419,7 @@ public class Town : IHasPrimary
   /// but there doesn't need to be a bi-directional relationship.
   /// An FK to this will be created on the 'Address' table.
   /// </summary>
-  [Association(DataSetName = nameof(BusinessSchema.Addresses))]
+  [Association(DataSetName = nameof(BusinessSchema.Addresses), AssociationName = "Towns")]
   public ManyAssociation<Address> Addresses { get; set; } // = new ManyAssociation<Address>();
 }
 

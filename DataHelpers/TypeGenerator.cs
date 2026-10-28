@@ -115,10 +115,10 @@ public class AssociationAttribute : Attribute
   public string DataSetName { get; set; }
 
   /// <summary>
-  /// The name of the property on the defining type that represents the association.
-  /// If null, a default value will be used.
+  /// The name of the association.  This can be used to Make it clear that a single->many association
+  /// is mutual, which avoids creating redundant FK (REF) fields.
   /// </summary>
-  public string? IDFieldName { get; set; }
+  public string? AssociationName { get; set; }
 
   ///// <summary>
   ///// The name of the property on the target data set that represents the association.

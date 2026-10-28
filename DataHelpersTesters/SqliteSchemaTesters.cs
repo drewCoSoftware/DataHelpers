@@ -42,6 +42,7 @@ public class SqliteSchemaTesters : TestBase
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// This shows that if there are redundant associations on the data sets, those redundancies will be properly resolved.
+  /// In this case, the redundant association field will be ignored.
   /// </summary>
   [Test]
   public void RedundantAssociationsAreProperlyResolved()
@@ -53,7 +54,7 @@ public class SqliteSchemaTesters : TestBase
     var t1 = factory.Schema.GetTableDef<MMOTO_TABLES>();
     Assert.That(t1.Columns.Count, Is.EqualTo(2));
 
-    var t2 = factory.Schema.GetTableDef<MMOTO_CHARIS>();
+    var t2 = factory.Schema.GetTableDef<MMOTO_CHAIRS>();
     Assert.That(t2.Columns.Count, Is.EqualTo(3));
 
     // Now we will show that the associations are properly noted in the data set defs.
@@ -132,7 +133,7 @@ public class SqliteSchemaTesters : TestBase
     var t2 = s.GetTableDef<HasOne>();
 
     Assert.That(t2.Columns.Count, Is.EqualTo(3));
-    var mapCol = t2.GetColumn("sometable_id");
+    var mapCol = t2.GetColumn("otherstuff_id");
     Assert.That(mapCol, Is.Not.Null);
 
     // The mapped column should have the association def.
@@ -575,7 +576,7 @@ public class SqliteSchemaTesters : TestBase
 
     // Show that we have a association from people to addresses:
     var td = schema.GetTableDef<Person>();
-    var fkCol = td.GetColumn($"addresses_id");
+    var fkCol = td.GetColumn($"address_id");
     Assert.That(fkCol, Is.Not.Null);
 
     var relatedSet = fkCol.AssociationDef;

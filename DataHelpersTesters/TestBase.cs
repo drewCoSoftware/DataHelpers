@@ -52,11 +52,11 @@ public class TestBase
       var comp = TestSQLOutput.Load(sqlFilePath);
 
       string srcSql = sql.Replace("\r", string.Empty).Replace("\n", string.Empty);
-      string compSql = comp.SQL.Replace("\r", string.Empty).Replace("\n", string.Empty);
+      string exampleSql = comp.SQL.Replace("\r", string.Empty).Replace("\n", string.Empty);
 
       if (comp.IsApproved)
       {
-        Assert.That(srcSql, Is.EqualTo(compSql));
+        Assert.That(exampleSql, Is.EqualTo(srcSql));
       }
       else
       {

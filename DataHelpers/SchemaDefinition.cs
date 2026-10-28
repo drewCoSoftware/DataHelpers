@@ -474,17 +474,22 @@ public class SchemaDefinition
       def.PopulateMembers();
     }
 
-    foreach (var def in _TableDefs.Values)
-    {
-      // Now we can populate all of the members.
-      // var generatedSets = def.PopulateAssociationMembers_LEGACY();
-      def.InitAssociationDefs();
-    }
+    //foreach (var def in _TableDefs.Values)
+    //{
+    //  // Now we can populate all of the members.
+    //  // var generatedSets = def.PopulateAssociationMembers_LEGACY();
+    //  def.InitAssociationDefs();
+    //}
 
     // Now we can finalize associations, complete their mappings, and generate any necessary mapping tables.
     foreach (var def in _TableDefs.Values)
     {
-      def.FinalizeAssociations();
+      def.PopulateSingleAssociationFields();
+    }
+
+    foreach (var def in _TableDefs.Values)
+    {
+      def.PopulateManyAssociationFields();
     }
 
     // Now we can remove all of the temp, association columns from each of the sets:
@@ -933,7 +938,7 @@ public class SchemaDefinition
         if (ReflectionTools.HasInterface<ISingleAssociation>(prop.PropertyType))
         {
           string setName = relAttr.DataSetName;
-          string useName = relAttr.IDFieldName ?? setName + "_" + nameof(IHasPrimary.ID);
+          string useName = relAttr.AssociationName ?? setName + "_" + nameof(IHasPrimary.ID);
 
           var relType = prop.PropertyType.GetGenericArguments()[0];
           var relVal = prop.GetValue(fromInstance);
