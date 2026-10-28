@@ -50,10 +50,10 @@ public class SqliteSchemaTesters : TestBase
     var s = factory.Schema;
     Assert.That(s, Is.Not.Null);
 
-    var t1 = factory.Schema.GetTableDef<MMOTO_MANY>();
+    var t1 = factory.Schema.GetTableDef<MMOTO_TABLES>();
     Assert.That(t1.Columns.Count, Is.EqualTo(2));
 
-    var t2 = factory.Schema.GetTableDef<MMOTO_ONE>();
+    var t2 = factory.Schema.GetTableDef<MMOTO_CHARIS>();
     Assert.That(t2.Columns.Count, Is.EqualTo(3));
 
     // Now we will show that the associations are properly noted in the data set defs.

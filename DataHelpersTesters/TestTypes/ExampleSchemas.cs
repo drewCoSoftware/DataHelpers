@@ -95,36 +95,32 @@ public class ManyManyTarget : IHasPrimary
 
 // ==============================================================================================================================
 // ==============================================================================================================================
+// NOTE: The only way that we can tell that the association is redundant bewteen the two, is because they
+// have the same property name!  If they don't have the same name, then they will become different fields!
 public class SchemaWithRedundantAssociationDefs
 {
-  public List<MMOTO_MANY> ManyTable { get; set; } = new List<MMOTO_MANY>();
-  public List<MMOTO_ONE> OneTable { get; set; } = new List<MMOTO_ONE>();
+  public List<MMOTO_TABLES> Tables { get; set; } = new List<MMOTO_TABLES>();
+  public List<MMOTO_CHARIS> Chairs { get; set; } = new List<MMOTO_CHARIS>();
 }
 
 // ==============================================================================================================================
-public class MMOTO_MANY : IHasPrimary
+public class MMOTO_TABLES : IHasPrimary
 {
   public int ID { get; set; }
   public string Name { get; set; }
 
-  /// <summary>
-  /// Here we can see that we have a many relation to another set, but that set doesn't have
-  /// any defined associations to this one.
-  /// </summary>
-  [Association(DataSetName = nameof(SchemaWithRedundantAssociationDefs.OneTable))]
-  public ManyAssociation<MMOTO_ONE> OtherOne { get; set; } = new ManyAssociation<MMOTO_ONE>();
+  [Association(DataSetName = nameof(SchemaWithRedundantAssociationDefs.Chairs))]
+  public ManyAssociation<MMOTO_CHARIS> OtherData { get; set; } = new ManyAssociation<MMOTO_CHARIS>();
 }
 
 // ==============================================================================================================================
-public class MMOTO_ONE : IHasPrimary
+public class MMOTO_CHARIS : IHasPrimary
 {
-  public int Number { get; set; }
   public int ID { get; set; }
+  public int Number { get; set; }
 
-  // This association is redundant, and should CRASH on schema generation.
-  // Because an ID field that points back to the MMOTO_MANY set is created, this one is no longer needed!
-  [Association(DataSetName = nameof(SchemaWithRedundantAssociationDefs.ManyTable))]
-  public SingleAssociation<MMOTO_MANY> OtherMany { get; set; } = new SingleAssociation<MMOTO_MANY>();
+  [Association(DataSetName = nameof(SchemaWithRedundantAssociationDefs.Tables))]
+  public SingleAssociation<MMOTO_TABLES> OtherData { get; set; } = new SingleAssociation<MMOTO_TABLES>();
 
 }
 // ==============================================================================================================================
