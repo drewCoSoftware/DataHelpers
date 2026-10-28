@@ -10,33 +10,38 @@ For a step-by-step guide to defining a schema, creating a database, and performi
 
 ## Example:
 
-```
-// Define a simple schema:
+This example uses the same `ExampleSchema` and `Person` entity as the examples guide. In a console application that references DataHelpers, the following code generates a parameterized insert query using the SQLite flavor.
 
-// A normal data type.
-// The IHasPrimary interface is used to indicate that ID is a unique identifer for your type.
-public class SomeData : IHasPrimary
-{
-  public int ID { get; set; }
-  public string Name { get; set; }
-  public int Number { get; set; }
-  public DateTimeOffset Date { get; set; }
-}
+```csharp
+using System;
+using System.Collections.Generic;
+using DataHelpers.Data;
 
-// Each schema contains lists of your data types.
-class ExampleSchema
-{
-    public List<SomeData> SomeData { get; set; } = new List<SomeData>();
-}
+// Create a schema definition from the schema type.
+var flavor = new SqliteFlavor();
+Type schemaType = typeof(ExampleSchema);
+var schema = new SchemaDefinition(flavor, schemaType);
 
-
-// A Schema definition can be created:
-var schema = new SchemaDefinition(new SqliteFlavor(), typeof(ExampleSchema));
-
-// From the schema definiton, you can find the table definitions and use those
-// to generate your queries:
-TableDef tableDef = schema.GetTableDef(nameof(SomeData));
+// Look up the table by the schema's data-set property name.
+string tableName = nameof(ExampleSchema.People);
+TableDef tableDef = schema.GetTableDef(tableName)!;
 
 string insertQuery = tableDef.GetInsertQuery();
+Console.WriteLine(insertQuery);
 
+// IHasPrimary identifies ID as the entity's integer primary key.
+public class Person : IHasPrimary
+{
+    public int ID { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public int Age { get; set; }
+}
+
+// Each list property defines a table of the corresponding entity type.
+public class ExampleSchema
+{
+    public List<Person> People { get; set; } = new List<Person>();
+}
 ```
+
+`GetTableDef` throws if the named data set is missing unless `allowNull` is set to `true`. This example generates SQL; it does not create a database or insert a row. See the examples guide above to execute database operations.
