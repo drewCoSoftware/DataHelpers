@@ -59,10 +59,15 @@ public interface IManyAssociation : IRelation
 
 // ==========================================================================
 /// <summary>
-/// Represents an FK association to different data set where there can be one or more
+/// Represents an REF association to different data set where there can be one or more
 /// matches.  The ID property is set on the related table, and may be bi-directional
-/// through the use of a 'SingleAssociation' instance.
+/// through the use of a 'SingleAssociation' instance and mathching 'AssociationName'
+/// property on the Association Attribute.
 /// </summary>
+/// <remarks>
+/// It is highly recommended to use the 'AssociationName' property on members of this
+/// type so that field names in the generated sets make sense.
+/// </remarks>
 public class ManyAssociation<T> : IManyAssociation
 where T : class, new()
 {
