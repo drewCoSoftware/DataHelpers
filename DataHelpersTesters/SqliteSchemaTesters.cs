@@ -22,6 +22,23 @@ namespace DataHelpersTesters;
 // a way to generate test data for the query generation tests, I think this is very possible.
 public class SqliteSchemaTesters : TestBase
 {
+  // --------------------------------------------------------------------------------------------------------------------------  
+  [Test]
+  public void CanCreateManyToManyAndGenerateMappingTable()
+  {
+    var factory = CreateTestDataBaseFor<MutualManyToManySchema>(CurrentFunctionName());
+    var s = factory.Schema;
+    Assert.That(s, Is.Not.Null);
+
+    Assert.That(s.TableDefs.Count, Is.EqualTo(3));
+
+    var mappingTable = s.GetMappingTable<ManyManySource, ManyManyTarget>();
+    Assert.That(mappingTable, Is.Not.Null, "We should have a mapping table!");
+
+    // Hmmm.. can we add stuff to it?
+
+  }
+
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// This shows that if there are redundant associations on the data sets, those redundancies will be properly resolved.
@@ -283,7 +300,7 @@ public class SqliteSchemaTesters : TestBase
     TableDef td = schema.GetTableDef<Traveler>();
     Assert.That(td, Is.Not.Null);
 
-    var opRelation = td.GetColumn("FavoritePlace_ID");
+    var opRelation = td.GetColumn("favoriteplace_id");
     Assert.That(opRelation, Is.Not.Null);
     Assert.That(opRelation.IsNullable, "This property should be marked as nullable!");
   }

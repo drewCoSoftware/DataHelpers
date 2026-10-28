@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.ObjectModel;
 using System.Linq.Expressions;
 using System.Text;
+using System.Xml.Linq;
 
 namespace DataHelpers.Data;
 
@@ -67,6 +68,8 @@ public class SchemaDefinition
 
     PopulateMembers();
 
+    HandleMappingTables();
+
     PopulateAssociations();
 
     PopulateIndexes();
@@ -75,6 +78,107 @@ public class SchemaDefinition
 
     CreatePropertyMap();
 
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private void HandleMappingTables()
+  {
+
+    // Pass two, detect and resolve many-many associations + generate mapping tables as needed.
+    var generated = new List<TableDef>();
+    foreach (var def in _TableDefs.Values)
+    {
+      var toRemove = new List<ColumnDef>();
+      foreach (var col in def.Columns)
+      {
+        if (col.AssociationDef != null && col.AssociationDef.AssociationType == EAssociationType.Many)
+        {
+
+          // We are looking for a mutual association to this data set!
+          // NOTE: If there is more than one mutual, we have a problem. That doesn't make sense and should not be!
+          var target = col.AssociationDef.TargetSet;
+          var mutual = (from x in target.Columns
+                        where x.AssociationDef != null &&
+                              x.AssociationDef.TargetSet == def &&
+                              x.AssociationDef.AssociationType == EAssociationType.Many
+                        select x).SingleOrDefault();
+
+          if (mutual != null)
+          {
+            // This is a many-many mapping table that we need to create.
+            var mt = SetupMappingTable(def, col.AssociationDef, mutual.AssociationDef);
+            generated.Add(mt);
+
+
+            // Remove the associations.... maybe we should set some kind of 'is mapping' flag? --> probably.....
+            // Now that the fields have been moved to a mapping set, we can remove them entirely.
+            toRemove.Add(col);
+            col.AssociationDef.TargetSet.RemoveCol(mutual);
+          }
+        }
+      }
+
+      foreach (var col in toRemove)
+      {
+        def.RemoveCol(col);
+      }
+    }
+
+    foreach (var item in generated)
+    {
+      _TableDefs.Add(item.Name, item);
+    }
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private TableDef SetupMappingTable(TableDef def, AssociationDef from, AssociationDef to)
+  {
+    var fromTarget = to.TargetSet;
+    var toTarget = from.TargetSet;
+
+    string mtName = TableDef.ComputeMappingSetName(fromTarget.Name, toTarget.Name);
+
+    Log.Verbose($"Many -> Many association detected.  A mapping dataset will be created!");
+    Log.Verbose($"Mapping dataset name: {mtName}");
+
+    Type intType = typeof(int);
+    string intTypeName = Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
+
+    string useName = nameof(IHasPrimary.ID);
+    string sqlName = Flavor.GetDataStoreName(useName);
+
+    var res = new TableDef(null, mtName, this);
+    res.IsMappingTable = true;
+    res.AddColumn(new ColumnDef(useName, sqlName, intType, intTypeName, true, false, null, null, false));
+
+    // Now the id refs for each of the data sets.
+    string idCol1 = $"{fromTarget.Name}_{nameof(IHasPrimary.ID)}";
+    string idCol2 = $"{toTarget.Name}_{nameof(IHasPrimary.ID)}";
+    var cols = new[] { idCol1, idCol2 };
+
+    int index = 0;
+    foreach (var c in cols)
+    {
+      sqlName = Flavor.GetDataStoreName(c);
+
+      var useSet = index == 0 ? fromTarget : toTarget;
+
+      var ad = new AssociationDef(useSet)
+      {
+        AssociationType = EAssociationType.Single,
+        IsOptional = false,
+        AssociationProperty = null,
+        TargetIDField = useSet.GetColumn(nameof(IHasPrimary.ID))!
+      };
+
+      //    throw new NotImplementedException("come back to this...");
+      var cd = new ColumnDef(c, sqlName, intType, intTypeName, false, false, null, null, false);
+      cd.AssociationDef = ad;
+      res.AddColumn(cd);
+      ++index;
+    }
+
+    return res;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -353,11 +457,37 @@ public class SchemaDefinition
   // --------------------------------------------------------------------------------------------------------------------------
   private void PopulateAssociations()
   {
+    // Summarize the associations on the table def.
     foreach (var def in _TableDefs.Values)
     {
-      // Now we can populate all of the members.
-      def.PopulateAssociations();
+      def.GetAssociationList();
     }
+
+    //// Pass two, detect and resolve many-many associations + generate mapping tables as needed.
+    //foreach (var def in _TableDefs.Values)
+    //{
+    //  foreach (var col in def.Columns)
+    //  {
+
+
+
+    //  }
+    //}
+
+    // TEMP: OLD:
+    //List<TableDef> allGeneratedSets = new List<TableDef>();
+
+    //// Add the generated sets to the Schema def.
+    //// We filter them first because at time of writing it is possible to double-define them (no way to detect that one has been created in prior step)
+    //allGeneratedSets = GetUniqueSets(allGeneratedSets);
+
+
+    //foreach (var item in allGeneratedSets)
+    //{
+    //  this._TableDefs.Add(item.Name, item);
+    //}
+
+
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -377,13 +507,12 @@ public class SchemaDefinition
     }
 
     // Now we can finalize associations, complete their mappings, and generate any necessary mapping tables.
-    List<TableDef> allGeneratedSets = new List<TableDef>();
     foreach (var def in _TableDefs.Values)
     {
-      List<TableDef> generated = def.FinalizeAssociations();
+      def.FinalizeAssociations();
     }
 
-    // Now we can remove all of the temp, related columns from each of the sets:
+    // Now we can remove all of the temp, association columns from each of the sets:
     foreach (var def in _TableDefs.Values)
     {
       var toRemove = (from x in def.Columns
@@ -395,15 +524,7 @@ public class SchemaDefinition
       }
     }
 
-    // Add the generated sets to the Schema def.
-    // We filter them first because at time of writing it is possible to double-define them (no way to detect that one has been created in prior step)
-    allGeneratedSets = GetUniqueSets(allGeneratedSets);
 
-
-    foreach (var item in allGeneratedSets)
-    {
-      this._TableDefs.Add(item.Name, item);
-    }
 
   }
 
@@ -496,13 +617,6 @@ public class SchemaDefinition
     }
 
   }
-
-  //// --------------------------------------------------------------------------------------------------------------------------
-  //internal void AddMappingSet(TableDef def)
-  //{
-  //  // TOOD: Can the def be setup to denote that it is for mapping?
-  //  this._TableDefs.Add(def.Name, def);
-  //}
 
   // --------------------------------------------------------------------------------------------------------------------------
   private void InitTableDef(string name, Type useType)
@@ -624,12 +738,14 @@ public class SchemaDefinition
     string mtName = TableDef.ComputeMappingSetName(t1.Name, t2.Name);
     TableDef? res = this.GetTableDef(mtName);
 
-    // Maybe the types are swapped....
-    if (res == null)
-    {
-      mtName = TableDef.ComputeMappingSetName(t2.Name, t1.Name);
-      res = this.GetTableDef(mtName);
-    }
+    // This check should not be needed.
+    //// Maybe the types are swapped....
+    //// 
+    //if (res == null)
+    //{
+    //  mtName = TableDef.ComputeMappingSetName(t2.Name, t1.Name);
+    //  res = this.GetTableDef(mtName);
+    //}
 
     if (res == null && !allowNull)
     {
