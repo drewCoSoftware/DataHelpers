@@ -76,8 +76,6 @@ public class SchemaDefinition
 
     ValidateSchema();
 
-    CreatePropertyMap();
-
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -189,19 +187,6 @@ public class SchemaDefinition
       // Now we can populate all of the members.
       def.PopulateIndexes();
     }
-  }
-
-  // --------------------------------------------------------------------------------------------------------------------------
-  /// <summary>
-  /// Creates the property map that is used during querying for binding data.
-  /// </summary>
-  private void CreatePropertyMap()
-  {
-    Log.Warning($"function: {nameof(CreatePropertyMap)} has no implementation!");
-    //foreach (var td in this.TableDefs)
-    //{
-    //  td.CreatePropertyMap();
-    //}
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -908,7 +893,7 @@ public class SchemaDefinition
           bool isComposite = ReflectionTools.HasInterface<ICompositeSerializer>(prop.PropertyType);
           if (isComposite)
           {
-            useVal = (useVal as ICompositeSerializer).Serialize(); // (string)genFunc.Invoke(useVal, null);
+            useVal = (useVal as ICompositeSerializer).Serialize();
           }
           qpb.Add(prop.Name, useVal, prop.PropertyType);
         }

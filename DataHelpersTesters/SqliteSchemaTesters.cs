@@ -22,6 +22,34 @@ namespace DataHelpersTesters;
 // a way to generate test data for the query generation tests, I think this is very possible.
 public class SqliteSchemaTesters : TestBase
 {
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// This test case shows that associated stuff (single-association) are added automatically.
+  /// This prevents us from having to add entities one at a time if we don't want to.
+  /// </summary>
+  [Test]
+  public void CanAddAssociatedInstancesAutomatically()
+  {
+    var factory = CreateTestDataBaseFor<BusinessSchema>(CurrentFunctionName());
+
+    // Address has an association to town, so we should be able to add them both in
+    // one go.
+    var addr = new Address()
+    {
+      City = "Town",
+      State = "VA",
+      Street = "123 Lane",
+      Town = new Town()
+      {
+        Name = "Town"
+      }
+    };
+
+    factory.Add(addr);
+    Assert.That(addr.ID, Is.Not.EqualTo(0));
+    Assert.That(addr.Town.ID, Is.Not.EqualTo(0));
+  }
+
   // --------------------------------------------------------------------------------------------------------------------------  
   [Test]
   public void CanCreateManyToManyAndGenerateMappingTable()
@@ -266,7 +294,7 @@ public class SqliteSchemaTesters : TestBase
   }
 
 
-  // --------------------------------------------------------------------------------------------------------------------------  [Test]
+  // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// This test case was provided to show that we can use enums as fields.
   /// </summary>

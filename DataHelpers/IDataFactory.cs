@@ -1,7 +1,10 @@
 using DataHelpers.Data;
 using drewCo.Tools;
+using drewCo.Tools.Logging;
+using System.Diagnostics.Metrics;
 using System.Linq.Expressions;
 using System.Net.Http.Headers;
+using System.Runtime.CompilerServices;
 
 namespace DataHelpers;
 
@@ -40,16 +43,29 @@ public interface IDataFactory<TSchema>
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  /// <summary>
-  /// Add a new entity to the database.
-  /// The ID propery will be assigned upon successful creation.
-  /// </summary>
   int Add<T>(T entity)
     where T : IHasPrimary
   {
     if (entity.ID != 0) { throw new InvalidOperationException($"The entity already has an assigned ID and can't be added to the set!  Use 'AddOrUpdate' or 'Update' calls instead!"); }
 
-    var td = Schema.GetTableDef<T>();
+    int res = Add(typeof(T), entity);
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Add a new entity to the database.
+  /// The ID propery will be assigned upon successful creation.
+  /// </summary>
+  internal int Add(Type eType, IHasPrimary entity)
+  {
+    var td = Schema.GetTableDef(eType);
+
+    // Look for associations / dependent stuff....
+    // For now, single associations only.
+
+    AddUpdateAssociatedEntities(eType, entity, td);
+
     var qParams = Schema.ResolveQueryParams(entity);
     string query = td.GetInsertQuery(qParams.Keys.ToArray());
     int res = Action(dal =>
@@ -63,6 +79,55 @@ public interface IDataFactory<TSchema>
     // TODO: If there are manyassociations in the type, we want to update the mappings for them here!
 
     return res;
+  }
+
+
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  void AddUpdateAssociatedEntities<T>(T entity, TableDef td) where T : IHasPrimary
+  {
+    AddUpdateAssociatedEntities(typeof(T), entity, td);
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  internal void AddUpdateAssociatedEntities(Type eType, IHasPrimary entity, TableDef td)
+  {
+    foreach (var ad in td.AssociationDefs)
+    {
+      switch (ad.AssociationType)
+      {
+        case EAssociationType.Single:
+          // If we currently have an instance with an ID of zero, then we can think about adding it.
+          var curValue = ad.AssociationProperty.GetValue(entity) as ISingleAssociation;
+          if (curValue != null)
+          {
+            // We can recursively add this one?
+            var data = curValue.GetData();
+            if (data.Value != null)
+            {
+              if (data.Value.ID == 0)
+              {
+                // This is a new, unsaved entity.
+                Type et = data.Value.GetType();
+                Add(et, data.Value);
+                curValue.RefreshID();
+              }
+              else
+              {
+                Log.Verbose("There is no support to auto-update an entity on Add()");
+              }
+            }
+          }
+          break;
+
+        case EAssociationType.Many:
+          Log.Verbose("Many association type auto-add is not supported!");
+          break;
+        default:
+          throw new NotSupportedException();
+      }
+
+    }
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -489,8 +554,10 @@ public class ValueOrNull<T> : IValueOrNull
   public ValueOrNull(object? value_)
   {
     Value = value_;
-    if (Value != null)  { 
-      if (Value.GetType() != typeof(T)) { 
+    if (Value != null)
+    {
+      if (Value.GetType() != typeof(T))
+      {
         throw new InvalidOperationException("Value is not the correct type!");
       }
     }

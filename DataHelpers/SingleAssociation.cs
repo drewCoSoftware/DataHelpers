@@ -18,24 +18,7 @@ public enum EAssociationType
   /// <summary>
   /// This set is associated with multiple instances of another set.    (OneToMany)
   /// </summary>
-  Many,
-
-
-  ///// <summary>
-  ///// ONE instance of the target data set is associated with MANY instances of this set.
-  ///// </summary>
-  //ManyToOne,
-
-  ///// <summary>
-  ///// MANY instances of the target data set are associated with ONE instance of this set.
-  ///// </summary>
-  //OneToMany,
-
-  ///// <summary>
-  ///// ONE instance of this data set is associated with ONE instance of the target data set.
-  ///// This may or may not be a mutual association!
-  ///// </summary>
-  //OneToOne
+  Many
 }
 
 // ==========================================================================
@@ -48,6 +31,12 @@ public interface IRelation
 public interface ISingleAssociation : IRelation
 {
   int ID { get; set; }
+  public (IHasPrimary? Value, Type DataType) GetData();
+
+  /// <summary>
+  /// Updates the ID value of the association, without altering the underlying data member.
+  /// </summary>
+  public void RefreshID();
 }
 
 // ==========================================================================
@@ -132,6 +121,18 @@ where T : class, IHasPrimary
     get { return _Data; }
     // Setting the data explicitly will also change the ID!
     set { _Data = value; _ID = _Data?.ID ?? 0; }
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public void RefreshID()
+  {
+    _ID = _Data != null ? _Data.ID : 0;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public (IHasPrimary? Value, Type DataType) GetData()
+  {
+    return (_Data, typeof(T));
   }
 
   // --------------------------------------------------------------------------------------------------------------------------

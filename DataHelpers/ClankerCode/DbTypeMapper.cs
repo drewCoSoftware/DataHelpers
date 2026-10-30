@@ -16,7 +16,7 @@ public interface IDbTypeMapper
     {
       throw new ArgumentNullException(nameof(type));
     }
-    
+
     if (ReflectionTools.HasInterface<ICompositeSerializer>(type)) { 
       return DbType.String;
     }
