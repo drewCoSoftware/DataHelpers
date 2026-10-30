@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using drewCo.Tools;
+using System.Text;
 
 namespace DataHelpers.Data
 {
@@ -29,18 +30,27 @@ namespace DataHelpers.Data
           throw new InvalidOperationException("Illegal! The value and type argument are null!");
         }
         t = value.GetType();
+
       }
+
 
       QueryParamValue qp = null!;
       var valOrNull = value as IValueOrNull;
+
+      Type useType = t;
+      object? useVal = value;
       if (valOrNull != null)
       {
-        qp = new QueryParamValue(valOrNull.Value, Flavor.ToDbType(valOrNull.DataType));
+        useType = valOrNull.DataType;
+        useVal = valOrNull.Value;
       }
-      else
+
+      if (useType.IsEnum)
       {
-        qp = new QueryParamValue(value, Flavor.ToDbType(t));
+        useType = useType.GetEnumUnderlyingType();
+        useVal = useVal != null ? ReflectionTools.ConvertEx(useType, useVal) : null;
       }
+        qp = new QueryParamValue(useVal, Flavor.ToDbType(useType));
       this.QParams.Add(key, qp);
     }
 
