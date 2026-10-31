@@ -23,12 +23,53 @@ namespace DataHelpersTesters;
 public class SqliteSchemaTesters : TestBase
 {
   // --------------------------------------------------------------------------------------------------------------------------
+  [Test]
+  public void CanAddManyAssociationsAutomatically()
+  {
+    var factory = CreateTestDataBaseFor<SchemaWithRedundantAssociationDefs>(CurrentFunctionName());
+
+    var item = new MMOTO_TABLES()
+    {
+      Name = "Table 1",
+    };
+
+    item.OtherData.Add(new MMOTO_CHAIRS()
+    {
+      Number = 1
+    });
+    item.OtherData.Add(new MMOTO_CHAIRS()
+    {
+      Number = 2
+    });
+    item.OtherData.Add(new MMOTO_CHAIRS()
+    {
+      Number = 3
+    });
+
+    factory.Add(item);
+
+    // Make sure they are there....
+    var check = factory.GetById<MMOTO_TABLES>(item.ID);
+    Assert.That(check, Is.Not.Null);
+
+    // Make sure that we have the chairs....
+    var checkChairs=  factory.GetBy<MMOTO_CHAIRS>(("otherdata_id", item.ID));
+    Assert.That(checkChairs, Is.Not.Null);
+    Assert.That(checkChairs.Count(), Is.EqualTo(3));
+
+    // TODO: There is probably some way that we can update the factory 'GetbyId' call to also include the many properties.
+    // That would be more convenient than making a second call, and would actually populate the 'ManyRelation' instance with
+    // real data!
+
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// This test case shows that associated stuff (single-association) are added automatically.
   /// This prevents us from having to add entities one at a time if we don't want to.
   /// </summary>
   [Test]
-  public void CanAddAssociatedInstancesAutomatically()
+  public void CanAddSingleAssociationsAutomatically()
   {
     var factory = CreateTestDataBaseFor<BusinessSchema>(CurrentFunctionName());
 

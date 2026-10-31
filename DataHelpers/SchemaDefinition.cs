@@ -445,7 +445,7 @@ public class SchemaDefinition
     // Summarize the associations on the table def.
     foreach (var def in _TableDefs.Values)
     {
-      def.GetAssociationList();
+      def.BuildAssociationList();
     }
 
   }

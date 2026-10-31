@@ -1,4 +1,5 @@
 ﻿using DataHelpers.Data;
+using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 
@@ -75,6 +76,19 @@ where T : class, new()
   /// See test case: CanSelectViaMappingTables for an example of this:
   /// </summary>
   public T Prop { get; set; } = new T();
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public void Add(T instance)
+  {
+    ResolveData().Add(instance);
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private List<T> ResolveData()
+  {
+    var res = (_Data ?? (_Data = new List<T>()));
+    return res;
+  }
 }
 
 

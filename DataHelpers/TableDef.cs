@@ -712,7 +712,7 @@ public class TableDef
   /// <summary>
   /// Add any required members to the def based on its relationships.
   /// </summary>
-  internal void GetAssociationList()
+  internal void BuildAssociationList()
   {
     AssociationDefs = new List<AssociationDef>();
 
@@ -816,14 +816,14 @@ public class TableDef
 
       // Let's check the associated set to see if there is a matching association def:
       string targetFieldName = ResolveIDFieldName(aa, col, this);
-      var match = targetSet.GetColumnByDataStoreName(targetFieldName);
-      if (match == null)
+      var colDef = targetSet.GetColumnByDataStoreName(targetFieldName);
+      if (colDef == null)
       {
         // Log.Debug($"Detectected one-way many->one assocation.  Adding column: {assocFieldName} to data set: {targetSet.Name}");
 
         // There is no column with that name on the target set.... We will generate it here?
         var dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
-        var colDef = new ColumnDef(targetFieldName, targetFieldName, typeof(int), dbTypeName, false, col.IsNullable, null, null, false);
+        colDef = new ColumnDef(targetFieldName, targetFieldName, typeof(int), dbTypeName, false, col.IsNullable, null, null, false);
 
         // Let's place the association def on that column!
         var ad2 = new AssociationDef(this);
@@ -831,7 +831,6 @@ public class TableDef
         ad2.AssociationProperty = col.PropInfo;
         ad2.TargetIDField = this.GetColumn(nameof(IHasPrimary.ID))!;
         ad2.IsOptional = col.IsNullable;
-
         colDef.AssociationDef = ad2;
 
         targetSet.AddColumn(colDef);

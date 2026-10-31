@@ -38,6 +38,7 @@ public class PostgresDataAccess<TSchema> : IDataAccess<TSchema>
       }
     }
 
+    // NOTE: REVIEW:  I don't think this makes sense.....  What are we trying to accomplish here?
     if (IsDefaultDatabase)
     {
       ConnectionString += "Database=postgres";

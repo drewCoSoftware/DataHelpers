@@ -166,10 +166,6 @@ public class DBHandler : IDisposable
       return cmd.ExecuteNonQuery();
     }
   }
-  //public class DbRow
-  //{
-  //  public Dictionary<string, object> Fields { get; set; }
-  //}
 
   // ==============================================================================================================================
   public class QueryResult

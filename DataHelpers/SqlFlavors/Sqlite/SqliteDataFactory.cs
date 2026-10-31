@@ -15,7 +15,7 @@ public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
   public SqliteDataFactory(string dataDir, string dbFileName)
   {
     DataDirectory = NormalizePathSeparators(dataDir);
-    
+
     if (!dbFileName.EndsWith(".sqlite"))
     {
       dbFileName += ".sqlite";
@@ -28,7 +28,7 @@ public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
   // --------------------------------------------------------------------------------------------------------------------------
   public override void Action(Action<IDataAccess<TSchema>> action)
   {
-    using(var dal = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory))
+    using (var dal = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory))
     {
       action(dal);
     }
@@ -88,7 +88,6 @@ public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
     if (!hasCorrectSchema)
     {
       FileTools.CreateDirectory(DataDirectory);
-
       CreateDatabase();
     }
   }
@@ -103,7 +102,7 @@ public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
     using (var tx = conn.BeginTransaction())
     {
       DBHandler.Execute(conn, query);
-      
+
       tx.Commit();
     }
     conn.Close();
