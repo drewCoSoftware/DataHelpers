@@ -296,7 +296,7 @@ public class DBHandler : IDisposable
         var prop = col.PropInfo;
         if (prop == null)
         {
-          if (col.AssociationDef == null)
+          if (col.DependencyDef == null)
           {
             Log.Verbose($"The column named: {kvp.Key} on type: {td.Name} does not have a PropertyInfo or Association!");
             continue;
@@ -344,7 +344,7 @@ public class DBHandler : IDisposable
   {
     // We have a association, so this is where we can create / populate that id....
     // We can resolve the data type, but I also need to be able to point this to a property on the current type....
-    var rel = col.AssociationDef;
+    var rel = col.DependencyDef;
     if (rel.AssociationType == EAssociationType.Single)
     {
       if (rel.AssociationProperty == null)

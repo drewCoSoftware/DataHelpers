@@ -22,10 +22,13 @@ public class TableDef
   public string Name { get; private set; }
   public SchemaDefinition Schema { get; private set; }
 
-  /// <summary>
-  /// Direct dependencies that we have to other data sets.  This is used for internal validation, and query genreations.
-  /// </summary>
-  internal List<AssociationDef> DataSetDependencies { get; set; }
+  ///// <summary>
+  ///// Direct dependencies that we have to other data sets.  This is used for internal validation, and query genreations.
+  ///// </summary>
+  //internal List<AssociationDef> DataSetDependencies { get; set; }
+
+  internal List<TableDef> DataSetDependencies { get; set; } = null!;
+  internal List<AssociationDef> Associations { get; set; } = null!;
 
   // NOTE: This should probably be a dictionary.....
   // REFACTOR: FIX: NOTE: We are making a new readonly instance each time.... this will make mucho garbagio!
@@ -64,7 +67,7 @@ public class TableDef
       if (col.PropertyName == propName) { return col; }
 
       // It might be from a related column....
-      var relDef = col.AssociationDef;
+      var relDef = col.DependencyDef;
       if (relDef != null)
       {
         if (relDef.AssociationProperty?.Name == propName)
@@ -273,9 +276,9 @@ public class TableDef
       string useColType = col.DataType;
 
       string def = $"{useName} {col.DataType}";
-      if (col.AssociationDef != null && Schema.Flavor.UsesInlineFKDeclaration)
+      if (col.DependencyDef != null && Schema.Flavor.UsesInlineFKDeclaration)
       {
-        def += $" REFERENCES {col.AssociationDef.TargetSet.Name} ({col.AssociationDef.TargetIDField.PropertyName})";
+        def += $" REFERENCES {col.DependencyDef.TargetSet.Name} ({col.DependencyDef.TargetIDField.PropertyName})";
       }
 
       if (col.IsPrimary)
@@ -294,9 +297,9 @@ public class TableDef
 
       colDefs.Add(def);
 
-      if (col.AssociationDef != null && !Schema.Flavor.UsesInlineFKDeclaration)
+      if (col.DependencyDef != null && !Schema.Flavor.UsesInlineFKDeclaration)
       {
-        string fk = $"FOREIGN KEY({useName}) REFERENCES {col.AssociationDef.TargetSet.Name}({col.AssociationDef.TargetIDField.PropertyName})";
+        string fk = $"FOREIGN KEY({useName}) REFERENCES {col.DependencyDef.TargetSet.Name}({col.DependencyDef.TargetIDField.PropertyName})";
         fkDefs.Add(fk);
       }
 
@@ -603,7 +606,7 @@ public class TableDef
   public string GetUpdateQuery()
   {
     var useCols = (from x in this.Columns
-                   where x.AssociationDef == null
+                   where x.DependencyDef == null
                    select x);
     var namesAndVals = GetNamesAndValues(useCols);
 
@@ -715,20 +718,26 @@ public class TableDef
   /// <summary>
   /// Add any required members to the def based on its relationships.
   /// </summary>
-  internal void BuildAssociationLists()
+  internal void BuildDependencyList()
   {
-    DataSetDependencies = new List<AssociationDef>();
+    DataSetDependencies = new List<TableDef>();
+    Associations = new List<AssociationDef>();
 
     foreach (var col in Columns)
     {
-      if (col.AssociationDef != null)
+      if (col.Association != null)
       {
-        var ad = col.AssociationDef;
+        this.Associations.Add(col.Association);
+      }
+
+      if (col.DependencyDef != null && !col.DependencyDef.IsOptional)
+      {
+        var ad = col.DependencyDef;
 
         // NOTE: I don't think that we need to do any other integrity checking at this time.
         // That should all be handled during schema generation...
         // Yes, if we do it that way, then the checks below get a lot simpler.
-        DataSetDependencies.Add(ad);
+        DataSetDependencies.Add(ad.TargetSet);
 
         // We need to make sure that the data type mentioned in the Association Attribute
         // matches the data type of the (Single|Many)Association.
@@ -834,9 +843,11 @@ public class TableDef
         ad.AssociationProperty = col.PropInfo;
         ad.TargetIDField = this.GetColumn(nameof(IHasPrimary.ID))!;
         ad.IsOptional = col.IsNullable;
-        colDef.AssociationDef = ad;
+        colDef.DependencyDef = ad;
 
         targetSet.AddColumn(colDef);
+
+        col.Association = ad;
       }
       else
       {
@@ -896,10 +907,11 @@ public class TableDef
       ad.AssociationProperty = col.PropInfo;
       ad.IsOptional = col.IsNullable;
 
-      fkField.AssociationDef = ad;
+      fkField.DependencyDef = ad;
 
       toAdd.Add(fkField);
 
+      col.Association = ad;
     }
 
 
@@ -984,9 +996,9 @@ public class TableDef
   {
     foreach (var item in this.Columns)
     {
-      if (item.AssociationDef != null && item.AssociationDef.TargetSet.Name == dataset.Name)
+      if (item.DependencyDef != null && item.DependencyDef.TargetSet.Name == dataset.Name)
       {
-        return item.AssociationDef;
+        return item.DependencyDef;
       }
     }
     return null;
@@ -1055,7 +1067,24 @@ public class TableDef
 
   }
 
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// This tells us if we have a dependency on the given table, anywhere in the chain....
+  /// </summary>
+  internal bool HasTableDependency(TableDef toDataSet)
+  {
+    foreach (var otherSet in this.DataSetDependencies)
+    {
+      if (otherSet.DataType == toDataSet.DataType)
+      {
+        return true;
+      }
+    }
+
+    return false;
+  }
 }
+
 
 // ==============================================================================================================================
 /// <summary>

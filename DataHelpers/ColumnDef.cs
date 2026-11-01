@@ -31,11 +31,6 @@ public class ColumnDef
 
   public PropertyInfo PropInfo { get; private set; } = null!;
 
-  ////// NOTE: This has a non-private setter b/c we have to update them sometimes, after the fact,
-  ////// because of the sloppy way that we are currently creating the table defs.
-  ////// we should have it so that the columns are added to the def BEFORE we attempt resolve the associations.
-  //public AssociatedDatasetInfo? AssociatedDataSet { get; internal set; }
-
   /// <summary>
   /// A copy of the defining attriute for the association.
   /// This is needed so we can properly define the associations in a later setup step.
@@ -43,7 +38,18 @@ public class ColumnDef
   [Obsolete("This will be removed!")]
   internal AssociationAttribute? AssociationAttr{ get; private set; } = null;
 
-  public AssociationDef? AssociationDef { get; internal set; } = null;
+  /// <summary>
+  /// This is really marking a dependency to another data set.
+  /// I think that it can probably be reduced down to just a ref to the set, and not the whole association.
+  /// </summary>
+  public AssociationDef? DependencyDef { get; internal set; } = null;
+
+  /// <summary>
+  /// This is the actual definition of an association to another set.
+  /// It can be single or many.  It is used as metadata for query generation.
+  /// </summary>
+  public AssociationDef? Association { get; set; } = null;
+
 
   // --------------------------------------------------------------------------------------------------------------------------
   public ColumnDef(string propName, string dataStoreName, Type runtimeType, string dataType, bool isPrimary, bool isNullable, AssociationAttribute? assocAttr_, PropertyInfo? propInfo_, bool isComposite_)

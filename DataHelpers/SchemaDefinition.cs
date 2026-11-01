@@ -89,29 +89,29 @@ public class SchemaDefinition
       var toRemove = new List<ColumnDef>();
       foreach (var col in def.Columns)
       {
-        if (col.AssociationDef != null && col.AssociationDef.AssociationType == EAssociationType.Many)
+        if (col.DependencyDef != null && col.DependencyDef.AssociationType == EAssociationType.Many)
         {
 
           // We are looking for a mutual association to this data set!
           // NOTE: If there is more than one mutual, we have a problem. That doesn't make sense and should not be!
-          var target = col.AssociationDef.TargetSet;
+          var target = col.DependencyDef.TargetSet;
           var mutual = (from x in target.Columns
-                        where x.AssociationDef != null &&
-                              x.AssociationDef.TargetSet == def &&
-                              x.AssociationDef.AssociationType == EAssociationType.Many
+                        where x.DependencyDef != null &&
+                              x.DependencyDef.TargetSet == def &&
+                              x.DependencyDef.AssociationType == EAssociationType.Many
                         select x).SingleOrDefault();
 
           if (mutual != null)
           {
             // This is a many-many mapping table that we need to create.
-            var mt = SetupMappingTable(def, col.AssociationDef, mutual.AssociationDef);
+            var mt = SetupMappingTable(def, col.DependencyDef, mutual.DependencyDef);
             generated.Add(mt);
 
 
             // Remove the associations.... maybe we should set some kind of 'is mapping' flag? --> probably.....
             // Now that the fields have been moved to a mapping set, we can remove them entirely.
             toRemove.Add(col);
-            col.AssociationDef.TargetSet.RemoveCol(mutual);
+            col.DependencyDef.TargetSet.RemoveCol(mutual);
           }
         }
       }
@@ -171,7 +171,7 @@ public class SchemaDefinition
 
       //    throw new NotImplementedException("come back to this...");
       var cd = new ColumnDef(c, sqlName, intType, intTypeName, false, false, null, null, false);
-      cd.AssociationDef = ad;
+      cd.DependencyDef = ad;
       res.AddColumn(cd);
       ++index;
     }
@@ -283,7 +283,7 @@ public class SchemaDefinition
   /// </summary>
   private object? GetAssociationID(ColumnDef col, object? obj)
   {
-    var relInstance = col.AssociationDef!.AssociationProperty!.GetValue(obj) as ISingleAssociation;
+    var relInstance = col.DependencyDef!.AssociationProperty!.GetValue(obj) as ISingleAssociation;
     if (relInstance == null) { return null; }
 
     int res = relInstance.ID;
@@ -445,7 +445,7 @@ public class SchemaDefinition
     // Summarize the associations on the table def.
     foreach (var def in _TableDefs.Values)
     {
-      def.BuildAssociationLists();
+      def.BuildDependencyList();
     }
 
   }
@@ -469,6 +469,8 @@ public class SchemaDefinition
     {
       def.PopulateManyAssociationFields();
     }
+
+
 
     // Now we can remove all of the temp, association columns from each of the sets:
     foreach (var def in _TableDefs.Values)
@@ -545,22 +547,22 @@ public class SchemaDefinition
     foreach (var t in _TableDefs.Values)
     {
       // Circular reference test.
-      foreach (var rel in t.DataSetDependencies)
+      foreach (var dataSet in t.DataSetDependencies)
       {
-        if (rel.HasTableDependency(t))
+        if (dataSet.HasTableDependency(t))
         {
           // This co-dependency only matters when we have enforced one->one relations.
           // Otherwise, one 
-          string msg = $"A circular reference from table: {t.Name} to: {rel.TargetSet.Name} was detected!";
+          string msg = $"A circular reference from table: {t.Name} to: {dataSet.Name} was detected!";
           throw new InvalidOperationException(msg);
         }
       }
 
       // Primary test.
-      foreach (var pTable in t.DataSetDependencies)
+      foreach (var pSet in t.DataSetDependencies)
       {
         // The parent table MUST have a primary key!
-        bool hasPrimary = ReflectionTools.HasInterface<IHasPrimary>(pTable.TargetSet.DataType);
+        bool hasPrimary = ReflectionTools.HasInterface<IHasPrimary>(pSet.DataType);
         if (!hasPrimary)
         {
           //// This might be a mapping table.  If it is we can consider it valid as type + member checks would have already happened!
@@ -594,8 +596,7 @@ public class SchemaDefinition
     else
     {
       return false;
-    }
-  }
+    }  }
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
@@ -652,9 +653,9 @@ public class SchemaDefinition
       foreach (var item in candidates)
       {
         bool hasAll = true;
-        foreach (var rel in item.DataSetDependencies)
+        foreach (var dataSet in item.DataSetDependencies)
         {
-          if (!used.Contains(rel.TargetSet))
+          if (!used.Contains(dataSet))
           {
             hasAll = false;
             break;
@@ -805,9 +806,9 @@ public class SchemaDefinition
         var prop = col.PropInfo;
 
         if (col.IsPrimary && !includeID) { continue; }
-        if (col.AssociationDef != null)
+        if (col.DependencyDef != null)
         {
-          var ad = col.AssociationDef;
+          var ad = col.DependencyDef;
           switch (ad.AssociationType)
           {
             case EAssociationType.Single:
@@ -816,7 +817,7 @@ public class SchemaDefinition
               string useName = col.DataStoreName;
 
               // TODO: I think I can get this directly from the def...or at least I should be able to.
-              var relType = col.AssociationDef.TargetSet.DataType; // col.PropInfo.PropertyType.GetGenericArguments()[0];
+              var relType = col.DependencyDef.TargetSet.DataType; // col.PropInfo.PropertyType.GetGenericArguments()[0];
               var relVal = ad.AssociationProperty.GetValue(fromInstance);
               if (relVal == null || (relVal as ISingleAssociation).ID == 0)
               {

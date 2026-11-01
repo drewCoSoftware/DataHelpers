@@ -87,7 +87,7 @@ namespace DataHelpersTesters
       // Make sure that the associations are correct.....
       var adt = factory.Schema.GetTableDef<Address>();
       var tcol = adt.GetColumnByDataStoreName("towns_id");
-      var assoc = tcol.AssociationDef;
+      var assoc = tcol.DependencyDef;
       Assert.That(assoc.AssociationType, Is.EqualTo(EAssociationType.Single), "Invalid / polluted association type!");
 
       var town = new Town()
@@ -152,7 +152,7 @@ namespace DataHelpersTesters
       {
         var col = td.GetColumnByDataStoreName(cName);
         Assert.That(col, Is.Not.Null);
-        Assert.That(col.AssociationDef, Is.Not.Null, "There should be an associated dataset for this column!");
+        Assert.That(col.DependencyDef, Is.Not.Null, "There should be an associated dataset for this column!");
       }
     }
 

@@ -69,29 +69,12 @@ public class AssociationDef
   /// </summary>
   public bool IsOptional { get; set; }
 
-  [Obsolete("this should be replaced with 'local field' but probably only for singel associaitons.")]
-  public string? LocalIDPropertyName { get; set; }
+  //[Obsolete("this should be replaced with 'local field' but probably only for singel associaitons.")]
+  //public string? LocalIDPropertyName { get; set; }
 
-  [Obsolete("We are going to only use 'LocalIDPropertyName' in the future!")]
-  public string? TargetIDPropertyName { get; set; }
+  //[Obsolete("We are going to only use 'LocalIDPropertyName' in the future!")]
+  //public string? TargetIDPropertyName { get; set; }
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  /// <summary>
-  /// This tells us if we have a dependency on the given table, anywhere in the chain....
-  /// </summary>
-  internal bool HasTableDependency(TableDef toDataSet)
-  {
-    if (IsOptional) { return false; }
-    foreach (var dep in this.TargetSet.DataSetDependencies)
-    {
-      if (!dep.IsOptional && dep.TargetSet.DataType == toDataSet.DataType)
-      {
-        return true;
-      }
-    }
-
-    return false;
-  }
 }
 
 // ============================================================================================================================

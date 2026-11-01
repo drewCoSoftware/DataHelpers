@@ -127,12 +127,12 @@ public class SqliteSchemaTesters : TestBase
     Assert.That(t2.Columns.Count, Is.EqualTo(3));
 
     // Now we will show that the associations are properly noted in the data set defs.
-    var a1 = t1.DataSetDependencies.SingleOrDefault();
-    Assert.That(a1, Is.Null);
+    var set1 = t1.DataSetDependencies.SingleOrDefault();
+    Assert.That(set1, Is.Null);
 
     // We have a single association that points to the other data set.
-    var a2 = t2.DataSetDependencies.Single();
-    Assert.That(a2.TargetSet, Is.SameAs(t1));
+    var set2 = t2.DataSetDependencies.Single();
+    Assert.That(set2, Is.SameAs(t1));
   }
 
 
@@ -206,7 +206,7 @@ public class SqliteSchemaTesters : TestBase
     Assert.That(mapCol, Is.Not.Null);
 
     // The mapped column should have the association def.
-    var ad = mapCol.AssociationDef;
+    var ad = mapCol.DependencyDef;
     Assert.That(ad, Is.Not.Null);
     Assert.That(ad.AssociationType, Is.EqualTo(EAssociationType.Many));
 
@@ -507,12 +507,12 @@ public class SqliteSchemaTesters : TestBase
     // Make sure that the mapping table points to the other two:
     var toTravelers = mappingTable.GetColumn($"{nameof(VacationSchema.Travelers)}_ID");
     Assert.That(toTravelers, Is.Not.Null);
-    Assert.That(toTravelers.AssociationDef.TargetSet, Is.SameAs(travelersSet), $"This should be related to the {nameof(VacationSchema.Travelers)} dataset!");
+    Assert.That(toTravelers.DependencyDef.TargetSet, Is.SameAs(travelersSet), $"This should be related to the {nameof(VacationSchema.Travelers)} dataset!");
 
 
     var toPlaces = mappingTable.GetColumn($"{nameof(VacationSchema.Places)}_ID");
     Assert.That(toPlaces, Is.Not.Null);
-    Assert.That(toPlaces.AssociationDef.TargetSet, Is.SameAs(placesSet), $"This should be related to the {nameof(VacationSchema.Places)} dataset!");
+    Assert.That(toPlaces.DependencyDef.TargetSet, Is.SameAs(placesSet), $"This should be related to the {nameof(VacationSchema.Places)} dataset!");
 
 
     // Do some queries, I gues....
@@ -581,7 +581,7 @@ public class SqliteSchemaTesters : TestBase
 
     var col = td.GetColumn("towns_id");
     Assert.That(col, Is.Not.Null, "There should be a column for the town association!");
-    var rel = col.AssociationDef;
+    var rel = col.DependencyDef;
     Assert.That(rel, Is.Not.Null, "The column should have a association!");
     // Assert.That(rel.data
 
@@ -648,7 +648,7 @@ public class SqliteSchemaTesters : TestBase
     var fkCol = td.GetColumn($"address_id");
     Assert.That(fkCol, Is.Not.Null);
 
-    var relatedSet = fkCol.AssociationDef;
+    var relatedSet = fkCol.DependencyDef;
     Assert.That(relatedSet, Is.Not.Null, "There should be a relationship to a different data set!");
 
 
@@ -718,9 +718,10 @@ public class SqliteSchemaTesters : TestBase
     {
       var td = schemaDef.GetTableDef<Person>();
 
-      // One child ref. to 'Addresses'
-      Assert.That(td.DataSetDependencies.Count, Is.EqualTo(2));
-      Assert.That(td.DataSetDependencies[0].TargetSet.Name == nameof(BusinessSchema.Addresses));
+      // One ref. to 'Addresses'
+      // The other association is optional, so it is not an actual dependency.
+      Assert.That(td.DataSetDependencies.Count, Is.EqualTo(1));
+      Assert.That(td.DataSetDependencies[0].Name == nameof(BusinessSchema.Addresses));
     }
 
     // Now show that the FKs are properly added when the queries are created.
