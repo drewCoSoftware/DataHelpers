@@ -50,7 +50,7 @@ public class PostgresDataTypeResolver : IDataTypeResolver
       return IDataTypeResolver.TEXT;
     }
 
-    if (ReflectionTools.HasInterface<IRelation>(t))
+    if (ReflectionTools.HasInterface<IAssociation>(t))
     {
       // Annotated type.  The corresponding column def will be replaced or removed, depending.
       return ColumnDef.ASSOCIATION_PLACEHOLDER;

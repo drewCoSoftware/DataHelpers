@@ -69,6 +69,8 @@ public class AssociationDef
   /// </summary>
   public bool IsOptional { get; set; }
 
+  public ColumnDef Mutual { get; internal set; }
+
   //[Obsolete("this should be replaced with 'local field' but probably only for singel associaitons.")]
   //public string? LocalIDPropertyName { get; set; }
 

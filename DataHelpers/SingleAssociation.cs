@@ -24,15 +24,18 @@ public enum EAssociationType
 
 // ==========================================================================
 // Used for easy type detection.
-public interface IRelation
-{ }
+public interface IAssociation
+{
+  public Type EntityType { get; }
+}
 
 // ==========================================================================
 // Used for easy type detection.
-public interface ISingleAssociation : IRelation
+public interface ISingleAssociation : IAssociation
 {
   int ID { get; set; }
   public (IHasPrimary? Value, Type DataType) GetData();
+  public void SetData(IHasPrimary value);
 
   /// <summary>
   /// Updates the ID value of the association, without altering the underlying data member.
@@ -42,8 +45,14 @@ public interface ISingleAssociation : IRelation
 
 // ==========================================================================
 // Used for easy type detection.
-public interface IManyAssociation : IRelation
+public interface IManyAssociation : IAssociation
 {
+  public IEnumerable<IHasPrimary> GetItems();
+
+  ///// <summary>
+  ///// Updates the ID value of the items in the association, without altering the underlying data member.
+  ///// </summary>
+  //public void RefreshID();
 }
 
 
@@ -59,7 +68,7 @@ public interface IManyAssociation : IRelation
 /// type so that field names in the generated sets make sense.
 /// </remarks>
 public class ManyAssociation<T> : IManyAssociation
-where T : class, new()
+where T : IHasPrimary, new()
 {
   public ManyAssociation() { }
   public ManyAssociation(IEnumerable<T> data)
@@ -69,6 +78,8 @@ where T : class, new()
   private List<T>? _Data = null;
   public List<T> Data { get { return _Data; } internal set { _Data = value; } }
 
+
+  public Type EntityType { get { return typeof(T); } }
 
   /// <summary>
   /// This isn't really an instance, it is a way for us to be able to use the type
@@ -89,6 +100,15 @@ where T : class, new()
     var res = (_Data ?? (_Data = new List<T>()));
     return res;
   }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public IEnumerable<IHasPrimary> GetItems()
+  {
+    if (_Data == null) { return new IHasPrimary[0]; }
+
+    var res = _Data.Cast<IHasPrimary>();
+    return res;
+  }
 }
 
 
@@ -105,6 +125,8 @@ where T : class, IHasPrimary
   {
     _ID = id;
   }
+
+  public Type EntityType { get { return typeof(T); } }
 
   /// <summary>
   /// The ID of the associated entity.
@@ -141,6 +163,12 @@ where T : class, IHasPrimary
   public void RefreshID()
   {
     _ID = _Data != null ? _Data.ID : 0;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public void SetData(IHasPrimary value)
+  {
+    this.Data = (T)value;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------

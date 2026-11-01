@@ -277,22 +277,6 @@ public class SchemaDefinition
     return res;
   }
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  /// <summary>
-  /// Gets the ID value for the given relationship, or null if it isn't set.
-  /// </summary>
-  private object? GetAssociationID(ColumnDef col, object? obj)
-  {
-    var relInstance = col.DependencyDef!.AssociationProperty!.GetValue(obj) as ISingleAssociation;
-    if (relInstance == null) { return null; }
-
-    int res = relInstance.ID;
-    if (res == 0)
-    {
-      return null;
-    }
-    return res;
-  }
 
   // --------------------------------------------------------------------------------------------------------------------------
   private string GetExpressionSyntax(Expression predicate)

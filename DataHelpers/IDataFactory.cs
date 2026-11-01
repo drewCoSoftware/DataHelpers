@@ -48,7 +48,7 @@ public interface IDataFactory<TSchema>
   {
     if (entity.ID != 0) { throw new InvalidOperationException($"The entity already has an assigned ID and can't be added to the set!  Use 'AddOrUpdate' or 'Update' calls instead!"); }
 
-    int res = Add(typeof(T), entity);
+    int res = Add(typeof(T), entity, new HashSet<object>());
     return res;
   }
 
@@ -57,14 +57,16 @@ public interface IDataFactory<TSchema>
   /// Add a new entity to the database.
   /// The ID propery will be assigned upon successful creation.
   /// </summary>
-  internal int Add(Type eType, IHasPrimary entity)
+  internal int Add(Type eType, IHasPrimary entity, HashSet<object> inQueue)
   {
+    inQueue.Add(entity);
+
     var td = Schema.GetTableDef(eType);
 
     // Look for associations / dependent stuff....
     // For now, single associations only.
 
-    AddUpdateAssociatedEntities(eType, entity, td);
+    AddUpdateAssociatedEntities(eType, entity, td, inQueue);
 
     var qParams = Schema.ResolveQueryParams(entity);
     string query = td.GetInsertQuery(qParams.Keys.ToArray());
@@ -83,46 +85,95 @@ public interface IDataFactory<TSchema>
 
 
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  void AddUpdateAssociatedEntities<T>(T entity, TableDef td) where T : IHasPrimary
-  {
-    AddUpdateAssociatedEntities(typeof(T), entity, td);
-  }
+  //// --------------------------------------------------------------------------------------------------------------------------
+  //void AddUpdateAssociatedEntities<T>(T entity, TableDef td) where T : IHasPrimary
+  //{
+  //  AddUpdateAssociatedEntities(typeof(T), entity, td);
+  //}
 
   // --------------------------------------------------------------------------------------------------------------------------
-  internal void AddUpdateAssociatedEntities(Type eType, IHasPrimary entity, TableDef td)
+  internal void AddUpdateAssociatedEntities(Type eType, IHasPrimary entity, TableDef td, HashSet<object> inQueue)
   {
+    // Reentrancy check....
+    // if (inQueue.Contains(entity)) { return; }
+    // inQueue.Add(entity);
+
     foreach (var ad in td.Associations)
     {
       switch (ad.AssociationType)
       {
         case EAssociationType.Single:
-          // If we currently have an instance with an ID of zero, then we can think about adding it.
-          var curValue = ad.AssociationProperty.GetValue(entity) as ISingleAssociation;
-          if (curValue != null)
           {
-            // We can recursively add this one?
-            var data = curValue.GetData();
-            if (data.Value != null)
+            // If we currently have an instance with an ID of zero, then we can think about adding it.
+            var aVal = ad.AssociationProperty.GetValue(entity) as ISingleAssociation;
+            if (aVal != null)
             {
-              if (data.Value.ID == 0)
+              // We can recursively add this one?
+              var data = aVal.GetData();
+
+              if (inQueue.Contains(data.Value)) { continue; }
+
+              if (data.Value != null)
               {
-                // This is a new, unsaved entity.
-                Type et = data.Value.GetType();
-                Add(et, data.Value);
-                curValue.RefreshID();
-              }
-              else
-              {
-                Log.Verbose("There is no support to auto-update an entity on Add()");
+                Type et = aVal.EntityType;
+                if (data.Value.ID == 0)
+                {
+                  // This is a new, unsaved entity.
+                  Add(et, data.Value, inQueue);
+                  aVal.RefreshID();
+                }
+                else
+                {
+                  Log.Verbose("There is no support to auto-update an entity on Add() [Single]");
+                }
               }
             }
           }
           break;
 
         case EAssociationType.Many:
-          Log.Verbose("Many association type auto-add is not supported!");
+          {
+            Log.Verbose("Many association type auto-add is not supported!");
+            continue; 
+
+            //var aVal = ad.AssociationProperty.GetValue(entity) as IManyAssociation;
+
+            //if (aVal != null)
+            //{
+            //  Type et = aVal.EntityType;
+
+            //  var data = aVal.GetItems();
+            //  foreach (var item in data)
+            //  {
+            //    if (item.ID == 0)
+            //    {
+            //      // We need to somehow add a ref. back to the parent entity.... (entity)
+            //      if (ad.Mutual != null)
+            //      {
+            //        var target = ad.Mutual.PropInfo.GetValue(item);
+            //        var single = target as ISingleAssociation;
+            //        if (single != null)
+            //        {
+            //          single.SetData(entity);
+            //        }
+            //        else
+            //        {
+            //          Log.Verbose($"Association target is not a {nameof(ISingleAssociation)} instance.  No other type is supported at this time!");
+            //        }
+
+            //      }
+            //      if (inQueue.Contains(item)) { continue; }
+            //      Add(et, item, inQueue);
+            //    }
+            //    else
+            //    {
+            //      Log.Verbose("There is no support to auto-update and entity on Add() [Many]");
+            //    }
+            //  }
+            //}
+          }
           break;
+
         default:
           throw new NotSupportedException();
       }
