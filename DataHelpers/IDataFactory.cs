@@ -92,44 +92,42 @@ public interface IDataFactory<TSchema>
   // --------------------------------------------------------------------------------------------------------------------------
   internal void AddUpdateAssociatedEntities(Type eType, IHasPrimary entity, TableDef td)
   {
-    Log.Info("Not working at this time...");
-    return;
-    //foreach (var ad in td.DataSetDependencies)
-    //{
-    //  switch (ad.AssociationType)
-    //  {
-    //    case EAssociationType.Single:
-    //      // If we currently have an instance with an ID of zero, then we can think about adding it.
-    //      var curValue = ad.AssociationProperty.GetValue(entity) as ISingleAssociation;
-    //      if (curValue != null)
-    //      {
-    //        // We can recursively add this one?
-    //        var data = curValue.GetData();
-    //        if (data.Value != null)
-    //        {
-    //          if (data.Value.ID == 0)
-    //          {
-    //            // This is a new, unsaved entity.
-    //            Type et = data.Value.GetType();
-    //            Add(et, data.Value);
-    //            curValue.RefreshID();
-    //          }
-    //          else
-    //          {
-    //            Log.Verbose("There is no support to auto-update an entity on Add()");
-    //          }
-    //        }
-    //      }
-    //      break;
+    foreach (var ad in td.Associations)
+    {
+      switch (ad.AssociationType)
+      {
+        case EAssociationType.Single:
+          // If we currently have an instance with an ID of zero, then we can think about adding it.
+          var curValue = ad.AssociationProperty.GetValue(entity) as ISingleAssociation;
+          if (curValue != null)
+          {
+            // We can recursively add this one?
+            var data = curValue.GetData();
+            if (data.Value != null)
+            {
+              if (data.Value.ID == 0)
+              {
+                // This is a new, unsaved entity.
+                Type et = data.Value.GetType();
+                Add(et, data.Value);
+                curValue.RefreshID();
+              }
+              else
+              {
+                Log.Verbose("There is no support to auto-update an entity on Add()");
+              }
+            }
+          }
+          break;
 
-    //    case EAssociationType.Many:
-    //      Log.Verbose("Many association type auto-add is not supported!");
-    //      break;
-    //    default:
-    //      throw new NotSupportedException();
-    //  }
+        case EAssociationType.Many:
+          Log.Verbose("Many association type auto-add is not supported!");
+          break;
+        default:
+          throw new NotSupportedException();
+      }
 
-    //}
+    }
   }
 
   // --------------------------------------------------------------------------------------------------------------------------

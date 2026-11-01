@@ -470,9 +470,18 @@ public class SchemaDefinition
       def.PopulateManyAssociationFields();
     }
 
+    // Try to build the association lists....
+    foreach (var def in _TableDefs.Values)
+    {
+      foreach (var f in def.Columns)
+      {
+        if (f.Association != null) { def.Associations.Add(f.Association); }
+      }
+    }
 
 
     // Now we can remove all of the temp, association columns from each of the sets:
+    // We will also build out the association lists at this time...
     foreach (var def in _TableDefs.Values)
     {
       var toRemove = (from x in def.Columns

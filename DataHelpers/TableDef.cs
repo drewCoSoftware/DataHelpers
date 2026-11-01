@@ -27,8 +27,8 @@ public class TableDef
   ///// </summary>
   //internal List<AssociationDef> DataSetDependencies { get; set; }
 
-  internal List<TableDef> DataSetDependencies { get; set; } = null!;
-  internal List<AssociationDef> Associations { get; set; } = null!;
+  internal List<TableDef> DataSetDependencies { get; set; } = new List<TableDef>();
+  internal List<AssociationDef> Associations { get; set; } = new List<AssociationDef>();
 
   // NOTE: This should probably be a dictionary.....
   // REFACTOR: FIX: NOTE: We are making a new readonly instance each time.... this will make mucho garbagio!
@@ -720,16 +720,8 @@ public class TableDef
   /// </summary>
   internal void BuildDependencyList()
   {
-    DataSetDependencies = new List<TableDef>();
-    Associations = new List<AssociationDef>();
-
     foreach (var col in Columns)
     {
-      if (col.Association != null)
-      {
-        this.Associations.Add(col.Association);
-      }
-
       if (col.DependencyDef != null && !col.DependencyDef.IsOptional)
       {
         var ad = col.DependencyDef;
@@ -829,6 +821,16 @@ public class TableDef
       // Let's check the associated set to see if there is a matching association def:
       string targetFieldName = ResolveIDFieldName(aa, col, this);
       var colDef = targetSet.GetColumnByDataStoreName(targetFieldName);
+
+      // Let's place the association def on that column!
+      var ad = new AssociationDef(this);
+      ad.AssociationType = EAssociationType.Many;
+      ad.AssociationProperty = col.PropInfo;
+      ad.TargetIDField = this.GetColumn(nameof(IHasPrimary.ID))!;
+      ad.IsOptional = col.IsNullable;
+
+      col.Association = ad;
+
       if (colDef == null)
       {
         // Log.Debug($"Detectected one-way many->one assocation.  Adding column: {assocFieldName} to data set: {targetSet.Name}");
@@ -837,17 +839,9 @@ public class TableDef
         var dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
         colDef = new ColumnDef(targetFieldName, targetFieldName, typeof(int), dbTypeName, false, col.IsNullable, null, null, false);
 
-        // Let's place the association def on that column!
-        var ad = new AssociationDef(this);
-        ad.AssociationType = EAssociationType.Many;
-        ad.AssociationProperty = col.PropInfo;
-        ad.TargetIDField = this.GetColumn(nameof(IHasPrimary.ID))!;
-        ad.IsOptional = col.IsNullable;
         colDef.DependencyDef = ad;
 
         targetSet.AddColumn(colDef);
-
-        col.Association = ad;
       }
       else
       {
