@@ -1,6 +1,4 @@
-﻿using ClankerCode;
-
-namespace DataHelpers.Data
+﻿namespace DataHelpers.Data
 {
 
   // ============================================================================================================================

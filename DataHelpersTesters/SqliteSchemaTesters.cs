@@ -127,11 +127,11 @@ public class SqliteSchemaTesters : TestBase
     Assert.That(t2.Columns.Count, Is.EqualTo(3));
 
     // Now we will show that the associations are properly noted in the data set defs.
-    var a1 = t1.AssociationDefs.SingleOrDefault();
+    var a1 = t1.DataSetDependencies.SingleOrDefault();
     Assert.That(a1, Is.Null);
 
     // We have a single association that points to the other data set.
-    var a2 = t2.AssociationDefs.Single();
+    var a2 = t2.DataSetDependencies.Single();
     Assert.That(a2.TargetSet, Is.SameAs(t1));
   }
 
@@ -719,8 +719,8 @@ public class SqliteSchemaTesters : TestBase
       var td = schemaDef.GetTableDef<Person>();
 
       // One child ref. to 'Addresses'
-      Assert.That(td.AssociationDefs.Count, Is.EqualTo(2));
-      Assert.That(td.AssociationDefs[0].TargetSet.Name == nameof(BusinessSchema.Addresses));
+      Assert.That(td.DataSetDependencies.Count, Is.EqualTo(2));
+      Assert.That(td.DataSetDependencies[0].TargetSet.Name == nameof(BusinessSchema.Addresses));
     }
 
     // Now show that the FKs are properly added when the queries are created.

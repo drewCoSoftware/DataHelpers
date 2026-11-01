@@ -82,7 +82,7 @@ public class AssociationDef
   internal bool HasTableDependency(TableDef toDataSet)
   {
     if (IsOptional) { return false; }
-    foreach (var dep in this.TargetSet.AssociationDefs)
+    foreach (var dep in this.TargetSet.DataSetDependencies)
     {
       if (!dep.IsOptional && dep.TargetSet.DataType == toDataSet.DataType)
       {

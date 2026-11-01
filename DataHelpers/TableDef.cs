@@ -22,7 +22,10 @@ public class TableDef
   public string Name { get; private set; }
   public SchemaDefinition Schema { get; private set; }
 
-  public List<AssociationDef> AssociationDefs { get; set; }
+  /// <summary>
+  /// Direct dependencies that we have to other data sets.  This is used for internal validation, and query genreations.
+  /// </summary>
+  internal List<AssociationDef> DataSetDependencies { get; set; }
 
   // NOTE: This should probably be a dictionary.....
   // REFACTOR: FIX: NOTE: We are making a new readonly instance each time.... this will make mucho garbagio!
@@ -712,9 +715,9 @@ public class TableDef
   /// <summary>
   /// Add any required members to the def based on its relationships.
   /// </summary>
-  internal void BuildAssociationList()
+  internal void BuildAssociationLists()
   {
-    AssociationDefs = new List<AssociationDef>();
+    DataSetDependencies = new List<AssociationDef>();
 
     foreach (var col in Columns)
     {
@@ -725,7 +728,7 @@ public class TableDef
         // NOTE: I don't think that we need to do any other integrity checking at this time.
         // That should all be handled during schema generation...
         // Yes, if we do it that way, then the checks below get a lot simpler.
-        AssociationDefs.Add(ad);
+        DataSetDependencies.Add(ad);
 
         // We need to make sure that the data type mentioned in the Association Attribute
         // matches the data type of the (Single|Many)Association.
@@ -759,6 +762,7 @@ public class TableDef
 
       }
     }
+
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -800,7 +804,6 @@ public class TableDef
   // --------------------------------------------------------------------------------------------------------------------------
   internal void PopulateManyAssociationFields()
   {
-
     foreach (var col in this.Columns)
     {
       if (col.AssociationAttr == null) { continue; }
@@ -811,8 +814,8 @@ public class TableDef
 
       var targetSet = Schema.GetTableDef(col.AssociationAttr.DataSetName);
 
-        // TODO: Maybe we should look to see if there is an association field that points to this set...
-        // that way we can issue a warning that they might not want the extra field.
+      // TODO: Maybe we should look to see if there is an association field that points to this set...
+      // that way we can issue a warning that they might not want the extra field.
 
       // Let's check the associated set to see if there is a matching association def:
       string targetFieldName = ResolveIDFieldName(aa, col, this);
@@ -826,12 +829,12 @@ public class TableDef
         colDef = new ColumnDef(targetFieldName, targetFieldName, typeof(int), dbTypeName, false, col.IsNullable, null, null, false);
 
         // Let's place the association def on that column!
-        var ad2 = new AssociationDef(this);
-        ad2.AssociationType = EAssociationType.Many;
-        ad2.AssociationProperty = col.PropInfo;
-        ad2.TargetIDField = this.GetColumn(nameof(IHasPrimary.ID))!;
-        ad2.IsOptional = col.IsNullable;
-        colDef.AssociationDef = ad2;
+        var ad = new AssociationDef(this);
+        ad.AssociationType = EAssociationType.Many;
+        ad.AssociationProperty = col.PropInfo;
+        ad.TargetIDField = this.GetColumn(nameof(IHasPrimary.ID))!;
+        ad.IsOptional = col.IsNullable;
+        colDef.AssociationDef = ad;
 
         targetSet.AddColumn(colDef);
       }
@@ -881,18 +884,6 @@ public class TableDef
         throw new InvalidOperationException($"A field named: {fieldName} for single association on set '{this.Name}' is already defined!  Set a unique name on attribute property: {nameof(AssociationAttribute.AssociationName)}");
       }
 
-      //if (fkField == null)
-      //{
-      //  fkField = (from x in toAdd where x.PropertyName == fieldName select x).SingleOrDefault();
-      //}
-
-      //if (fkField != null)
-      //{
-      //  throw new InvalidOperationException($"A field named: {fieldName} for single association on set '{this.Name}' is already defined!  Set a unique name on attribute property: {nameof(AssociationAttribute.IDFieldName)}");
-      //}
-      //else
-      //{
-
       var dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
       fkField = new ColumnDef(fieldName, fieldName, typeof(int), dbTypeName, false, col.IsNullable, null, null, false);
 
@@ -908,18 +899,7 @@ public class TableDef
       fkField.AssociationDef = ad;
 
       toAdd.Add(fkField);
-      //switch (assocType)
-      //{
-      //  case EAssociationType.Single:
-      //    withSingle.Add(col);
-      //    break;
-      //  case EAssociationType.Many:
-      //    withMany.Add(col);
-      //    break;
 
-      //  default:
-      //    throw new NotSupportedException();
-      //}
     }
 
 
@@ -928,117 +908,6 @@ public class TableDef
       _Columns.Add(item);
     }
   }
-
-  //// Now process them:
-  //// We do the single associations first because they define mapping cols on their own data set.
-  //// Many associations come last so that we can detect and remove redundant generated FK fields.
-  //foreach (var col in withSingle)
-  //{
-
-  //}
-
-
-
-
-  //// --------------------------------------------------------------------------------------------------------------------------
-  //internal void FinalizeAssociations()
-  //{
-  //  var toAdd = new List<ColumnDef>();
-
-  //  foreach (var col in this.Columns)
-  //  {
-  //    //      var attr = ReflectionTools.GetAttribute<IAss
-  //    // NOTE: We should be able to pull this directly off the column.      
-  //    if (col.AssociationAttr == null) { continue; }
-  //    var aa = col.AssociationAttr;
-
-  //    var assocType = GetAssociationType(col.PropInfo.PropertyType);
-  //    var targetSet = Schema.GetTableDef(aa.DataSetName);
-
-  //    switch (assocType)
-  //    {
-
-  //      case EAssociationType.Single:
-  //        {
-  //          // For single stuff, we don't need to know if there is any mutual link.
-  //          // We aren't generating mapping tables, so who cares.
-  //          // In a later step, we check for and annotate any mutual associations. (that might also be where we create mapping tables if needed?) --> Probably!
-  //          //            var exists = 
-  //          //// This is different.  We want to check the target set for a column name that mathches the one we generate here!
-  //          //TODO: Wrap this in a function + replace clones.
-  //          string fieldName = ResolveFieldName(aa, col, targetSet);
-
-  //          // See if it exists on the target set, or if we need to add it....
-  //          var fkField = this.GetColumnByDataStoreName(fieldName);
-  //          if (fkField == null)
-  //          {
-  //            fkField = (from x in toAdd where x.PropertyName == fieldName select x).SingleOrDefault();
-  //          }
-
-  //          if (fkField != null)
-  //          {
-  //            throw new InvalidOperationException($"A field named: {fieldName} for single association on set '{this.Name}' is already defined!  Set a unique name on attribute property: {nameof(AssociationAttribute.IDFieldName)}");
-  //          }
-  //          else
-  //          {
-
-  //            var dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
-  //            fkField = new ColumnDef(fieldName, fieldName, typeof(int), dbTypeName, false, col.IsNullable, null, null, false);
-
-  //            // Now stick the association def on it..
-  //            var ad = new AssociationDef(targetSet);
-  //            ad.AssociationType = EAssociationType.Single;
-
-  //            // HMM.... is this the same thing?
-  //            ad.TargetIDField = targetSet.GetColumn(nameof(IHasPrimary.ID));
-  //            ad.AssociationProperty = col.PropInfo; // ad.TargetProperty
-  //            ad.IsOptional = col.IsNullable;
-
-  //            fkField.AssociationDef = ad;
-
-  //            toAdd.Add(fkField);
-  //          }
-  //        }
-  //        break;
-  //      case EAssociationType.Many:
-  //        {
-  //          // Let's check the associated set to see if there is a matching association def:
-  //          string assocFieldName = ResolveFieldName(aa, col, this);
-
-  //          var match = targetSet.GetColumnByDataStoreName(assocFieldName);
-  //          if (match == null)
-  //          {
-  //            // Log.Debug($"Detectected one-way many->one assocation.  Adding column: {assocFieldName} to data set: {targetSet.Name}");
-
-  //            // There is no column with that name on the target set.... We will generate it here?
-  //            var dbTypeName = Schema.Flavor.TypeResolver.GetDataTypeName(typeof(int), false);
-  //            var colDef = new ColumnDef(assocFieldName, assocFieldName, typeof(int), dbTypeName, false, col.IsNullable, null, null, false);
-
-  //            // Let's place the association def on that column!
-  //            var ad2 = new AssociationDef(this);
-  //            ad2.AssociationType = EAssociationType.Many;
-  //            ad2.AssociationProperty = col.PropInfo;
-  //            ad2.TargetIDField = this.GetColumn(nameof(IHasPrimary.ID))!;
-  //            ad2.IsOptional = col.IsNullable;
-
-  //            colDef.AssociationDef = ad2;
-
-  //            targetSet.AddColumn(colDef);
-  //          }
-  //        }
-  //        break;
-
-  //      default:
-  //        throw new NotImplementedException();
-  //    }
-  //  }
-
-  //  foreach (var item in toAdd)
-  //  {
-  //    this.AddColumn(item);
-  //  }
-  //}
-
 
   // --------------------------------------------------------------------------------------------------------------------------
   private string ResolveIDFieldName(AssociationAttribute attr, ColumnDef col, TableDef? targetSet)
@@ -1184,27 +1053,6 @@ public class TableDef
       this.Indexes.Add(idx);
     }
 
-  }
-
-  // --------------------------------------------------------------------------------------------------------------------------
-  /// <summary>
-  /// Get the related dataset by type.
-  /// This will fail if there is no association, or if the association is ambiguous.
-  /// </summary>
-  public AssociationDef? GetAssociatedSet<T>()
-  {
-    var match = (from x in this.AssociationDefs where x.TargetSet.DataType == typeof(T) select x).SingleOrDefault();
-    return match;
-  }
-
-  // --------------------------------------------------------------------------------------------------------------------------
-  /// <summary>
-  /// Get the name of the field for the associated data set.  This is a foreign key in SQL.
-  /// </summary>
-  public string GetAssociatedFieldNameFor<T>(string? byName = null)
-  {
-    var match = (from x in this.AssociationDefs where x.TargetSet.DataType == typeof(T) select x).SingleOrDefault();
-    return match.TargetSet.Name;
   }
 
 }

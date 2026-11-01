@@ -445,7 +445,7 @@ public class SchemaDefinition
     // Summarize the associations on the table def.
     foreach (var def in _TableDefs.Values)
     {
-      def.BuildAssociationList();
+      def.BuildAssociationLists();
     }
 
   }
@@ -458,13 +458,6 @@ public class SchemaDefinition
       // Now we can populate all of the members.
       def.PopulateMembers();
     }
-
-    //foreach (var def in _TableDefs.Values)
-    //{
-    //  // Now we can populate all of the members.
-    //  // var generatedSets = def.PopulateAssociationMembers_LEGACY();
-    //  def.InitAssociationDefs();
-    //}
 
     // Now we can finalize associations, complete their mappings, and generate any necessary mapping tables.
     foreach (var def in _TableDefs.Values)
@@ -552,7 +545,7 @@ public class SchemaDefinition
     foreach (var t in _TableDefs.Values)
     {
       // Circular reference test.
-      foreach (var rel in t.AssociationDefs)
+      foreach (var rel in t.DataSetDependencies)
       {
         if (rel.HasTableDependency(t))
         {
@@ -564,7 +557,7 @@ public class SchemaDefinition
       }
 
       // Primary test.
-      foreach (var pTable in t.AssociationDefs)
+      foreach (var pTable in t.DataSetDependencies)
       {
         // The parent table MUST have a primary key!
         bool hasPrimary = ReflectionTools.HasInterface<IHasPrimary>(pTable.TargetSet.DataType);
@@ -645,7 +638,7 @@ public class SchemaDefinition
     var res = new List<TableDef>();
 
     // NOTE: This can be folded in to the main loop...
-    var zeroDeps = (from x in candidates where x.AssociationDefs.Count == 0 select x).ToList();
+    var zeroDeps = (from x in candidates where x.DataSetDependencies.Count == 0 select x).ToList();
     foreach (var item in zeroDeps)
     {
       candidates.Remove(item);
@@ -659,7 +652,7 @@ public class SchemaDefinition
       foreach (var item in candidates)
       {
         bool hasAll = true;
-        foreach (var rel in item.AssociationDefs)
+        foreach (var rel in item.DataSetDependencies)
         {
           if (!used.Contains(rel.TargetSet))
           {

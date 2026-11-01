@@ -92,7 +92,7 @@ public interface IDataFactory<TSchema>
   // --------------------------------------------------------------------------------------------------------------------------
   internal void AddUpdateAssociatedEntities(Type eType, IHasPrimary entity, TableDef td)
   {
-    foreach (var ad in td.AssociationDefs)
+    foreach (var ad in td.DataSetDependencies)
     {
       switch (ad.AssociationType)
       {
