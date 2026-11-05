@@ -38,96 +38,36 @@ namespace DataHelpers.SqlFlavors.Postgres
     }
 
     // --------------------------------------------------------------------------------------------------------------------------
-    private DBHandler? ActiveHandler;
-    private bool HasTransaction;
-
-    private TResult WithHandler<TResult>(Func<DBHandler, TResult> action)
+    public void Action(Action<DBHandler<TSchema>> action)
     {
-      if (ActiveHandler != null)
+      using (var handler = new DBHandler<TSchema>(NpgsqlFactory.Instance, ConnectionString, Schema))
       {
-        return action(ActiveHandler);
+        action(handler);
       }
+    }
 
-      using (var handler = new DBHandler(NpgsqlFactory.Instance, ConnectionString, Schema))
+    public TData Action<TData>(Func<DBHandler<TSchema>, TData> action)
+    {
+      using (var handler = new DBHandler<TSchema>(NpgsqlFactory.Instance, ConnectionString, Schema))
       {
         return action(handler);
       }
     }
 
-    public IEnumerable<T> RunQuery<T>(string query, object? qParams = null)
+    public void Transaction(Action<DBHandler<TSchema>> action)
     {
-      return WithHandler(handler => handler.Query<T>(query, Schema.ResolveQueryParams(qParams)).ToArray());
-    }
-
-    public T? RunSingleQuery<T>(string query, object? qParams = null)
-    {
-      return RunQuery<T>(query, qParams).SingleOrDefault();
-    }
-
-    public int RunExecute(string query, object? qParams = null)
-    {
-      return WithHandler(handler => handler.Execute(query, Schema.ResolveQueryParams(qParams)));
-    }
-
-    public void Rollback()
-    {
-      if (ActiveHandler == null)
+      using (var handler = new DBHandler<TSchema>(NpgsqlFactory.Instance, ConnectionString, Schema))
       {
-        throw new InvalidOperationException("There is no transaction to roll back!");
-      }
-
-      ActiveHandler.Rollback();
-      HasTransaction = false;
-    }
-
-    public void Action(Action<IDataFactory<TSchema, PostgresFlavor>> action)
-    {
-      Action<int>(factory =>
-      {
-        action(factory);
-
-        return 0;
-      });
-    }
-
-    public TData Action<TData>(Func<IDataFactory<TSchema, PostgresFlavor>, TData> action)
-    {
-      if (ActiveHandler != null)
-      {
-        return action(this);
-      }
-
-      using (var handler = new DBHandler(NpgsqlFactory.Instance, ConnectionString, Schema))
-      {
-        var scope = (PostgresDataFactory<TSchema>)MemberwiseClone();
-        scope.ActiveHandler = handler;
-
-        return action(scope);
-      }
-    }
-
-    public void Transaction(Action<IDataFactory<TSchema, PostgresFlavor>> action)
-    {
-      if (ActiveHandler != null)
-      {
-        throw new InvalidOperationException("Nested transactions are not supported!");
-      }
-
-      using (var handler = new DBHandler(NpgsqlFactory.Instance, ConnectionString, Schema))
-      {
-        var scope = (PostgresDataFactory<TSchema>)MemberwiseClone();
-        scope.ActiveHandler = handler;
-
         handler.BeginTransaction();
-        scope.HasTransaction = true;
 
         try
         {
-          action(scope);
+          action(handler);
+          handler.Commit();
         }
         catch
         {
-          if (scope.HasTransaction)
+          if (handler.HasTransaction)
           {
             handler.Rollback();
           }
@@ -184,7 +124,7 @@ namespace DataHelpers.SqlFlavors.Postgres
       {
         using (var tx = conn.BeginTransaction())
         {
-          DBHandler.Execute(conn, query);
+          DBHandler<TSchema>.Execute(conn, query);
           tx.Commit();
         }
         conn.Close();
@@ -277,7 +217,7 @@ namespace DataHelpers.SqlFlavors.Postgres
         // var qp = new QueryParamsBuilder(this.fla
         var qParams = new QueryParams();
         qParams.Add(nameof(tableName), new QueryParamValue(tableName, System.Data.DbType.String));
-        var qr = DBHandler.Query(conn, query, qParams);
+        var qr = DBHandler<TSchema>.Query(conn, query, qParams);
         // var qr = conn.Query(query, new { tableName = tableName });
         bool res = qr.Rows.Count > 0; // Count() > 0;
         conn.Close();

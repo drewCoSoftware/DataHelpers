@@ -9,6 +9,7 @@ using System.ComponentModel.Design;
 using System.Data;
 using System.Data.Common;
 using System.Reflection;
+using System.Linq.Expressions;
 using BindCallback = System.Action<object>;
 
 // ==============================================================================================================================
@@ -30,14 +31,17 @@ public class QueryParamValue
 }
 
 // ==============================================================================================================================
-public class DBHandler : IDisposable
+public class DBHandler<TSchema> : IDisposable
 {
-  private SchemaDefinition SchemaDef = null!;
+  public SchemaDefinition Schema { get; }
 
   private DbProviderFactory _DBProvider = null!;
   private string ConnectionString = null!;
   private DbConnection? Connection = null;
   private DbTransaction? Transaction = null;
+  private bool IsDisposed;
+
+  public bool HasTransaction => Transaction != null;
 
   /// <summary>
   /// Cache of property maps for types.
@@ -54,20 +58,51 @@ public class DBHandler : IDisposable
   {
     _DBProvider = dbProvider_;
     ConnectionString = connectionString_;
-    SchemaDef = schemaDef_;
+    Schema = schemaDef_;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
   public void Dispose()
   {
-    Transaction?.Commit();
-    Transaction?.Dispose();
-    Connection?.Dispose();
+    if (IsDisposed)
+    {
+      return;
+    }
+
+    try
+    {
+      Commit();
+    }
+    finally
+    {
+      Transaction?.Dispose();
+      Transaction = null;
+
+      Connection?.Dispose();
+      IsDisposed = true;
+    }
+  }
+
+  public void Commit()
+  {
+    if (Transaction == null)
+    {
+      return;
+    }
+
+    Transaction.Commit();
+    Transaction.Dispose();
+    Transaction = null;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
   public DbTransaction BeginTransaction()
   {
+    if (Transaction != null)
+    {
+      throw new InvalidOperationException("A transaction is already active!");
+    }
+
     var conn = ResolveConnection();
     Transaction = conn.BeginTransaction();
     return Transaction;
@@ -100,10 +135,16 @@ public class DBHandler : IDisposable
   // --------------------------------------------------------------------------------------------------------------------------
   private DbConnection ResolveConnection()
   {
+    ObjectDisposedException.ThrowIf(IsDisposed, this);
+
     if (this.Connection == null)
     {
       Connection = _DBProvider.CreateConnection();
-      if (Connection == null) { throw new InvalidOperationException("Could not create connection!"); }
+      if (Connection == null)
+      {
+        throw new InvalidOperationException("Could not create connection!");
+      }
+
       Connection.ConnectionString = this.ConnectionString;
       Connection.Open();
     }
@@ -280,7 +321,7 @@ public class DBHandler : IDisposable
 
     }
 
-    var td = SchemaDef.TryGetTableDef<T>();
+    var td = Schema.TryGetTableDef<T>();
 
     // We are simply mapping out to whatever type.  Field names must match 1:1
     // NOTE: This do
@@ -403,7 +444,7 @@ public class DBHandler : IDisposable
       //}
     }
 
-    var targetSet = rel.TargetSet; // SchemaDef.GetTableDef(rel.DataSetName);
+    var targetSet = rel.TargetSet; // Schema.GetTableDef(rel.DataSetName);
                                    // if (targetSet == null) { throw new NullReferenceException($"There is no data set named: {rel.DataSetName} in the schema!"); }
 
     // TODO: If we want, we can determine what the generic data type is....
@@ -428,7 +469,10 @@ public class DBHandler : IDisposable
   private object? ResolveValue(IDataReader reader, int value, Type dataType)
   {
     object? raw = reader.IsDBNull(value) ? null : reader.GetValue(value);
-    if (raw == null) { return null; }
+    if (raw == null)
+    {
+      return null;
+    }
 
     object? converted = null!;
     Type targetType = Nullable.GetUnderlyingType(dataType) ?? dataType;
@@ -446,36 +490,6 @@ public class DBHandler : IDisposable
     }
     return converted;
   }
-
-  //// --------------------------------------------------------------------------------------------------------------------------
-  //private PropMap GetColumnMap<T>()
-  //{
-  //  // NOTE: I'm thinking that the property maps can even come from 'SchemaDef'!
-  //  var td = SchemaDef.GetTableDef<T>();
-  //  return td.PropMap;
-
-  //  //lock (_PropMapLock)
-  //  //{
-  //  //  if (_Generated.TryGetValue(typeof(T), out var res))
-  //  //  {
-  //  //    return res;
-  //  //  }
-
-  //  //  PropertyInfo[] props = typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public);
-  //  //  Dictionary<string, PropertyInfo> propMap = new Dictionary<string, PropertyInfo>();
-  //  //  foreach (PropertyInfo pi in props)
-  //  //  {
-  //  //    if (pi.CanWrite)
-  //  //    {
-  //  //      propMap[pi.Name] = pi;
-  //  //    }
-  //  //  }
-
-  //  //  _Generated.Add(typeof(T), propMap);
-  //  //  return propMap;
-  //  //}
-
-  //}
 
   private static object? ConvertValue(object value, Type targetType)
   {
@@ -531,4 +545,458 @@ public class DBHandler : IDisposable
     // Common change-type path (handles numeric conversions, strings, bools, DateTime, etc.)
     return Convert.ChangeType(value, targetType);
   }
+
+  public void Action(Action<DBHandler<TSchema>> action)
+  {
+    action(this);
+  }
+
+  public TData Action<TData>(Func<DBHandler<TSchema>, TData> action)
+  {
+    return action(this);
+  }
+
+  public IEnumerable<T> RunQuery<T>(string query, object? qParams = null)
+  {
+    return Query<T>(query, Schema.ResolveQueryParams(qParams));
+  }
+
+  public T? RunSingleQuery<T>(string query, object? qParams = null)
+  {
+    return RunQuery<T>(query, qParams).SingleOrDefault();
+  }
+
+  public int RunExecute(string query, object? qParams = null)
+  {
+    return Execute(query, Schema.ResolveQueryParams(qParams));
+  }
+
+  public int GetCount<T>(string? criteria = null, object? qParams = null)
+  {
+    return RunSingleQuery<int>(Schema.GetCountQuery<T>(criteria), qParams);
+  }
+
+  public T[] GetBy<T>(object example, IList<string> props)
+  {
+    return RunQuery<T>(Schema.GetTableDef<T>().GetSelectByExampleQuery(example, props), example).ToArray();
+  }
+
+  public T[] GetBy<T>(object example, string? orderBy = null, int pageNumber = 1, int pageSize = 20)
+  {
+    if (pageNumber < 1)
+    {
+      throw new ArgumentOutOfRangeException(nameof(pageNumber));
+    }
+
+    if (pageSize < 1)
+    {
+      throw new ArgumentOutOfRangeException(nameof(pageSize));
+    }
+
+    string query = Schema.GetTableDef<T>().GetSelectByExampleQuery(example);
+
+    if (orderBy != null)
+    {
+      query += $" ORDER BY {orderBy}";
+    }
+
+    query += $" LIMIT({pageSize}) OFFSET({(pageNumber - 1) * pageSize})";
+
+    return RunQuery<T>(query, example).ToArray();
+  }
+
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Delete the entity of the given type by its ID.
+  /// </summary>
+  public int DeleteById<T>(int id)
+    where T : IHasPrimary
+  {
+    if (id == 0)
+    {
+      throw new InvalidOperationException($"Invalid id!");
+    }
+
+    var td = Schema.GetTableDef<T>();
+    string query = $"DELETE FROM {td.Name} where id = @id";
+
+    return RunExecute(query, new { id });
+
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public int Add<T>(T entity)
+    where T : IHasPrimary
+  {
+    if (entity.ID != 0)
+    {
+      throw new InvalidOperationException($"The entity already has an assigned ID and can't be added to the set!  Use 'AddOrUpdate' or 'Update' calls instead!");
+    }
+
+    // Keep recursive association inserts on the same connection as the parent.
+    return Add(typeof(T), entity, new HashSet<object>());
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Add a new entity to the database.
+  /// The ID propery will be assigned upon successful creation.
+  /// </summary>
+  internal int Add(Type eType, IHasPrimary entity, HashSet<object> inQueue)
+  {
+    inQueue.Add(entity);
+
+    var td = Schema.GetTableDef(eType);
+
+    // Look for associations / dependent stuff....
+    // For now, single associations only.
+
+    AddUpdateAssociatedEntities(eType, entity, td, inQueue);
+
+    var qParams = Schema.ResolveQueryParams(entity);
+    string query = td.GetInsertQuery(qParams.Keys.ToArray());
+
+    int res = RunSingleQuery<int>(query, qParams);
+
+    entity.ID = res;
+
+    // TODO: If there are manyassociations in the type, we want to update the mappings for them here!
+
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  internal void AddUpdateAssociatedEntities(Type eType, IHasPrimary entity, TableDef td, HashSet<object> inQueue)
+  {
+    foreach (var ad in td.Associations)
+    {
+      switch (ad.AssociationType)
+      {
+        case EAssociationType.Single:
+          {
+            // If we currently have an instance with an ID of zero, then we can think about adding it.
+            var aVal = ad.AssociationProperty.GetValue(entity) as ISingleAssociation;
+            if (aVal != null)
+            {
+              // We can recursively add this one?
+              var data = aVal.GetData();
+
+              if (inQueue.Contains(data.Value))
+              {
+                continue;
+              }
+
+              if (data.Value != null)
+              {
+                Type et = aVal.EntityType;
+                if (data.Value.ID == 0)
+                {
+                  // This is a new, unsaved entity.
+                  Add(et, data.Value, inQueue);
+                  aVal.RefreshID();
+                }
+                else
+                {
+                  Log.Verbose("There is no support to auto-update an entity on Add() [Single]");
+                }
+              }
+            }
+          }
+          break;
+
+        case EAssociationType.Many:
+          {
+            Log.Verbose("Many association type auto-add is not supported!");
+            continue;
+
+            //var aVal = ad.AssociationProperty.GetValue(entity) as IManyAssociation;
+
+            //if (aVal != null)
+            //{
+            //  Type et = aVal.EntityType;
+
+            //  var data = aVal.GetItems();
+            //  foreach (var item in data)
+            //  {
+            //    if (item.ID == 0)
+            //    {
+            //      // We need to somehow add a ref. back to the parent entity.... (entity)
+            //      if (ad.Mutual != null)
+            //      {
+            //        var target = ad.Mutual.PropInfo.GetValue(item);
+            //        var single = target as ISingleAssociation;
+            //        if (single != null)
+            //        {
+            //          single.SetData(entity);
+            //        }
+            //        else
+            //        {
+            //          Log.Verbose($"Association target is not a {nameof(ISingleAssociation)} instance.  No other type is supported at this time!");
+            //        }
+
+            //      }
+            //      if (inQueue.Contains(item)) { continue; }
+            //      Add(et, item, inQueue);
+            //    }
+            //    else
+            //    {
+            //      Log.Verbose("There is no support to auto-update and entity on Add() [Many]");
+            //    }
+            //  }
+            //}
+          }
+          break;
+
+        default:
+          throw new NotSupportedException();
+      }
+
+    }
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Get the entity of the given type by its ID
+  /// </summary>
+  public T? GetById<T>(int id)
+    where T : IHasPrimary
+  {
+    var td = Schema.GetTableDef<T>();
+    string query = td.GetSelectQuery<T>() + " WHERE id = @id";
+
+    return RunSingleQuery<T>(query, new { id });
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Get all instances of the given type that exists in the repository.
+  /// DANGER: This can be very inefficient in certain cases.  Use cursors / pagination in those cases!
+  /// </summary>
+  public T[] GetAll<T>()
+  {
+    var td = Schema.GetTableDef<T>();
+    string query = $"SELECT * FROM {td.Name}";
+
+    var res = RunQuery<T>(query);
+    return res.ToArray();
+
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  // TODO: Make a 'paged' version of this function (GetPaged)
+  public TEntity[] Get<TEntity>(Expression<Func<TEntity, bool>> predicate)
+  {
+    throw new NotImplementedException("this does not work in any way...");
+
+    // throw new NotImplementedException("This is not working at this time!");
+    int x = 10;
+
+    Action(dal =>
+    {
+      // This is where we need to translate the predicate to the correct select, etc.
+      // stuff that would make up the query.
+      // string selectPart=
+      if (predicate.NodeType == ExpressionType.Lambda)
+      {
+        if (predicate.Parameters.Count > 1)
+        {
+          throw new NotSupportedException("no support for multiple parameters!");
+        }
+
+        var param = predicate.Parameters[0];
+        var body = predicate.Body;
+
+        // We will want to split the body into all of sub-expressions so we can
+        // figure out what tables, etc. are being used.
+
+        // Decide what to do about the body....
+        if (body.NodeType == ExpressionType.Equal)
+        {
+          var exp = body as BinaryExpression;
+
+          // The part on the left is the property that we are accessing....
+          // What we want to see if it is from a many association/mapped table.
+          if (exp.Left.NodeType == ExpressionType.Parameter)
+          {
+            // We are doing a select on the table directly.
+
+          }
+          else
+          {
+            throw new NotImplementedException();
+          }
+
+          var l = exp.Left;
+        }
+
+      }
+      else
+      {
+        throw new NotImplementedException("unsupported node type!");
+      }
+
+      // return null;
+    });
+
+    return null;
+
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public IEnumerable<T> GetBy<T>(IList<(string Name, object Value)> props)
+  {
+    var td = Schema.GetTableDef<T>();
+    string query = $"SELECT * FROM {td.Name}";
+
+    // TODO: SchemaDef should have its own QPB:
+    var qb = new QueryParamsBuilder(Schema.Flavor);
+    foreach (var item in props)
+    {
+      qb.Add(item.Name, item.Value);
+    }
+
+    // TODO: We need support for "x IS NULL" because SQL is fucking stupid"
+    string wherePart = qb.GetWhereClause();
+    query += (" " + wherePart);
+
+    var qp = qb.Build();
+    var res = RunQuery<T>(query, qp);
+
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public IEnumerable<T> GetBy<T>(params (string Name, object Value)[] properties)
+  {
+    return GetBy<T>(properties.ToList());
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  public T? GetBySingle<T>(params (string Name, object Value)[] properties)
+  {
+    var td = Schema.GetTableDef<T>();
+    string query = $"SELECT * FROM {td.Name}"; // WHERE name = @name";
+
+    // TODO: SchemaDef should have its own QPB:
+    var qb = new QueryParamsBuilder(Schema.Flavor);
+    foreach (var item in properties)
+    {
+      qb.Add(item.Name, item.Value);
+    }
+
+    string wherePart = qb.GetWhereClause();
+    query += (" " + wherePart);
+
+    var qp = qb.Build();
+    var res = RunSingleQuery<T>(query, qp);
+
+    return res;
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  // REFACTOR:  This function is general enough that it should be part of the SQLFlavor implementations.
+  // SHARE:  This belongs with DataHelpers.
+  public void UpdateEntity<T>(int entityId, params (string key, object? value)[] propsAndValues)
+    where T : IHasPrimary
+  {
+    // TODO: Make sure the schema actually has the type in questions....
+    var td = Schema.GetTableDef<T>()!;
+
+    var t = typeof(T);
+
+    var qpBuilder = new QueryParamsBuilder(Schema.Flavor);
+    qpBuilder.Add("id", entityId);
+
+    var setParts = new List<string>();
+    foreach (var (key, value) in propsAndValues)
+    {
+      // NOTE: We don't have any null support for this!
+
+      // DO NOT CHANGE THE ID OR ATTEMPT TO!
+      if (key == nameof(IHasPrimary.ID))
+      {
+        continue;
+      }
+
+      // NOTE: It would be a good thing if we could query the TableDef directly for this info.  Different SQL flavors
+      // may have different name for their string columns, etc.
+      var col = td.GetColumn(key);
+      if (col == null)
+      {
+        throw new InvalidOperationException($"There is no column with key: {key}!");
+      }
+
+      setParts.Add($"{key} = @{key}");
+
+      var propType = col?.PropInfo?.PropertyType;
+
+      if (propType == null)
+      {
+        // A bit of a HACK:, but we are going to assume that the FK is an integer!
+        if (col.DependencyDef != null)
+        {
+          propType = typeof(int);
+        }
+        else
+        {
+          throw new InvalidOperationException($"Could not resolve the data type for column: {col.DataStoreName}");
+        }
+      }
+      qpBuilder.Add(key, value, propType);
+    }
+
+    string setClause = " SET " + string.Join(", ", setParts);
+    string whereClause = $" WHERE {nameof(IHasPrimary.ID).ToLower()} = @id";
+
+    string query = $"UPDATE {td.Name}" + setClause + whereClause;
+
+    var qp = qpBuilder.Build();
+    int updated = RunExecute(query, qp);
+
+    if (updated != 1)
+    {
+      throw new InvalidOperationException($"Could not update entity in data set: {td.Name}!");
+    }
+
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  // REFACTOR: This should be off in the DataHelpers lib, somewhere.
+  public void UpdateEntity<T>(int entityId, EditData editData)
+    where T : IHasPrimary
+  {
+    // TODO: Make sure the schema actually has the type in questions....
+    var td = Schema.GetTableDef<T>()!;
+
+    var t = typeof(T);
+
+    var qParams = editData.ToQueryParams(Schema.Flavor);
+    var setParts = new List<string>();
+
+    foreach (var item in qParams)
+    {
+      if (item.Key == nameof(IHasPrimary.ID))
+      {
+        continue;
+      }
+
+      var col = td.GetColumn(item.Key)!;
+      setParts.Add($"{col.DataStoreName} = @{item.Key}");
+    }
+
+    string setClause = " SET " + string.Join(", ", setParts);
+    string whereClause = $" WHERE {nameof(IHasPrimary.ID).ToLower()} = @ID";
+
+    string query = $"UPDATE {td.Name}" + setClause + whereClause;
+
+    qParams["ID"] = new QueryParamValue(entityId, System.Data.DbType.Int32);
+
+    int updated = RunExecute(query, qParams);
+    if (updated != 1)
+    {
+      throw new InvalidOperationException($"Could not update entity in data set: {td.Name}!");
+    }
+  }
+
 }
