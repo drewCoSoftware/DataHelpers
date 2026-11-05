@@ -1,3 +1,4 @@
+using System.Linq;
 ﻿using DataHelpers.Data;
 using drewCo.Tools;
 using Npgsql;
@@ -8,7 +9,7 @@ namespace DataHelpers.SqlFlavors.Postgres
   // ==============================================================================================================================
   public class PostgresDataFactory<TSchema> : IDataFactory<TSchema, PostgresFlavor>
   {
-  public SchemaDefinition Schema { get; } = new SchemaDefinition(new PostgresFlavor(), typeof(TSchema));
+    public SchemaDefinition Schema { get; } = new SchemaDefinition(new PostgresFlavor(), typeof(TSchema));
 
     private string Host = default!;
     private string DBName = default!;
@@ -17,7 +18,6 @@ namespace DataHelpers.SqlFlavors.Postgres
     private int Port = default!;
 
     private string ConnectionString = default!;
-
 
     // --------------------------------------------------------------------------------------------------------------------------
     public PostgresDataFactory(string connectionString_)
@@ -38,55 +38,104 @@ namespace DataHelpers.SqlFlavors.Postgres
     }
 
     // --------------------------------------------------------------------------------------------------------------------------
-    public void Action(Action<IDataAccess<TSchema>> action)
+    private DBHandler? ActiveHandler;
+    private bool HasTransaction;
+
+    private TResult WithHandler<TResult>(Func<DBHandler, TResult> action)
     {
-      using (var dal = new PostgresDataAccess<TSchema>(ConnectionString, Schema))
+      if (ActiveHandler != null)
       {
-        action(dal);
+        return action(ActiveHandler);
+      }
+
+      using (var handler = new DBHandler(NpgsqlFactory.Instance, ConnectionString, Schema))
+      {
+        return action(handler);
       }
     }
 
-    // --------------------------------------------------------------------------------------------------------------------------
-    public TData Action<TData>(Func<IDataAccess<TSchema>, TData> action)
+    public IEnumerable<T> RunQuery<T>(string query, object? qParams = null)
     {
-      using (var dal = new PostgresDataAccess<TSchema>(ConnectionString, Schema))
+      return WithHandler(handler => handler.Query<T>(query, Schema.ResolveQueryParams(qParams)).ToArray());
+    }
+
+    public T? RunSingleQuery<T>(string query, object? qParams = null)
+    {
+      return RunQuery<T>(query, qParams).SingleOrDefault();
+    }
+
+    public int RunExecute(string query, object? qParams = null)
+    {
+      return WithHandler(handler => handler.Execute(query, Schema.ResolveQueryParams(qParams)));
+    }
+
+    public void Rollback()
+    {
+      if (ActiveHandler == null)
       {
-        TData res = action(dal);
-        return res;
+        throw new InvalidOperationException("There is no transaction to roll back!");
+      }
+
+      ActiveHandler.Rollback();
+      HasTransaction = false;
+    }
+
+    public void Action(Action<IDataFactory<TSchema, PostgresFlavor>> action)
+    {
+      Action<int>(factory =>
+      {
+        action(factory);
+
+        return 0;
+      });
+    }
+
+    public TData Action<TData>(Func<IDataFactory<TSchema, PostgresFlavor>, TData> action)
+    {
+      if (ActiveHandler != null)
+      {
+        return action(this);
+      }
+
+      using (var handler = new DBHandler(NpgsqlFactory.Instance, ConnectionString, Schema))
+      {
+        var scope = (PostgresDataFactory<TSchema>)MemberwiseClone();
+        scope.ActiveHandler = handler;
+
+        return action(scope);
       }
     }
 
-
-    // --------------------------------------------------------------------------------------------------------------------------
-    public void Transaction(Action<IDataAccess<TSchema>> action)
+    public void Transaction(Action<IDataFactory<TSchema, PostgresFlavor>> action)
     {
-      using (var dataAccess = new PostgresDataAccess<TSchema>(ConnectionString, Schema))
+      if (ActiveHandler != null)
       {
-        var tx = dataAccess.BeginTransaction();
+        throw new InvalidOperationException("Nested transactions are not supported!");
+      }
+
+      using (var handler = new DBHandler(NpgsqlFactory.Instance, ConnectionString, Schema))
+      {
+        var scope = (PostgresDataFactory<TSchema>)MemberwiseClone();
+        scope.ActiveHandler = handler;
+
+        handler.BeginTransaction();
+        scope.HasTransaction = true;
+
         try
         {
-          action(dataAccess);
+          action(scope);
         }
-        catch (Exception ex)
+        catch
         {
-          Log.Exception(ex);
-          Log.Warning("The transaction will be rolled back!");
-
-          dataAccess.Rollback();
+          if (scope.HasTransaction)
+          {
+            handler.Rollback();
+          }
 
           throw;
         }
       }
     }
-
-    // --------------------------------------------------------------------------------------------------------------------------
-    [Obsolete("This will be removed in a future iteration!")]
-    public IDataAccess<TSchema> GetDataAccess()
-    {
-      var res = new PostgresDataAccess<TSchema>(ConnectionString, Schema);
-      return res;
-    }
-
 
     private NpgsqlDataSource _DataSource = null!;
     private NpgsqlDataSource DataSource
@@ -105,7 +154,6 @@ namespace DataHelpers.SqlFlavors.Postgres
       return dataSource;
     }
 
-
     // -----------------------------------------------------------------------------------------------
     public NpgsqlConnection OpenConnection()
     {
@@ -113,7 +161,7 @@ namespace DataHelpers.SqlFlavors.Postgres
       return res;
     }
 
-    // --------------------------------------------------------------------------------------------------------------------------
+  // --------------------------------------------------------------------------------------------------------------------------
     /// <summary>
     /// This makes sure that we have a database, and the schema is correct.
     /// </summary>
@@ -143,13 +191,10 @@ namespace DataHelpers.SqlFlavors.Postgres
       }
     }
 
-
-
     // --------------------------------------------------------------------------------------------------------------------------
     private bool ValidateSchemaExists()
     {
       return false;
-
 
       // NOTE: I am not really sure how ask postgres what databases it may or may not have.....
       // We can worry about this later as we don't need it right now.
@@ -207,7 +252,10 @@ namespace DataHelpers.SqlFlavors.Postgres
       var props = ReflectionTools.GetProperties<TSchema>();
       foreach (var p in props)
       {
-        if (!HasTable(p.Name)) { return false; }
+        if (!HasTable(p.Name))
+        {
+          return false;
+        }
       }
 
       return true;
@@ -238,7 +286,6 @@ namespace DataHelpers.SqlFlavors.Postgres
       }
     }
 
-
     // --------------------------------------------------------------------------------------------------------------------------
     // TODO: SHARE: Put this in the tools lib!
     /// <summary>
@@ -260,7 +307,6 @@ namespace DataHelpers.SqlFlavors.Postgres
         throw new ArgumentOutOfRangeException($"Unsupported directory separator character: '{Path.DirectorySeparatorChar}'!");
       }
     }
-
 
   }
 

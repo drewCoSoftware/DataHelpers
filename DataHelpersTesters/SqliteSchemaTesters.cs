@@ -308,10 +308,9 @@ public class SqliteSchemaTesters : TestBase
         multi.Name = "MyName";
         multi.Number = 1;
 
-        using (var dal = factory.GetDataAccess())
         {
           string insert = td.GetInsertQuery();
-          int newId = dal.RunSingleQuery<int>(insert, multi);
+          int newId = factory.RunSingleQuery<int>(insert, multi);
           Assert.That(newId, Is.Not.EqualTo(0));
           ++addedCount;
         }
@@ -606,7 +605,7 @@ public class SqliteSchemaTesters : TestBase
     };
     factory.Action(dal =>
     {
-      string insert = dal.SchemaDef.GetTableDef<Town>().GetInsertQuery();
+      string insert = dal.Schema.GetTableDef<Town>().GetInsertQuery();
       int newId = dal.RunSingleQuery<int>(insert, t);
       t.ID = newId;
     });
@@ -625,7 +624,7 @@ public class SqliteSchemaTesters : TestBase
 
       factory.Action(dal =>
       {
-        string insert = dal.SchemaDef.GetTableDef<Address>().GetInsertQuery();
+        string insert = dal.Schema.GetTableDef<Address>().GetInsertQuery();
         dal.RunSingleQuery<int>(insert, addr);
       });
     }
@@ -673,7 +672,7 @@ public class SqliteSchemaTesters : TestBase
     };
     factory.Action(dal =>
     {
-      var td = dal.SchemaDef.GetTableDef<Town>();
+      var td = dal.Schema.GetTableDef<Town>();
       string query = td.GetInsertQuery();
       int newId = dal.RunSingleQuery<int>(query, testTown);
       testTown.ID = newId;
@@ -689,7 +688,7 @@ public class SqliteSchemaTesters : TestBase
     };
     factory.Action(dal =>
     {
-      var td = dal.SchemaDef.GetTableDef<Address>();
+      var td = dal.Schema.GetTableDef<Address>();
       string query = td.GetInsertQuery();
       int newId = dal.RunSingleQuery<int>(query, testAddr);
       testAddr.ID = newId;
@@ -706,10 +705,10 @@ public class SqliteSchemaTesters : TestBase
     };
     factory.Action(dal =>
     {
-      var td = dal.SchemaDef.GetTableDef<Person>();
+      var td = dal.Schema.GetTableDef<Person>();
 
       // NOTE: We can update more of the API to use this kind of pattern!
-      var qParams = dal.SchemaDef.ResolveQueryParams(testPerson);
+      var qParams = dal.Schema.ResolveQueryParams(testPerson);
       string query = td.GetInsertQuery(qParams.Keys.ToArray());
 
       int newId = dal.RunSingleQuery<int>(query, testPerson);
@@ -873,7 +872,7 @@ public class SqliteSchemaTesters : TestBase
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  protected SqliteDataAccess<T> CreateSqliteDatabase<T>(string dbName, out SchemaDefinition schema)
+  protected IDataFactory<T, SqliteFlavor> CreateSqliteDatabase<T>(string dbName, out SchemaDefinition schema)
   {
     string dataDir = Path.Combine("./TestData", "Databases");
 
@@ -885,7 +884,7 @@ public class SqliteSchemaTesters : TestBase
 
     schema = factory.Schema;
 
-    var res = factory.GetDataAccess() as SqliteDataAccess<T>;
+    var res = factory;
     return res;
   }
 

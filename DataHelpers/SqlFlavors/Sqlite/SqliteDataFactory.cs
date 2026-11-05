@@ -1,3 +1,4 @@
+using System.Linq;
 using drewCo.Tools;
 using drewCo.Tools.Logging;
 using Microsoft.Data.Sqlite;
@@ -28,55 +29,104 @@ public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public void Action(Action<IDataAccess<TSchema>> action)
+  private DBHandler? ActiveHandler;
+  private bool HasTransaction;
+
+  private TResult WithHandler<TResult>(Func<DBHandler, TResult> action)
   {
-    using (var dal = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory))
+    if (ActiveHandler != null)
     {
-      action(dal);
+      return action(ActiveHandler);
+    }
+
+    using (var handler = new DBHandler(SqliteFactory.Instance, ConnectionString, Schema))
+    {
+      return action(handler);
     }
   }
 
-  // --------------------------------------------------------------------------------------------------------------------------
-  public TData Action<TData>(Func<IDataAccess<TSchema>, TData> action)
+  public IEnumerable<T> RunQuery<T>(string query, object? qParams = null)
   {
-    using (var dal = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory))
+    return WithHandler(handler => handler.Query<T>(query, Schema.ResolveQueryParams(qParams)).ToArray());
+  }
+
+  public T? RunSingleQuery<T>(string query, object? qParams = null)
+  {
+    return RunQuery<T>(query, qParams).SingleOrDefault();
+  }
+
+  public int RunExecute(string query, object? qParams = null)
+  {
+    return WithHandler(handler => handler.Execute(query, Schema.ResolveQueryParams(qParams)));
+  }
+
+  public void Rollback()
+  {
+    if (ActiveHandler == null)
     {
-      TData res = action(dal);
-      return res;
+      throw new InvalidOperationException("There is no transaction to roll back!");
+    }
+
+    ActiveHandler.Rollback();
+    HasTransaction = false;
+  }
+
+  public void Action(Action<IDataFactory<TSchema, SqliteFlavor>> action)
+  {
+    Action<int>(factory =>
+    {
+      action(factory);
+
+      return 0;
+    });
+  }
+
+  public TData Action<TData>(Func<IDataFactory<TSchema, SqliteFlavor>, TData> action)
+  {
+    if (ActiveHandler != null)
+    {
+      return action(this);
+    }
+
+    using (var handler = new DBHandler(SqliteFactory.Instance, ConnectionString, Schema))
+    {
+      var scope = (SqliteDataFactory<TSchema>)MemberwiseClone();
+      scope.ActiveHandler = handler;
+
+      return action(scope);
     }
   }
 
-
-  // --------------------------------------------------------------------------------------------------------------------------
-  public void Transaction(Action<IDataAccess<TSchema>> action)
+  public void Transaction(Action<IDataFactory<TSchema, SqliteFlavor>> action)
   {
-    using (var dataAccess = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory))
+    if (ActiveHandler != null)
     {
-      var tx = dataAccess.BeginTransaction();
+      throw new InvalidOperationException("Nested transactions are not supported!");
+    }
+
+    using (var handler = new DBHandler(SqliteFactory.Instance, ConnectionString, Schema))
+    {
+      var scope = (SqliteDataFactory<TSchema>)MemberwiseClone();
+      scope.ActiveHandler = handler;
+
+      handler.BeginTransaction();
+      scope.HasTransaction = true;
+
       try
       {
-        action(dataAccess);
+        action(scope);
       }
-      catch (Exception ex)
+      catch
       {
-        Log.Exception(ex);
-        Log.Warning("The transaction will be rolled back!");
-
-        dataAccess.Rollback();
+        if (scope.HasTransaction)
+        {
+          handler.Rollback();
+        }
 
         throw;
       }
     }
   }
-
-  // --------------------------------------------------------------------------------------------------------------------------
-  [Obsolete("This will be removed in a future iteration!")]
-  public IDataAccess<TSchema> GetDataAccess()
-  {
-    var res = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory);
-    return res;
-  }
-
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
@@ -94,7 +144,6 @@ public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
     }
   }
 
-
   // --------------------------------------------------------------------------------------------------------------------------
   private void CreateDatabase()
   {
@@ -109,8 +158,6 @@ public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
     }
     conn.Close();
   }
-
-
 
   // --------------------------------------------------------------------------------------------------------------------------
   private bool ValidateSchema()
@@ -134,7 +181,10 @@ public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
     var props = ReflectionTools.GetProperties<TSchema>();
     foreach (var p in props)
     {
-      if (!HasTable(p.Name)) { return false; }
+      if (!HasTable(p.Name))
+      {
+        return false;
+      }
     }
 
     return true;
@@ -164,7 +214,6 @@ public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
 
     return res;
   }
-
 
   // --------------------------------------------------------------------------------------------------------------------------
   // TODO: SHARE: Put this in the tools lib!

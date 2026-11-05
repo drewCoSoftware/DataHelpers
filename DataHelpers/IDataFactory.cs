@@ -12,13 +12,50 @@ namespace DataHelpers;
 public interface IDataFactory<TSchema, TFlavor>
   where TFlavor : ISqlFlavor, new()
 {
-  /// <remarks>Make sure to DISPOSE the returned instance!  Put it in a using block!</remarks>
-  [Obsolete("This will be removed.  Use other 'Action' override instead!")]
-  public IDataAccess<TSchema> GetDataAccess();
-  public void Action(Action<IDataAccess<TSchema>> action);
-  public TData Action<TData>(Func<IDataAccess<TSchema>, TData> action);
-  public void Transaction(Action<IDataAccess<TSchema>> action);
+  public void Action(Action<IDataFactory<TSchema, TFlavor>> action);
+  public TData Action<TData>(Func<IDataFactory<TSchema, TFlavor>, TData> action);
+  public void Transaction(Action<IDataFactory<TSchema, TFlavor>> action);
   public void SetupDatabase();
+
+  /// <summary>Run SQL with an object or QueryParams as parameters.</summary>
+  public IEnumerable<T> RunQuery<T>(string query, object? qParams = null);
+  public T? RunSingleQuery<T>(string query, object? qParams = null);
+  public int RunExecute(string query, object? qParams = null);
+  public void Rollback();
+
+  public int GetCount<T>(string? criteria = null, object? qParams = null)
+  {
+    return RunSingleQuery<int>(Schema.GetCountQuery<T>(criteria), qParams);
+  }
+
+  public T[] GetBy<T>(object example, IList<string> props)
+  {
+    return RunQuery<T>(Schema.GetTableDef<T>().GetSelectByExampleQuery(example, props), example).ToArray();
+  }
+
+  public T[] GetBy<T>(object example, string? orderBy = null, int pageNumber = 1, int pageSize = 20)
+  {
+    if (pageNumber < 1)
+    {
+      throw new ArgumentOutOfRangeException(nameof(pageNumber));
+    }
+
+    if (pageSize < 1)
+    {
+      throw new ArgumentOutOfRangeException(nameof(pageSize));
+    }
+
+    string query = Schema.GetTableDef<T>().GetSelectByExampleQuery(example);
+
+    if (orderBy != null)
+    {
+      query += $" ORDER BY {orderBy}";
+    }
+
+    query += $" LIMIT({pageSize}) OFFSET({(pageNumber - 1) * pageSize})";
+
+    return RunQuery<T>(query, example).ToArray();
+  }
 
   public SchemaDefinition Schema { get; }
 
@@ -29,7 +66,11 @@ public interface IDataFactory<TSchema, TFlavor>
   public int DeleteById<T>(int id)
     where T : IHasPrimary
   {
-    if (id == 0) { throw new InvalidOperationException($"Invalid id!"); }
+    if (id == 0)
+    {
+      throw new InvalidOperationException($"Invalid id!");
+    }
+
     var td = Schema.GetTableDef<T>();
     string query = $"DELETE FROM {td.Name} where id = @id";
 
@@ -45,7 +86,10 @@ public interface IDataFactory<TSchema, TFlavor>
   public int Add<T>(T entity)
     where T : IHasPrimary
   {
-    if (entity.ID != 0) { throw new InvalidOperationException($"The entity already has an assigned ID and can't be added to the set!  Use 'AddOrUpdate' or 'Update' calls instead!"); }
+    if (entity.ID != 0)
+    {
+      throw new InvalidOperationException($"The entity already has an assigned ID and can't be added to the set!  Use 'AddOrUpdate' or 'Update' calls instead!");
+    }
 
     int res = Add(typeof(T), entity, new HashSet<object>());
     return res;
@@ -82,8 +126,6 @@ public interface IDataFactory<TSchema, TFlavor>
     return res;
   }
 
-
-
   //// --------------------------------------------------------------------------------------------------------------------------
   //void AddUpdateAssociatedEntities<T>(T entity, TableDef td) where T : IHasPrimary
   //{
@@ -110,7 +152,13 @@ public interface IDataFactory<TSchema, TFlavor>
               // We can recursively add this one?
               var data = aVal.GetData();
 
-              if (inQueue.Contains(data.Value)) { continue; }
+              if (inQueue.Contains(data.Value))
+
+              {
+
+                continue;
+
+              }
 
               if (data.Value != null)
               {
@@ -234,15 +282,11 @@ public interface IDataFactory<TSchema, TFlavor>
           throw new NotSupportedException("no support for multiple parameters!");
         }
 
-
-
         var param = predicate.Parameters[0];
         var body = predicate.Body;
 
         // We will want to split the body into all of sub-expressions so we can
         // figure out what tables, etc. are being used.
-
-
 
         // Decide what to do about the body....
         if (body.NodeType == ExpressionType.Equal)
@@ -260,6 +304,7 @@ public interface IDataFactory<TSchema, TFlavor>
           {
             throw new NotImplementedException();
           }
+
           var l = exp.Left;
         }
 
@@ -276,17 +321,16 @@ public interface IDataFactory<TSchema, TFlavor>
 
   }
 
-
   // --------------------------------------------------------------------------------------------------------------------------
   public IEnumerable<T> GetBy<T>(IList<(string Name, object Value)> props)
   {
     return Action(dal =>
     {
-      var td = dal.SchemaDef.GetTableDef<T>();
+      var td = dal.Schema.GetTableDef<T>();
       string query = $"SELECT * FROM {td.Name}";
 
       // TODO: SchemaDef should have its own QPB:
-      var qb = new QueryParamsBuilder(dal.SchemaDef.Flavor);
+      var qb = new QueryParamsBuilder(dal.Schema.Flavor);
       foreach (var item in props)
       {
         qb.Add(item.Name, item.Value);
@@ -313,11 +357,11 @@ public interface IDataFactory<TSchema, TFlavor>
   {
     return Action(dal =>
     {
-      var td = dal.SchemaDef.GetTableDef<T>();
+      var td = dal.Schema.GetTableDef<T>();
       string query = $"SELECT * FROM {td.Name}"; // WHERE name = @name";
 
       // TODO: SchemaDef should have its own QPB:
-      var qb = new QueryParamsBuilder(dal.SchemaDef.Flavor);
+      var qb = new QueryParamsBuilder(dal.Schema.Flavor);
       foreach (var item in properties)
       {
         qb.Add(item.Name, item.Value);
@@ -331,7 +375,6 @@ public interface IDataFactory<TSchema, TFlavor>
       return res;
     });
   }
-
 
   // --------------------------------------------------------------------------------------------------------------------------
   // REFACTOR:  This function is general enough that it should be part of the SQLFlavor implementations.
@@ -353,12 +396,18 @@ public interface IDataFactory<TSchema, TFlavor>
       // NOTE: We don't have any null support for this!
 
       // DO NOT CHANGE THE ID OR ATTEMPT TO!
-      if (key == nameof(IHasPrimary.ID)) { continue; }
+      if (key == nameof(IHasPrimary.ID))
+      {
+        continue;
+      }
 
       // NOTE: It would be a good thing if we could query the TableDef directly for this info.  Different SQL flavors
       // may have different name for their string columns, etc.
       var col = td.GetColumn(key);
-      if (col == null) { throw new InvalidOperationException($"There is no column with key: {key}!"); }
+      if (col == null)
+      {
+        throw new InvalidOperationException($"There is no column with key: {key}!");
+      }
 
       setParts.Add($"{key} = @{key}");
 
@@ -378,6 +427,7 @@ public interface IDataFactory<TSchema, TFlavor>
       }
       qpBuilder.Add(key, value, propType);
     }
+
     string setClause = " SET " + string.Join(", ", setParts);
     string whereClause = $" WHERE {nameof(IHasPrimary.ID).ToLower()} = @id";
 
@@ -397,7 +447,6 @@ public interface IDataFactory<TSchema, TFlavor>
 
   }
 
-
   // --------------------------------------------------------------------------------------------------------------------------
   // REFACTOR: This should be off in the DataHelpers lib, somewhere.
   public void UpdateEntity<T>(int entityId, EditData editData)
@@ -413,7 +462,10 @@ public interface IDataFactory<TSchema, TFlavor>
 
     foreach (var item in qParams)
     {
-      if (item.Key == nameof(IHasPrimary.ID)) { continue; }
+      if (item.Key == nameof(IHasPrimary.ID))
+      {
+        continue;
+      }
 
       var col = td.GetColumn(item.Key)!;
       setParts.Add($"{col.DataStoreName} = @{item.Key}");
@@ -423,7 +475,6 @@ public interface IDataFactory<TSchema, TFlavor>
     string whereClause = $" WHERE {nameof(IHasPrimary.ID).ToLower()} = @ID";
 
     string query = $"UPDATE {td.Name}" + setClause + whereClause;
-
 
     Action(dal =>
     {
@@ -458,8 +509,15 @@ public class EditData
     var props = ReflectionTools.GetProperties(typeof(T));
     foreach (var p in props)
     {
-      if (excludeProps?.Contains(p.Name) ?? false) { continue; }
-      if (!p.CanWrite) { continue; }
+      if (excludeProps?.Contains(p.Name) ?? false)
+      {
+        continue;
+      }
+
+      if (!p.CanWrite)
+      {
+        continue;
+      }
 
       object? val = p.GetValue(instance);
       res.AddProperty(p.Name, p.PropertyType, val);
@@ -522,6 +580,7 @@ public class EditData
     {
       throw new InvalidOperationException($"The property: {propName} does not exist in the edit data!");
     }
+
     if (predicate != null)
     {
       T? val = Get<T>(propName);
@@ -542,12 +601,12 @@ public class EditData
     {
       qpBuilder.Add(kv.Key, kv.Value.Item2, kv.Value.Item1);
     }
+
     var res = qpBuilder.Build();
     return res;
   }
 
 }
-
 
 // ==============================================================================================================================
 public interface IHasType

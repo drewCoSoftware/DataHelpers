@@ -88,10 +88,10 @@ public class TestBase
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  protected SqliteDataAccess<T> GetDataAccess<T>(string dataDir, string dbFilePath)
+  protected IDataFactory<T, SqliteFlavor> GetDataAccess<T>(string dataDir, string dbFilePath)
   {
     var factory = new SqliteDataFactory<T>(dataDir, dbFilePath);
-    SqliteDataAccess<T> res = factory.GetDataAccess() as SqliteDataAccess<T>;
+    IDataFactory<T, SqliteFlavor> res = factory;
     return res;
   }
 
