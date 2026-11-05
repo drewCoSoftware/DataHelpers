@@ -49,7 +49,8 @@ public class DBHandler<TSchema> : IDisposable
   private static Dictionary<Type, PropMap> _Generated = new Dictionary<Type, PropMap>();
   private static object _PropMapLock = new object();
 
-  private static Dictionary<Type, List<BindCallback>> _BindCallbacks = new Dictionary<Type, List<BindCallback>>();
+  private static readonly object _BindCallbackLock = new object();
+  private static readonly Dictionary<Type, BindCallback[]> _BindCallbacks = new Dictionary<Type, BindCallback[]>();
 
 
 
@@ -121,15 +122,26 @@ public class DBHandler<TSchema> : IDisposable
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
+  /// <summary>
+  /// Registers a callback safely alongside queries and other registrations.
+  /// Each mapped entity invokes a stable snapshot in registration order.
+  /// Callback execution occurs outside the registry lock.
+  /// </summary>
   public static void RegisterCallback<T>(BindCallback cb)
   {
+    ArgumentNullException.ThrowIfNull(cb);
 
-    if (!_BindCallbacks.TryGetValue(typeof(T), out List<BindCallback> callbacks))
+    lock (_BindCallbackLock)
     {
-      callbacks = new List<BindCallback>();
-      _BindCallbacks.Add(typeof(T), callbacks);
+      _BindCallbacks.TryGetValue(typeof(T), out var callbacks);
+      callbacks ??= Array.Empty<BindCallback>();
+
+      var updated = new BindCallback[callbacks.Length + 1];
+      Array.Copy(callbacks, updated, callbacks.Length);
+      updated[callbacks.Length] = cb;
+
+      _BindCallbacks[typeof(T)] = updated;
     }
-    callbacks.Add(cb);
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -368,13 +380,18 @@ public class DBHandler<TSchema> : IDisposable
           prop.SetValue(instance, useVal);
         }
 
-        // This is where we can do callbacks....
-        if (_BindCallbacks.TryGetValue(typeof(T), out var callbacks))
+        BindCallback[] callbacks;
+        lock (_BindCallbackLock)
         {
-          foreach (var c in callbacks)
-          {
-            c.Invoke((T)instance);
-          }
+          callbacks = _BindCallbacks.TryGetValue(typeof(T), out var registered)
+            ? registered
+            : Array.Empty<BindCallback>();
+        }
+
+        // Invoke a stable snapshot outside the lock so callbacks can register callbacks.
+        foreach (var callback in callbacks)
+        {
+          callback.Invoke((T)instance);
         }
 
       }
@@ -578,11 +595,21 @@ public class DBHandler<TSchema> : IDisposable
 
   public T[] GetBy<T>(object example, IList<string> props)
   {
+    ArgumentNullException.ThrowIfNull(example);
+    ArgumentNullException.ThrowIfNull(props);
+
+    if (props.Count == 0)
+    {
+      throw new ArgumentException("At least one selected property is required.", nameof(props));
+    }
+
     return RunQuery<T>(Schema.GetTableDef<T>().GetSelectByExampleQuery(example, props), example).ToArray();
   }
 
   public T[] GetBy<T>(object example, string? orderBy = null, int pageNumber = 1, int pageSize = 20)
   {
+    ArgumentNullException.ThrowIfNull(example);
+
     if (pageNumber < 1)
     {
       throw new ArgumentOutOfRangeException(nameof(pageNumber));
@@ -629,6 +656,8 @@ public class DBHandler<TSchema> : IDisposable
   public int Add<T>(T entity)
     where T : IHasPrimary
   {
+    ArgumentNullException.ThrowIfNull(entity);
+
     if (entity.ID != 0)
     {
       throw new InvalidOperationException($"The entity already has an assigned ID and can't be added to the set!  Use 'AddOrUpdate' or 'Update' calls instead!");
@@ -846,6 +875,13 @@ public class DBHandler<TSchema> : IDisposable
   // --------------------------------------------------------------------------------------------------------------------------
   public IEnumerable<T> GetBy<T>(IList<(string Name, object Value)> props)
   {
+    ArgumentNullException.ThrowIfNull(props);
+
+    if (props.Count == 0)
+    {
+      throw new ArgumentException("At least one filter is required. Use GetAll to query all rows.", nameof(props));
+    }
+
     var td = Schema.GetTableDef<T>();
     string query = $"SELECT * FROM {td.Name}";
 
@@ -869,12 +905,21 @@ public class DBHandler<TSchema> : IDisposable
   // --------------------------------------------------------------------------------------------------------------------------
   public IEnumerable<T> GetBy<T>(params (string Name, object Value)[] properties)
   {
+    ArgumentNullException.ThrowIfNull(properties);
+
     return GetBy<T>(properties.ToList());
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
   public T? GetBySingle<T>(params (string Name, object Value)[] properties)
   {
+    ArgumentNullException.ThrowIfNull(properties);
+
+    if (properties.Length == 0)
+    {
+      throw new ArgumentException("At least one filter is required.", nameof(properties));
+    }
+
     var td = Schema.GetTableDef<T>();
     string query = $"SELECT * FROM {td.Name}"; // WHERE name = @name";
 
@@ -900,6 +945,8 @@ public class DBHandler<TSchema> : IDisposable
   public void UpdateEntity<T>(int entityId, params (string key, object? value)[] propsAndValues)
     where T : IHasPrimary
   {
+    ArgumentNullException.ThrowIfNull(propsAndValues);
+
     // TODO: Make sure the schema actually has the type in questions....
     var td = Schema.GetTableDef<T>()!;
 
@@ -946,6 +993,11 @@ public class DBHandler<TSchema> : IDisposable
       qpBuilder.Add(key, value, propType);
     }
 
+    if (setParts.Count == 0)
+    {
+      throw new ArgumentException("At least one non-primary-key property must be updated.");
+    }
+
     string setClause = " SET " + string.Join(", ", setParts);
     string whereClause = $" WHERE {nameof(IHasPrimary.ID).ToLower()} = @id";
 
@@ -966,6 +1018,8 @@ public class DBHandler<TSchema> : IDisposable
   public void UpdateEntity<T>(int entityId, EditData editData)
     where T : IHasPrimary
   {
+    ArgumentNullException.ThrowIfNull(editData);
+
     // TODO: Make sure the schema actually has the type in questions....
     var td = Schema.GetTableDef<T>()!;
 
@@ -981,8 +1035,18 @@ public class DBHandler<TSchema> : IDisposable
         continue;
       }
 
-      var col = td.GetColumn(item.Key)!;
+      var col = td.GetColumn(item.Key);
+      if (col == null)
+      {
+        throw new InvalidOperationException($"There is no column with key: {item.Key}!");
+      }
+
       setParts.Add($"{col.DataStoreName} = @{item.Key}");
+    }
+
+    if (setParts.Count == 0)
+    {
+      throw new ArgumentException("At least one non-primary-key property must be updated.");
     }
 
     string setClause = " SET " + string.Join(", ", setParts);
