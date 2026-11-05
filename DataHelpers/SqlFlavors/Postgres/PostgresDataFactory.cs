@@ -10,10 +10,6 @@ namespace DataHelpers.SqlFlavors.Postgres
   {
   public SchemaDefinition Schema { get; } = new SchemaDefinition(new PostgresFlavor(), typeof(TSchema));
 
-    //    public string DataDirectory { get; private set; }
-    //  public string DBFilePath { get; private set; }
-    // public string ConnectionString { get; private set; }
-
     private string Host = default!;
     private string DBName = default!;
     private string Username = default!;
@@ -38,26 +34,7 @@ namespace DataHelpers.SqlFlavors.Postgres
       Password = password_;
       Port = port_;
 
-      //string dbHost = Environment.GetEnvironmentVariable("AWR_DB_HOST")!;
-      //string dbName = Environment.GetEnvironmentVariable("AWR_DATABASE")!;
-      //string dbUser = Environment.GetEnvironmentVariable("AWR_USER")!;
-      //string dbPass = Environment.GetEnvironmentVariable("AWR_DB_PASSWORD")!;
-
       ConnectionString = $"Server={Host};Port={Port};Database={DBName};User ID={Username};Password={Password};Include Error Detail=false";
-
-
-      //PGAccess = new PostgresDataAccess(pgConnection);
-      //SchemaDef = new SchemaDefinition(new PostgresFlavor(), typeof(AWRDBSchema));
-
-      //  DataDirectory = NormalizePathSeparators(dataDir);
-
-      //if (!dbFileName.EndsWith(".sqlite"))
-      //{
-      //  dbFileName += ".sqlite";
-      //}
-
-      //  DBFilePath = Path.Combine(DataDirectory, $"{dbFileName}");
-      // ConnectionString = $"Data Source={DBFilePath};Mode=ReadWriteCreate";
     }
 
     // --------------------------------------------------------------------------------------------------------------------------
@@ -244,10 +221,6 @@ namespace DataHelpers.SqlFlavors.Postgres
     {
       // Helpful:
       // https://www.sqlite.org/schematab.html
-
-      // NOTE: Later we can find a way to validate schema versions or whatever....
-      /// var conn = OpenConnection()  new SqliteConnection(ConnectionString);
-      // conn.Open();
 
       using (var conn = OpenConnection())
       {
