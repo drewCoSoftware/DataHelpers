@@ -1,11 +1,14 @@
 ﻿using DataHelpers;
 using DataHelpers.Data;
+using drewCo.Curations;
 using drewCo.Tools;
 using drewCo.Tools.Logging;
 using Microsoft.Data.Sqlite;
 using Npgsql;
+using System.ComponentModel.Design;
 using System.Data;
 using System.Data.Common;
+using System.Reflection;
 using BindCallback = System.Action<object>;
 
 // ==============================================================================================================================
@@ -277,55 +280,97 @@ public class DBHandler : IDisposable
 
     }
 
+    var td = SchemaDef.TryGetTableDef<T>();
+
+    // We are simply mapping out to whatever type.  Field names must match 1:1
+    // NOTE: This do
+    var allProps = ReflectionTools.GetProperties<T>();
+    var lookup = new Dictionary<string, PropertyInfo>();
+    foreach (var pi in allProps)
+    {
+      lookup.Add(pi.Name, pi);
+    }
 
     while (reader.Read())
     {
-      T item = Activator.CreateInstance<T>();
+      T instance = Activator.CreateInstance<T>();
 
-      var td = SchemaDef.GetTableDef<T>();
-      foreach (KeyValuePair<string, int> kvp in ordinals)
+
+      if (td != null)
       {
-        // We will need to do some extra inspection to handle the joins.....
-        // We will look for a '.' in the name to figure out what class instance it should go to.
-        var col = td.GetColumnByDataStoreName(kvp.Key);
-        if (col == null)
+        foreach (KeyValuePair<string, int> kvp in ordinals)
         {
-          continue;
-        }
-
-        var prop = col.PropInfo;
-        if (prop == null)
-        {
-          if (col.DependencyDef == null)
+          // We will need to do some extra inspection to handle the joins.....
+          // We will look for a '.' in the name to figure out what class instance it should go to.
+          var col = td.GetColumnByDataStoreName(kvp.Key);
+          if (col == null)
           {
-            Log.Verbose($"The column named: {kvp.Key} on type: {td.Name} does not have a PropertyInfo or Association!");
             continue;
           }
 
-          MapAssociationData(reader, item, kvp, col);
+          var prop = col.PropInfo;
+          if (prop == null)
+          {
+            if (col.DependencyDef == null)
+            {
+              Log.Verbose($"The column named: {kvp.Key} on type: {td.Name} does not have a PropertyInfo or Association!");
+              continue;
+            }
 
-          continue;
+            MapAssociationData(reader, instance, kvp, col);
+
+            continue;
+          }
+
+          // Normal property, nullable or otherwise.
+          object? useVal = ResolveValue(reader, kvp.Value, prop.PropertyType);
+          prop.SetValue(instance, useVal);
         }
 
-        // Normal property, nullable or otherwise.
-        object? useVal = ResolveValue(reader, kvp.Value, prop.PropertyType);
-        prop.SetValue(item, useVal);
-      }
-
-      // This is where we can do callbacks....
-      if (_BindCallbacks.TryGetValue(typeof(T), out var callbacks))
-      {
-        foreach (var c in callbacks)
+        // This is where we can do callbacks....
+        if (_BindCallbacks.TryGetValue(typeof(T), out var callbacks))
         {
-          c.Invoke((T)item);
+          foreach (var c in callbacks)
+          {
+            c.Invoke((T)instance);
+          }
         }
-      }
 
-      res.Add(item);
+      }
+      else
+      {
+
+        // var lookup = DictionaryHelpers.PartitionIntoDictionary(allProps, x => x.Name);
+        foreach (KeyValuePair<string, int> kvp in ordinals)
+        {
+          if (lookup.TryGetValue(kvp.Key, out var prop))
+          {
+            // Normal property, nullable or otherwise.
+            object? useVal = ResolveValue(reader, kvp.Value, prop.PropertyType);
+            prop.SetValue(instance, useVal);
+          }
+          else
+          {
+            Log.Debug($"There is no property named: {kvp.Key} on type: {typeof(T)}!");
+            continue;
+          }
+          //if (!names.Contains(kvp.Key))
+          //{
+          //  continue;
+          //}
+
+
+        }
+        // throw new NotImplementedException("can't map non-schema types (yet)!");
+      }
+      res.Add(instance);
     }
 
     return res;
+
   }
+
+
 
   // --------------------------------------------------------------------------------------------------------------------------
   private IEnumerable<T> ReadScalarColumnData<T>(IDataReader reader)
@@ -366,7 +411,7 @@ public class DBHandler : IDisposable
     }
 
     var targetSet = rel.TargetSet; // SchemaDef.GetTableDef(rel.DataSetName);
-   // if (targetSet == null) { throw new NullReferenceException($"There is no data set named: {rel.DataSetName} in the schema!"); }
+                                   // if (targetSet == null) { throw new NullReferenceException($"There is no data set named: {rel.DataSetName} in the schema!"); }
 
     // TODO: If we want, we can determine what the generic data type is....
     //if (targetSet.DataType != rel.TargetProperty.PropertyType)

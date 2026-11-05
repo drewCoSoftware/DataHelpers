@@ -60,7 +60,7 @@ public class PagedData<T>
   // --------------------------------------------------------------------------------------------------------
   public PaginationArgs AsPaginationArgs() { 
     var res = new PaginationArgs() { 
-      CurPage = this.PageNumber,
+      PageNumber = this.PageNumber,
       PageSize = this.PageSize,
       MaxPage = this.TotalPages,
       TotalCount = this.TotalItems,
@@ -81,16 +81,8 @@ public class PagedData<T>
   public static PagedData<T> FromSinglePage(IEnumerable<T> items, int pageNumber, int pageSize, int totalItems)
   {
     return new PagedData<T>(items, pageNumber, pageSize, totalItems);
-    //var res = new PagedData<T>()
-    //{
-    //  Items = items,
-    //  PageNumber = pageNumber,
-    //  RequestedPageSize = pageSize,
-    //  TotalItems = totalItems,
-    //  TotalPages = (totalItems / pageSize) + Math.Sign(totalItems % pageSize),
-    //};
-    //return res;
   }
+
 
   /// <summary>
   /// The cursor of this page.
@@ -144,10 +136,26 @@ public class PagedData<T>
   ///// </summary>
   ///// <value></value>
   //public string? PrevCursor { get; set; } = null;
+  
+  ///// <summary>
+  ///// Convert the page data items to a new type.
+  ///// This is useful for DTOs.
+  ///// </summary>
+  //public PagedData ConvertItems<TTo>(Func<object, TTo> value)
+  //{
+  //  throw new NotImplementedException();
+  //}
+
 }
 
 // ============================================================================================================================
-public class PaginationArgs
+public interface IHasPaging { 
+  int PageNumber { get; set; }
+  int PageSize { get; set; }
+}
+
+// ============================================================================================================================
+public class PaginationArgs : IHasPaging
 {
   public const int DEFAULT_PAGE_SIZE = 10;
 
@@ -159,7 +167,7 @@ public class PaginationArgs
   /// <summary>
   /// The current page number to return results for.
   /// </summary>
-  public int CurPage { get; set; } = 1;
+  public int PageNumber { get; set; } = 1;
 
   /// <summary>
   /// The maxinum number of results to return.
@@ -175,7 +183,7 @@ public class PaginationArgs
   // ------------------------------------------------------------------------------------------------------------
   public PaginationArgs(int page_, int pageSize_)
   {
-    this.CurPage = page_;
+    this.PageNumber = page_;
     this.PageSize = pageSize_;
   }
 }

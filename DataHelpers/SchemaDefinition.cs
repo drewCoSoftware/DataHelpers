@@ -730,6 +730,8 @@ public class SchemaDefinition
   /// </summary>
   public string GetPaginationClause(int pageNumber, int pageSize)
   {
+    if (pageSize == -1) { return string.Empty; }
+
     // This will work for both postgres and sqlite I believe...
     string res = $"LIMIT {pageSize} OFFSET {(pageNumber - 1) * pageSize}";
 
@@ -742,7 +744,7 @@ public class SchemaDefinition
     // This should work for all flavors....
     var td = GetTableDef<T>();
     string res = $"SELECT COUNT(*) FROM {td.Name}";
-    if (criteria != null)
+    if (!string.IsNullOrWhiteSpace(criteria))
     {
       if (!criteria.StartsWith("where", StringComparison.OrdinalIgnoreCase))
       {

@@ -2,6 +2,7 @@
 using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace DataHelpers;
 
@@ -126,6 +127,7 @@ where T : class, IHasPrimary
     _ID = id;
   }
 
+  [JsonIgnore]
   public Type EntityType { get { return typeof(T); } }
 
   /// <summary>
