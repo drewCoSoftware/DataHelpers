@@ -22,11 +22,6 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
   private SchemaDefinition _Schema;
   public SchemaDefinition SchemaDef { get { return _Schema; } }
 
-  //[Obsolete("This will be provided by DBHandler!")]
-  //private SqliteConnection Connection = null!;
-  //[Obsolete]
-  //private SqliteTransaction? Transaction = null!;
-
   private DBHandler DBHandler = null!;
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -37,19 +32,12 @@ public class SqliteDataAccess<TSchema> : IDataAccess<TSchema>
     DataDirectory = dataDir_;
 
     DBHandler = new DBHandler(SqliteFactory.Instance, this.ConnectionString, this.SchemaDef);
-
-    //Connection = new SqliteConnection(ConnectionString);
-    //Connection.Open();
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
   public void Dispose()
   {
     DBHandler.Dispose();
-
-    //Transaction?.Commit();
-    //Transaction?.Dispose();
-    //Connection.Dispose();
   }
 
   // --------------------------------------------------------------------------------------------------------------------------

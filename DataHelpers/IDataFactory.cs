@@ -9,25 +9,24 @@ using System.Runtime.CompilerServices;
 namespace DataHelpers;
 
 // ========================================================================== 
-public interface IDataFactory<TSchema>
+public interface IDataFactory<TSchema, TFlavor>
+  where TFlavor : ISqlFlavor, new()
 {
   /// <remarks>Make sure to DISPOSE the returned instance!  Put it in a using block!</remarks>
-  IDataAccess<TSchema> GetDataAccess();
-  // T Action<T>(Func<IDataAccess<TSchema>, T> action);
-  void Action(Action<IDataAccess<TSchema>> action);
+  [Obsolete("This will be removed.  Use other 'Action' override instead!")]
+  public IDataAccess<TSchema> GetDataAccess();
+  public void Action(Action<IDataAccess<TSchema>> action);
+  public TData Action<TData>(Func<IDataAccess<TSchema>, TData> action);
+  public void Transaction(Action<IDataAccess<TSchema>> action);
+  public void SetupDatabase();
 
-  TData Action<TData>(Func<IDataAccess<TSchema>, TData> action);
-
-  void Transaction(Action<IDataAccess<TSchema>> action);
-  void SetupDatabase();
-
-  SchemaDefinition Schema { get; }
+  public SchemaDefinition Schema { get; }
 
   // --------------------------------------------------------------------------------------------------------------------------
   /// <summary>
   /// Delete the entity of the given type by its ID.
   /// </summary>
-  int DeleteById<T>(int id)
+  public int DeleteById<T>(int id)
     where T : IHasPrimary
   {
     if (id == 0) { throw new InvalidOperationException($"Invalid id!"); }
@@ -43,7 +42,7 @@ public interface IDataFactory<TSchema>
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  int Add<T>(T entity)
+  public int Add<T>(T entity)
     where T : IHasPrimary
   {
     if (entity.ID != 0) { throw new InvalidOperationException($"The entity already has an assigned ID and can't be added to the set!  Use 'AddOrUpdate' or 'Update' calls instead!"); }
@@ -185,7 +184,7 @@ public interface IDataFactory<TSchema>
   /// <summary>
   /// Get the entity of the given type by its ID
   /// </summary>
-  T? GetById<T>(int id)
+  public T? GetById<T>(int id)
     where T : IHasPrimary
   {
     T? res = Action(dal =>
@@ -202,7 +201,7 @@ public interface IDataFactory<TSchema>
   /// Get all instances of the given type that exists in the repository.
   /// DANGER: This can be very inefficient in certain cases.  Use cursors / pagination in those cases!
   /// </summary>
-  T[] GetAll<T>()
+  public T[] GetAll<T>()
   {
     return Action(dal =>
     {
@@ -216,7 +215,7 @@ public interface IDataFactory<TSchema>
 
   // --------------------------------------------------------------------------------------------------------------------------
   // TODO: Make a 'paged' version of this function (GetPaged)
-  TEntity[] Get<TEntity>(Expression<Func<TEntity, bool>> predicate)
+  public TEntity[] Get<TEntity>(Expression<Func<TEntity, bool>> predicate)
   {
     throw new NotImplementedException("this does not work in any way...");
 
@@ -437,42 +436,6 @@ public interface IDataFactory<TSchema>
   }
 
 }
-
-// ========================================================================== 
-public abstract class IDataFactory<TSchema, TFlavor> : IDataFactory<TSchema>
-  where TFlavor : ISqlFlavor, new()
-{
-
-  public SchemaDefinition Schema { get; private set; }
-
-  // --------------------------------------------------------------------------------------------------------------------------
-  public IDataFactory()
-  {
-    Schema = new SchemaDefinition(new TFlavor(), typeof(TSchema));
-  }
-
-  // --------------------------------------------------------------------------------------------------------------------------
-  /// <summary>
-  /// Run an action against the IDataAccess instance.  Useful for reads or things that don't need
-  /// to be in a transactions.
-  /// </summary>
-  [Obsolete("This will be removed.  Use other 'Action' override instead!")]
-  public abstract IDataAccess<TSchema> GetDataAccess();
-
-  /// <summary>
-  /// Run an action against the IDataAccess instance inside of a transaction.  Useful
-  /// for state-sensitive operations.
-  /// </summary>
-  public abstract void Transaction(Action<IDataAccess<TSchema>> action);
-
-  public abstract void Action(Action<IDataAccess<TSchema>> action);
-  public abstract TData Action<TData>(Func<IDataAccess<TSchema>, TData> action);
-
-  public abstract void SetupDatabase();
-}
-
-
-
 
 // ==============================================================================================================================
 // REFACTOR:  This type is very similar to that of QueryParams....

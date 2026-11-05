@@ -7,6 +7,8 @@ namespace DataHelpers.Data;
 // ==============================================================================================================================
 public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
 {
+  public SchemaDefinition Schema { get; } = new SchemaDefinition(new SqliteFlavor(), typeof(TSchema));
+
   public string DataDirectory { get; private set; }
   public string DBFilePath { get; private set; }
   public string ConnectionString { get; private set; }
@@ -26,7 +28,7 @@ public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public override void Action(Action<IDataAccess<TSchema>> action)
+  public void Action(Action<IDataAccess<TSchema>> action)
   {
     using (var dal = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory))
     {
@@ -35,7 +37,7 @@ public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public override TData Action<TData>(Func<IDataAccess<TSchema>, TData> action)
+  public TData Action<TData>(Func<IDataAccess<TSchema>, TData> action)
   {
     using (var dal = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory))
     {
@@ -46,7 +48,7 @@ public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
 
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public override void Transaction(Action<IDataAccess<TSchema>> action)
+  public void Transaction(Action<IDataAccess<TSchema>> action)
   {
     using (var dataAccess = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory))
     {
@@ -69,7 +71,7 @@ public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
 
   // --------------------------------------------------------------------------------------------------------------------------
   [Obsolete("This will be removed in a future iteration!")]
-  public override IDataAccess<TSchema> GetDataAccess()
+  public IDataAccess<TSchema> GetDataAccess()
   {
     var res = new SqliteDataAccess<TSchema>(ConnectionString, Schema, DataDirectory);
     return res;
@@ -81,7 +83,7 @@ public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
   /// This makes sure that we have a database, and the schema is correct.
   /// </summary>
   // TODO: This should be part of the 'IDataFactory' class/interface.
-  public override void SetupDatabase()
+  public void SetupDatabase()
   {
     // Look at the current schema, and make sure that it is up to date....
     bool hasCorrectSchema = ValidateSchema();

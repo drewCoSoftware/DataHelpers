@@ -354,14 +354,7 @@ public class DBHandler : IDisposable
             Log.Debug($"There is no property named: {kvp.Key} on type: {typeof(T)}!");
             continue;
           }
-          //if (!names.Contains(kvp.Key))
-          //{
-          //  continue;
-          //}
-
-
         }
-        // throw new NotImplementedException("can't map non-schema types (yet)!");
       }
       res.Add(instance);
     }

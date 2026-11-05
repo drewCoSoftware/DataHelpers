@@ -15,7 +15,7 @@ public class TestBase
 
 
   // --------------------------------------------------------------------------------------------------------------------------
-  protected static IDataFactory<TSchema> CreateTestDataBaseFor<TSchema>(string dbName)
+  protected static IDataFactory<TSchema, SqliteFlavor> CreateTestDataBaseFor<TSchema>(string dbName)
   {
     string dir = FileTools.GetLocalDir("test-db");
     var factory = new SqliteDataFactory<TSchema>(dir, dbName);
@@ -97,7 +97,7 @@ public class TestBase
 
 
   // --------------------------------------------------------------------------------------------------------------------------
-  protected void PopulateVacationDB(IDataFactory<VacationSchema> factory)
+  protected void PopulateVacationDB(IDataFactory<VacationSchema, SqliteFlavor> factory)
   {
     string[] placeNames = new[] {
       "Testistan,Royal Gardens",

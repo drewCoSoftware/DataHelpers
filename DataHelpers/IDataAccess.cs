@@ -33,9 +33,6 @@ public interface IDataAccess<TSchema> : IDisposable
   /// </param>
   T? RunSingleQuery<T>(string query, object? qParams = null);
 
-  // TableAccess<TSchema> Table(string name);
-
-
   /// <summary>
   /// Rollback any currently active transaction.
   /// </summary>

@@ -8,6 +8,8 @@ namespace DataHelpers.SqlFlavors.Postgres
   // ==============================================================================================================================
   public class PostgresDataFactory<TSchema> : IDataFactory<TSchema, PostgresFlavor>
   {
+  public SchemaDefinition Schema { get; } = new SchemaDefinition(new PostgresFlavor(), typeof(TSchema));
+
     //    public string DataDirectory { get; private set; }
     //  public string DBFilePath { get; private set; }
     // public string ConnectionString { get; private set; }
@@ -59,7 +61,7 @@ namespace DataHelpers.SqlFlavors.Postgres
     }
 
     // --------------------------------------------------------------------------------------------------------------------------
-    public override void Action(Action<IDataAccess<TSchema>> action)
+    public void Action(Action<IDataAccess<TSchema>> action)
     {
       using (var dal = new PostgresDataAccess<TSchema>(ConnectionString, Schema))
       {
@@ -68,7 +70,7 @@ namespace DataHelpers.SqlFlavors.Postgres
     }
 
     // --------------------------------------------------------------------------------------------------------------------------
-    public override TData Action<TData>(Func<IDataAccess<TSchema>, TData> action)
+    public TData Action<TData>(Func<IDataAccess<TSchema>, TData> action)
     {
       using (var dal = new PostgresDataAccess<TSchema>(ConnectionString, Schema))
       {
@@ -79,7 +81,7 @@ namespace DataHelpers.SqlFlavors.Postgres
 
 
     // --------------------------------------------------------------------------------------------------------------------------
-    public override void Transaction(Action<IDataAccess<TSchema>> action)
+    public void Transaction(Action<IDataAccess<TSchema>> action)
     {
       using (var dataAccess = new PostgresDataAccess<TSchema>(ConnectionString, Schema))
       {
@@ -102,7 +104,7 @@ namespace DataHelpers.SqlFlavors.Postgres
 
     // --------------------------------------------------------------------------------------------------------------------------
     [Obsolete("This will be removed in a future iteration!")]
-    public override IDataAccess<TSchema> GetDataAccess()
+    public IDataAccess<TSchema> GetDataAccess()
     {
       var res = new PostgresDataAccess<TSchema>(ConnectionString, Schema);
       return res;
@@ -138,7 +140,7 @@ namespace DataHelpers.SqlFlavors.Postgres
     /// <summary>
     /// This makes sure that we have a database, and the schema is correct.
     /// </summary>
-    public override void SetupDatabase()
+    public void SetupDatabase()
     {
       // Look at the current schema, and make sure that it is up to date....
       bool hasCorrectSchema = ValidateSchemaExists();
