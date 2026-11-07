@@ -114,7 +114,7 @@
 //  /// <summary>
 //  /// Apply the given migration against a target database.
 //  /// </summary>
-//  public void ApplyMigration(Migration migration, IDataAccess<TSchema> dataAccess)
+//  public void ApplyMigration(Migration migration, IDataFactory<TSchema> dataAccess)
 //  {
 //      if (migration?.Script?.SQL == null)
 //      { 

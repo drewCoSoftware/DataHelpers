@@ -4,6 +4,7 @@ using System.Linq.Expressions;
 
 namespace DataHelpers;
 
+// ==============================================================================================================================
 public interface IDataFactory<TSchema>
 {
   public SchemaDefinition Schema { get; }
