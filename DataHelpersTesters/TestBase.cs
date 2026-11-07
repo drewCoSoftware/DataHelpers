@@ -15,10 +15,10 @@ public class TestBase
 
 
   // --------------------------------------------------------------------------------------------------------------------------
-  protected static IDataFactory<TSchema, SqliteFlavor> CreateTestDataBaseFor<TSchema>(string dbName)
+  protected static IDataFactory<TSchema> CreateTestDataBaseFor<TSchema>(string dbName)
   {
     string dir = FileTools.GetLocalDir("test-db");
-    var factory = new SqliteDataFactory<TSchema>(dir, dbName);
+    var factory = new SqliteDataFactory<TSchema>(dir, dbName, new SqliteFlavor());
     FileTools.DeleteExistingFile(factory.DBFilePath);
     factory.SetupDatabase();
     return factory;
@@ -88,16 +88,16 @@ public class TestBase
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  protected IDataFactory<T, SqliteFlavor> GetDataAccess<T>(string dataDir, string dbFilePath)
+  protected IDataFactory<T> GetDataAccess<T>(string dataDir, string dbFilePath)
   {
-    var factory = new SqliteDataFactory<T>(dataDir, dbFilePath);
-    IDataFactory<T, SqliteFlavor> res = factory;
+    var factory = new SqliteDataFactory<T>(dataDir, dbFilePath, new SqliteFlavor());
+    IDataFactory<T> res = factory;
     return res;
   }
 
 
   // --------------------------------------------------------------------------------------------------------------------------
-  protected void PopulateVacationDB(IDataFactory<VacationSchema, SqliteFlavor> factory)
+  protected void PopulateVacationDB(IDataFactory<VacationSchema> factory)
   {
     string[] placeNames = new[] {
       "Testistan,Royal Gardens",

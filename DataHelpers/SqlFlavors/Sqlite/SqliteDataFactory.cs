@@ -6,17 +6,21 @@ using Microsoft.Data.Sqlite;
 namespace DataHelpers.Data;
 
 // ==============================================================================================================================
-public class SqliteDataFactory<TSchema> : IDataFactory<TSchema, SqliteFlavor>
+public class SqliteDataFactory<TSchema> : IDataFactory<TSchema>
 {
-  public SchemaDefinition Schema { get; } = new SchemaDefinition(new SqliteFlavor(), typeof(TSchema));
+  public SchemaDefinition Schema { get; }
 
   public string DataDirectory { get; private set; }
   public string DBFilePath { get; private set; }
   public string ConnectionString { get; private set; }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  public SqliteDataFactory(string dataDir, string dbFileName)
+  public SqliteDataFactory(string dataDir, string dbFileName, ISqlFlavor flavor)
   {
+    ArgumentNullException.ThrowIfNull(flavor);
+
+    Schema = new SchemaDefinition(flavor, typeof(TSchema));
+
     DataDirectory = NormalizePathSeparators(dataDir);
 
     if (!dbFileName.EndsWith(".sqlite"))

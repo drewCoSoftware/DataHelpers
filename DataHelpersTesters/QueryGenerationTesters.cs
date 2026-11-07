@@ -43,7 +43,7 @@ namespace DataHelpersTesters
     public void CanGetEntityByProperties()
     {
       const string TEST_NAME = nameof(CanGetEntityByProperties);
-      IDataFactory<VacationSchema, SqliteFlavor> factory = CreateTestDataBaseFor<VacationSchema>(TEST_NAME);
+      IDataFactory<VacationSchema> factory = CreateTestDataBaseFor<VacationSchema>(TEST_NAME);
 
       var expected = new Place() { Name = "King's Gardens", Country = "Testistan" };
       factory.Add(new Place() { Name = expected.Name, Country = "Otherland" });
@@ -82,7 +82,7 @@ namespace DataHelpersTesters
       const string TEST_NAME = nameof(CanUpdateEntity);
 
       var schema = new SchemaDefinition(new SqliteFlavor(), typeof(BusinessSchema));
-      IDataFactory<BusinessSchema, SqliteFlavor> factory = CreateTestDataBaseFor<BusinessSchema>(TEST_NAME);
+      IDataFactory<BusinessSchema> factory = CreateTestDataBaseFor<BusinessSchema>(TEST_NAME);
 
       // Make sure that the associations are correct.....
       var adt = factory.Schema.GetTableDef<Address>();
@@ -168,7 +168,7 @@ namespace DataHelpersTesters
       const string TEST_NAME = nameof(CanSelectViaMappingTables);
 
       var schema = new SchemaDefinition(new SqliteFlavor(), typeof(SchemaWithMappedTypes));
-      IDataFactory<SchemaWithMappedTypes, SqliteFlavor> factory = CreateTestDataBaseFor<SchemaWithMappedTypes>(TEST_NAME);
+      IDataFactory<SchemaWithMappedTypes> factory = CreateTestDataBaseFor<SchemaWithMappedTypes>(TEST_NAME);
 
       // Show that the mapping table was created and we can reference it:
       var td = factory.Schema.GetMappingTable<Player, Team>();
@@ -234,7 +234,7 @@ namespace DataHelpersTesters
       const string TEST_NAME = nameof(CanDirectInsertObject);
 
       var schema = new SchemaDefinition(new SqliteFlavor(), typeof(BusinessSchema));
-      IDataFactory<BusinessSchema, SqliteFlavor> factory = CreateTestDataBaseFor<BusinessSchema>(TEST_NAME);
+      IDataFactory<BusinessSchema> factory = CreateTestDataBaseFor<BusinessSchema>(TEST_NAME);
 
       const string TEST_TOWN = "TheTown";
       var town = new Town()
@@ -254,7 +254,7 @@ namespace DataHelpersTesters
       const string TEST_NAME = nameof(CanCreateQueryParamsFromObjectInstance);
 
       var schema = new SchemaDefinition(new SqliteFlavor(), typeof(BusinessSchema));
-      IDataFactory<BusinessSchema, SqliteFlavor> factory = CreateTestDataBaseFor<BusinessSchema>(TEST_NAME);
+      IDataFactory<BusinessSchema> factory = CreateTestDataBaseFor<BusinessSchema>(TEST_NAME);
 
       var town = new Town()
       {
@@ -302,7 +302,7 @@ namespace DataHelpersTesters
     public void CanCreateInsertQueries()
     {
       const string TEST_NAME = nameof(CanCreateInsertQueries);
-      IDataFactory<VacationSchema, SqliteFlavor> factory = CreateTestDataBaseFor<VacationSchema>(TEST_NAME);
+      IDataFactory<VacationSchema> factory = CreateTestDataBaseFor<VacationSchema>(TEST_NAME);
       PopulateVacationDB(factory);
 
 

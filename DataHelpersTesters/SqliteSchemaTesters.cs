@@ -204,7 +204,7 @@ public class SqliteSchemaTesters : TestBase
   [Test]
   public void CanCreateOneWayManyToOneRelationAssociation()
   {
-    IDataFactory<OneWayManyToOneSchema, SqliteFlavor> factory = CreateTestDataBaseFor<OneWayManyToOneSchema>(CurrentFunctionName());
+    IDataFactory<OneWayManyToOneSchema> factory = CreateTestDataBaseFor<OneWayManyToOneSchema>(CurrentFunctionName());
 
     var s = factory.Schema;
     Assert.That(s, Is.Not.Null);
@@ -262,7 +262,7 @@ public class SqliteSchemaTesters : TestBase
   [Test]
   public void CanUseGUIDInSchema()
   {
-    IDataFactory<DataTypesSchema, SqliteFlavor> factory = CreateTestDataBaseFor<DataTypesSchema>(CurrentFunctionName());
+    IDataFactory<DataTypesSchema> factory = CreateTestDataBaseFor<DataTypesSchema>(CurrentFunctionName());
 
     DateTimeOffset testDate = DateTimeOffset.Now;
     Guid testGuid = Guid.NewGuid();
@@ -288,7 +288,7 @@ public class SqliteSchemaTesters : TestBase
   [Test]
   public void CanCreateMultiColumnUniqueIndex()
   {
-    IDataFactory<AdvancedFeaturesSchema, SqliteFlavor> factory = CreateTestDataBaseFor<AdvancedFeaturesSchema>(CurrentFunctionName());
+    IDataFactory<AdvancedFeaturesSchema> factory = CreateTestDataBaseFor<AdvancedFeaturesSchema>(CurrentFunctionName());
     var td = factory.Schema.GetTableDef<MultiColUnique>();
 
     Assert.That(td.Indexes.Count, Is.EqualTo(1));
@@ -328,7 +328,7 @@ public class SqliteSchemaTesters : TestBase
   [Test]
   public void CanUseCompositeDataTypesInFields()
   {
-    IDataFactory<AdvancedFeaturesSchema, SqliteFlavor> factory = CreateTestDataBaseFor<AdvancedFeaturesSchema>(CurrentFunctionName());
+    IDataFactory<AdvancedFeaturesSchema> factory = CreateTestDataBaseFor<AdvancedFeaturesSchema>(CurrentFunctionName());
 
     var data = new TypeWithComposite()
     {
@@ -356,7 +356,7 @@ public class SqliteSchemaTesters : TestBase
   [Test]
   public void CanUseEnumInDataType()
   {
-    IDataFactory<AdvancedFeaturesSchema, SqliteFlavor> factory = CreateTestDataBaseFor<AdvancedFeaturesSchema>(CurrentFunctionName());
+    IDataFactory<AdvancedFeaturesSchema> factory = CreateTestDataBaseFor<AdvancedFeaturesSchema>(CurrentFunctionName());
 
     // Let's add some data...
     var data = new TypeWithEnum()
@@ -378,7 +378,7 @@ public class SqliteSchemaTesters : TestBase
   [Test]
   public void CanUseOptionalAssociation()
   {
-    IDataFactory<VacationSchema, SqliteFlavor> factory = CreateTestDataBaseFor<VacationSchema>(CurrentFunctionName());
+    IDataFactory<VacationSchema> factory = CreateTestDataBaseFor<VacationSchema>(CurrentFunctionName());
     var schema = factory.Schema;
 
     TableDef td = schema.GetTableDef<Traveler>();
@@ -403,7 +403,7 @@ public class SqliteSchemaTesters : TestBase
     Assert.Inconclusive("'CreateParams' feautre no longer exists!");
 
 
-    IDataFactory<VacationSchema, SqliteFlavor> factory = CreateTestDataBaseFor<VacationSchema>(CurrentFunctionName());
+    IDataFactory<VacationSchema> factory = CreateTestDataBaseFor<VacationSchema>(CurrentFunctionName());
     var schema = factory.Schema;
     PopulateVacationDB(factory);
 
@@ -501,7 +501,7 @@ public class SqliteSchemaTesters : TestBase
   [Test]
   public void CanModelManytoManyRelationship()
   {
-    IDataFactory<VacationSchema, SqliteFlavor> factory = CreateTestDataBaseFor<VacationSchema>(nameof(CanModelManytoManyRelationship));
+    IDataFactory<VacationSchema> factory = CreateTestDataBaseFor<VacationSchema>(nameof(CanModelManytoManyRelationship));
     var schema = factory.Schema;
 
 
@@ -648,7 +648,7 @@ public class SqliteSchemaTesters : TestBase
   {
 
     string dir = FileTools.GetLocalDir("test-db");
-    var factory = new SqliteDataFactory<BusinessSchema>(dir, nameof(CanModelSingleAssociation));
+    var factory = new SqliteDataFactory<BusinessSchema>(dir, nameof(CanModelSingleAssociation), new SqliteFlavor());
     FileTools.DeleteExistingFile(factory.DBFilePath);
 
     string create = factory.Schema.GetCreateSQL();
@@ -801,7 +801,7 @@ public class SqliteSchemaTesters : TestBase
   [Test]
   public void RunSingleQueryFailsWhenResultSetHasMoreThanOneResult()
   {
-    IDataFactory<SimpleSchema, SqliteFlavor> factory = CreateTestDataBaseFor<SimpleSchema>(nameof(RunSingleQueryFailsWhenResultSetHasMoreThanOneResult));
+    IDataFactory<SimpleSchema> factory = CreateTestDataBaseFor<SimpleSchema>(nameof(RunSingleQueryFailsWhenResultSetHasMoreThanOneResult));
     var schema = factory.Schema;
 
 
@@ -872,13 +872,13 @@ public class SqliteSchemaTesters : TestBase
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
-  protected IDataFactory<T, SqliteFlavor> CreateSqliteDatabase<T>(string dbName, out SchemaDefinition schema)
+  protected IDataFactory<T> CreateSqliteDatabase<T>(string dbName, out SchemaDefinition schema)
   {
     string dataDir = Path.Combine("./TestData", "Databases");
 
     string dbFilePath = Path.GetFullPath(Path.Combine(dataDir, dbName + ".sqlite"));
 
-    var factory = new SqliteDataFactory<T>(dataDir, dbFilePath);
+    var factory = new SqliteDataFactory<T>(dataDir, dbFilePath, new SqliteFlavor());
     FileTools.DeleteExistingFile(factory.DBFilePath);
     factory.SetupDatabase();
 

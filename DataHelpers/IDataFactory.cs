@@ -4,8 +4,7 @@ using System.Linq.Expressions;
 
 namespace DataHelpers;
 
-public interface IDataFactory<TSchema, TFlavor>
-  where TFlavor : ISqlFlavor, new()
+public interface IDataFactory<TSchema>
 {
   public SchemaDefinition Schema { get; }
 

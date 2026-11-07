@@ -23,7 +23,7 @@ namespace DataHelpersTesters
     [Test]
     public async Task CanRunTransactionsOnMultipleThreads()
     {
-      var factory = new SqliteDataFactory<SimpleSchema>("./test-data", nameof(CanRunTransactionsOnMultipleThreads));
+      var factory = new SqliteDataFactory<SimpleSchema>("./test-data", nameof(CanRunTransactionsOnMultipleThreads), new SqliteFlavor());
       factory.SetupDatabase();
 
       const int MAX_THREADS = 5;

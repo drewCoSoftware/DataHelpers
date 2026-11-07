@@ -22,7 +22,7 @@ public class DbHandlerCrudTesters : TestBase
     public int Number { get; set; }
   }
 
-  private IDataFactory<SimpleSchema, SqliteFlavor> CreateFactory()
+  private IDataFactory<SimpleSchema> CreateFactory()
   {
     return CreateTestDataBaseFor<SimpleSchema>($"Crud_{TestContext.CurrentContext.Test.ID}");
   }

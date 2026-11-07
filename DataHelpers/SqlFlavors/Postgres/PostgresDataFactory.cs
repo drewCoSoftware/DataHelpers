@@ -7,9 +7,9 @@ using drewCo.Tools.Logging;
 namespace DataHelpers.SqlFlavors.Postgres
 {
   // ==============================================================================================================================
-  public class PostgresDataFactory<TSchema> : IDataFactory<TSchema, PostgresFlavor>
+  public class PostgresDataFactory<TSchema> : IDataFactory<TSchema>
   {
-    public SchemaDefinition Schema { get; } = new SchemaDefinition(new PostgresFlavor(), typeof(TSchema));
+    public SchemaDefinition Schema { get; }
 
     private string Host = default!;
     private string DBName = default!;
@@ -20,14 +20,22 @@ namespace DataHelpers.SqlFlavors.Postgres
     private string ConnectionString = default!;
 
     // --------------------------------------------------------------------------------------------------------------------------
-    public PostgresDataFactory(string connectionString_)
+    public PostgresDataFactory(string connectionString_, ISqlFlavor flavor)
     {
+      ArgumentNullException.ThrowIfNull(flavor);
+
+      Schema = new SchemaDefinition(flavor, typeof(TSchema));
+
       ConnectionString = connectionString_;
     }
 
     // --------------------------------------------------------------------------------------------------------------------------
-    public PostgresDataFactory(string host_, string dbName_, string username_, string password_, int port_)
+    public PostgresDataFactory(string host_, string dbName_, string username_, string password_, int port_, ISqlFlavor flavor)
     {
+      ArgumentNullException.ThrowIfNull(flavor);
+
+      Schema = new SchemaDefinition(flavor, typeof(TSchema));
+
       Host = host_;
       DBName = dbName_;
       Username = username_;
