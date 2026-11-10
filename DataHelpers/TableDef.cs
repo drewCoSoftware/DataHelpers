@@ -8,10 +8,12 @@ using System.Reflection;
 using System.Data;
 using System.Net.WebSockets;
 using System.Runtime.InteropServices.Marshalling;
+using System.Diagnostics;
 
 namespace DataHelpers.Data;
 
 // ============================================================================================================================
+[DebuggerDisplay("{Name}")]
 public class TableDef
 {
   public Type DataType { get; private set; }
@@ -27,7 +29,7 @@ public class TableDef
   ///// </summary>
   //internal List<AssociationDef> DataSetDependencies { get; set; }
 
-  internal List<TableDef> DataSetDependencies { get; set; } = new List<TableDef>();
+  internal List<(TableDef DataSet, bool IsOptional)> DataSetDependencies { get; set; } = new List<(TableDef DataSet, bool IsOptional)>();
   internal List<AssociationDef> Associations { get; set; } = new List<AssociationDef>();
 
   // NOTE: This should probably be a dictionary.....
@@ -722,14 +724,14 @@ public class TableDef
   {
     foreach (var col in Columns)
     {
-      if (col.DependencyDef != null && !col.DependencyDef.IsOptional)
+      if (col.DependencyDef != null)
       {
         var ad = col.DependencyDef;
 
         // NOTE: I don't think that we need to do any other integrity checking at this time.
         // That should all be handled during schema generation...
         // Yes, if we do it that way, then the checks below get a lot simpler.
-        DataSetDependencies.Add(ad.TargetSet);
+        DataSetDependencies.Add((ad.TargetSet, ad.IsOptional));
 
         // We need to make sure that the data type mentioned in the Association Attribute
         // matches the data type of the (Single|Many)Association.
@@ -1033,9 +1035,9 @@ public class TableDef
   /// </summary>
   internal bool HasTableDependency(TableDef toDataSet)
   {
-    foreach (var otherSet in this.DataSetDependencies)
+    foreach (var item in this.DataSetDependencies)
     {
-      if (otherSet.DataType == toDataSet.DataType)
+      if (item.DataSet.DataType == toDataSet.DataType)
       {
         return true;
       }

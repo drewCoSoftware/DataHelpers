@@ -540,9 +540,10 @@ public class SchemaDefinition
     foreach (var t in _TableDefs.Values)
     {
       // Circular reference test.
-      foreach (var dataSet in t.DataSetDependencies)
+      foreach (var item in t.DataSetDependencies)
       {
-        if (dataSet.HasTableDependency(t))
+        var dataSet = item.DataSet;
+        if (!item.IsOptional && dataSet.HasTableDependency(t))
         {
           // This co-dependency only matters when we have enforced one->one relations.
           // Otherwise, one 
@@ -552,8 +553,10 @@ public class SchemaDefinition
       }
 
       // Primary test.
-      foreach (var pSet in t.DataSetDependencies)
+      foreach (var item in t.DataSetDependencies)
       {
+        var pSet = item.DataSet;
+
         // The parent table MUST have a primary key!
         bool hasPrimary = ReflectionTools.HasInterface<IHasPrimary>(pSet.DataType);
         if (!hasPrimary)
@@ -614,10 +617,6 @@ public class SchemaDefinition
     }
 
     return sb.ToString();
-
-
-
-    // throw new NotImplementedException();
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
@@ -646,9 +645,9 @@ public class SchemaDefinition
       foreach (var item in candidates)
       {
         bool hasAll = true;
-        foreach (var dataSet in item.DataSetDependencies)
+        foreach (var depItem in item.DataSetDependencies)
         {
-          if (!used.Contains(dataSet))
+          if (!used.Contains(depItem.DataSet))
           {
             hasAll = false;
             break;
