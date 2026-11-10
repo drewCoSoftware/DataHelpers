@@ -38,11 +38,18 @@ public class UniqueAssociationOwner : IHasPrimary
 public class UniqueAssociationTarget : IHasPrimary
 {
   public int ID { get; set; }
+  public int Number { get; set; }
 }
 
 public class UniqueAssociationChild : IHasPrimary
 {
   public int ID { get; set; }
+
+  [Association(nameof(UniqueAssociationSchema.Owners), AssociationName = "ExclusiveOwner")]
+  public SingleAssociation<UniqueAssociationOwner> Owner { get; set; } = new SingleAssociation<UniqueAssociationOwner>();
+
+  [Association(nameof(UniqueAssociationSchema.Owners), AssociationName = "GroupedOwner")]
+  public SingleAssociation<UniqueAssociationOwner> GroupedOwner { get; set; } = new SingleAssociation<UniqueAssociationOwner>();
 
   [Unique(Group = "OwnerNumber")]
   public int Number { get; set; }
