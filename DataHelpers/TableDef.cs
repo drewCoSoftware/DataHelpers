@@ -144,12 +144,6 @@ public class TableDef
         }
       }
 
-      // TODO: We might populate indexes differently in the future....
-      // In fact, we probably will....
-      var uniqueAttr = ReflectionTools.GetAttribute<UniqueAttribute>(p);
-      bool isUnique = ReflectionTools.HasAttribute<UniqueAttribute>(p);
-
-
       // TODO: The property type should also be checked for nullable!
       // TODO: ReflectionTools needs to be updated to include all of this so that nullables can be correctly detected!
       bool isNullable = ReflectionTools.HasAttribute<IsNullableAttribute>(p) ||
@@ -850,6 +844,8 @@ public class TableDef
         Log.Info($"A redunant association field on set: {targetSet} with name: {targetFieldName} was encountered!  A new one will not be added!");
       }
 
+      colDef.UniqueConstraints.AddRange(col.UniqueConstraints);
+
 
       // We will resolve the mutual.  It will have a matching property or ID name...
       // string useFieldName = ad.TargetIDField
@@ -912,6 +908,7 @@ public class TableDef
       ad.IsOptional = col.IsNullable;
 
       fkField.DependencyDef = ad;
+      fkField.UniqueConstraints.AddRange(col.UniqueConstraints);
 
       toAdd.Add(fkField);
 
@@ -996,18 +993,18 @@ public class TableDef
     var uniqueSets = new Dictionary<string, List<ColumnDef>>();
     foreach (var col in Columns)
     {
-      // if(col.RelationDef != null) { cont
-      if (col.PropInfo != null)
+      foreach (var attr in col.UniqueConstraints)
       {
-        var attr = ReflectionTools.GetAttribute<UniqueAttribute>(col.PropInfo);
-        if (attr != null)
+        string group = attr.Group ?? string.Empty;
+
+        if (!uniqueSets.TryGetValue(group, out var cols))
         {
-          string group = attr.Group ?? string.Empty;
-          if (!uniqueSets.TryGetValue(group, out var cols))
-          {
-            cols = new List<ColumnDef>();
-            uniqueSets[group] = cols;
-          }
+          cols = new List<ColumnDef>();
+          uniqueSets[group] = cols;
+        }
+
+        if (!cols.Contains(col))
+        {
           cols.Add(col);
         }
       }

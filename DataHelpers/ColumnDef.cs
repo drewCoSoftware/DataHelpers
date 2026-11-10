@@ -31,6 +31,8 @@ public class ColumnDef
 
   public PropertyInfo PropInfo { get; private set; } = null!;
 
+  internal List<UniqueAttribute> UniqueConstraints { get; } = new List<UniqueAttribute>();
+
   /// <summary>
   /// A copy of the defining attriute for the association.
   /// This is needed so we can properly define the associations in a later setup step.
@@ -64,6 +66,13 @@ public class ColumnDef
     PropInfo = propInfo_;
 
     IsComposite = isComposite_;
+
+    var constraint = propInfo_?.GetCustomAttribute<UniqueAttribute>();
+
+    if (constraint != null)
+    {
+      UniqueConstraints.Add(constraint);
+    }
   }
 
   // --------------------------------------------------------------------------------------------------------------------------
