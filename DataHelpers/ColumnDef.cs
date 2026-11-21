@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
+using drewCo.Tools;
+using drewCo.Tools.Logging;
 
 namespace DataHelpers.Data;
 
@@ -32,6 +34,8 @@ public class ColumnDef
   public PropertyInfo PropInfo { get; private set; } = null!;
 
   internal List<UniqueAttribute> UniqueConstraints { get; } = new List<UniqueAttribute>();
+
+  public object? DefaultValue { get ; private set; }
 
   /// <summary>
   /// A copy of the defining attriute for the association.
@@ -67,12 +71,42 @@ public class ColumnDef
 
     IsComposite = isComposite_;
 
+    DefaultValue = GetDefaultValue(PropInfo);
+
     var constraint = propInfo_?.GetCustomAttribute<UniqueAttribute>();
 
     if (constraint != null)
     {
       UniqueConstraints.Add(constraint);
     }
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private static object? GetDefaultValue(PropertyInfo? propInfo)
+  {
+    if (propInfo == null)  { return null; }
+
+    var attribute = ReflectionTools.GetAttribute<DefaultValueAttribute>(propInfo);
+    if (attribute == null)
+    {
+      return null;
+    }
+
+    var value = attribute.Value;
+    if (value == null)
+    {
+      Log.Warning($"Ignoring the null default value for property {propInfo.DeclaringType}.{propInfo.Name}.");
+      return null;
+    }
+
+    var propertyType = Nullable.GetUnderlyingType(propInfo.PropertyType) ?? propInfo.PropertyType;
+    var valueType = value.GetType();
+    if (valueType != propertyType)
+    {
+      throw new InvalidOperationException($"The default value type {valueType} for property {propInfo.DeclaringType}.{propInfo.Name} must match {propertyType}.");
+    }
+
+    return value;
   }
 
   // --------------------------------------------------------------------------------------------------------------------------

@@ -9,6 +9,7 @@ using System.Data;
 using System.Net.WebSockets;
 using System.Runtime.InteropServices.Marshalling;
 using System.Diagnostics;
+using System.Globalization;
 
 namespace DataHelpers.Data;
 
@@ -270,8 +271,20 @@ public class TableDef
     {
       string useName = col.DataStoreName;
       string useColType = col.DataType;
+      var defaultValue = col.DefaultValue;
 
-      string def = $"{useName} {col.DataType}";
+      if (col.IsPrimary && defaultValue != null)
+      {
+        useColType = Schema.Flavor.TypeResolver.GetDataTypeName(col.RuntimeType, false);
+
+        if (Schema.Flavor is SqliteFlavor && string.Equals(useColType, "INTEGER", StringComparison.OrdinalIgnoreCase))
+        {
+          // SQLite generates a rowid for INTEGER PRIMARY KEY even if a default is specified.
+          useColType = "INT";
+        }
+      }
+
+      string def = $"{useName} {useColType}";
       if (col.DependencyDef != null && Schema.Flavor.UsesInlineFKDeclaration)
       {
         def += $" REFERENCES {col.DependencyDef.TargetSet.Name} ({col.DependencyDef.TargetIDField.PropertyName})";
@@ -279,7 +292,12 @@ public class TableDef
 
       if (col.IsPrimary)
       {
-        def += " PRIMARY KEY" + Schema.Flavor.GetIdentitySyntax(col);
+        def += " PRIMARY KEY";
+
+        if (defaultValue == null)
+        {
+          def += Schema.Flavor.GetIdentitySyntax(col);
+        }
       }
 
       if (!col.IsNullable)
@@ -289,6 +307,12 @@ public class TableDef
       else
       {
         def += " NULL";
+      }
+
+      if (defaultValue != null)
+      {
+        string literal = FormatDefaultValue(defaultValue);
+        def += $" DEFAULT {literal}";
       }
 
       colDefs.Add(def);
@@ -342,6 +366,33 @@ public class TableDef
     return res;
 
 
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private string FormatDefaultValue(object value)
+  {
+    var culture = CultureInfo.InvariantCulture;
+    return value switch
+    {
+      bool flag => flag ? Schema.Flavor.TrueValue : Schema.Flavor.FalseValue,
+      Enum item => item.ToString("D"),
+      string or char => QuoteDefaultValue(value),
+      float number when float.IsFinite(number) => number.ToString("R", culture),
+      double number when double.IsFinite(number) => number.ToString("R", culture),
+      byte or sbyte or short or ushort or int or uint or long or ulong or decimal => Convert.ToString(value, culture)!,
+      Guid id => $"'{id:D}'",
+      DateTime date => $"'{date.ToString("O", culture)}'",
+      DateTimeOffset date => $"'{date.ToString("O", culture)}'",
+      _ => throw new NotSupportedException($"The value '{value}' cannot be used as a column default.")
+    };
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------
+  private static string QuoteDefaultValue(object value)
+  {
+    string text = value.ToString()!;
+    string escaped = text.Replace("'", "''");
+    return $"'{escaped}'";
   }
 
   // --------------------------------------------------------------------------------------------------------------------------

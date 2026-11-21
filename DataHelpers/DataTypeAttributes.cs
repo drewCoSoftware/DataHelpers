@@ -17,6 +17,18 @@ public class UniqueAttribute : Attribute
 
 
 // ==========================================================================
+/// <summary>
+/// Specifies a database column default. The value's type must match the property's type.
+/// </summary>
+[AttributeUsage(AttributeTargets.Property)]
+public sealed class DefaultValueAttribute : Attribute
+{
+  private object? _Value;
+  public object? Value { get { return _Value; } set { _Value = value; } }
+}
+
+
+// ==========================================================================
 [AttributeUsage(AttributeTargets.Property)]
 public class IsNullableAttribute : Attribute
 { }
